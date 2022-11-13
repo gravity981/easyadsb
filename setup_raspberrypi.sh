@@ -11,7 +11,6 @@ if [ -z "$isConfigured" ]; then
   echo enable_uart=1 >> /boot/config.txt
   echo force_turbo=1 >> /boot/config.txt
   echo "configured /boot/config.txt"
-  # TODO screen resolution is still wrong
 else
   echo "/boot/config.txt already configured"
 fi
@@ -25,7 +24,7 @@ else
   echo "/boot/cmdline.txt already configured"
 fi
 
-echo "disable serial service"
+echo "disable serial-getty service"
 systemctl stop serial-getty@ttyAMA0.service
 systemctl disable serial-getty@ttyAMA0.service
 
@@ -75,6 +74,7 @@ while true; do
 done
 echo "done"
 
+# Configure LXDE autostart
 function replaceAutostart() {
   cp /etc/xdg/lxsession/LXDE-pi/autostart /etc/xdg/lxsession/LXDE-pi/autostart_backup
   # load chromium after boot and open the website in full screen mode
@@ -82,11 +82,8 @@ function replaceAutostart() {
   echo "@xset -dpms" >> /etc/xdg/lxsession/LXDE-pi/autostart
   echo "@xset s noblank" >> /etc/xdg/lxsession/LXDE-pi/autostart
   echo "@chromium-browser --kiosk http://localhost:8080" >> /etc/xdg/lxsession/LXDE-pi/autostart
-  # TODO add unclutter line for cursor
-  # TODO page is not shown correctly
 }
 
-# Configure LXDE autostart
 echo "Configure LXDE autostart"
 isAutostartConfigured=$(cat /etc/xdg/lxsession/LXDE-pi/autostart | grep chromium-browser)
 if [ -z "$isAutostartConfigured" ]; then
@@ -103,6 +100,22 @@ else
 fi
 echo "done"
 
+# Switch resolution to 720x480 (3.5" HDMI LCD Display)
+
+function writeXprofile() {
+  echo "#!/bin/bash" > /home/pi/.xprofile
+  echo "xrandr -display :0.0 -s 720x480" >> /home/pi/.xprofile
+  chmod +x /home/pi/.xprofile
+  chown pi:pi /home/pi/.xprofile
+}
+while true; do
+      read -p "Do you wish to change the screen resolution to 720x480? " yn
+      case $yn in
+          [Yy]* ) writeXprofile; break;; #su - pi -c "xrandr -display :0.0 -s 720x480" 
+          [Nn]* ) break;;
+          * ) echo "Please answer yes or no.";;
+      esac
+  done
 
 # Reboot
 while true; do
