@@ -7,7 +7,7 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/home/pi/easyadsb
-ExecStart=/usr/bin/docker compose -p "easyadsb" up -d
+ExecStart=/usr/bin/docker compose -p "easyadsb" up -d --remove-orphans
 ExecStop=/usr/bin/docker compose -p "easyadsb" down
 TimeoutStartSec=0
 

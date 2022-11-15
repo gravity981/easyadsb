@@ -6,7 +6,7 @@ isConfigured=$(cat /boot/config.txt | grep core_freq)
 if [ -z "$isConfigured" ]; then
   cp /boot/config.txt /boot/config_backup.txt
   echo dtparam=spi=on >> /boot/config.txt
-  echo dtoverlay=pi3-disable-bt >> /boot/config.txt
+  echo dtoverlay=disable-bt >> /boot/config.txt
   echo core_freq=250 >> /boot/config.txt
   echo enable_uart=1 >> /boot/config.txt
   echo force_turbo=1 >> /boot/config.txt
@@ -51,6 +51,7 @@ if [ -z "$dockerBin" ]; then
   curl -fsSL https://get.docker.com -o get-docker.sh
   source get-docker.sh
   usermod -aG docker $(whoami)
+  rm get-docker.sh
 else
   dockerVersion=$(docker -v)
   echo "docker already installed: $dockerVersion"

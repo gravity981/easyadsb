@@ -1,10 +1,32 @@
-version: '2.0'
+version: '3.9'
 
 volumes:
   readsbpb_rrd:
   readsbpb_autogain:
 
 services:
+  gpsreader:
+    image: gpsreader
+    container_name: gpsreader
+    devices: 
+      - /dev/ttyAMA0
+    depends_on: 
+      - mqtt
+    environment:
+      - GR_LOG_LEVEL=INFO
+      - GR_SERIAL_DEVICE=/dev/ttyAMA0
+      - GR_MQTT_HOST=mqtt
+      - GR_MQTT_PORT=1883
+      - GR_MQTT_CLIENT_NAME=gps_reader
+      - GR_MQTT_PUBLISH_TOPIC=/gps/nmea
+
+  mqtt:
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    container_name: mqtt
+    image: eclipse-mosquitto
 
   readsb:
     image: ghcr.io/sdr-enthusiasts/docker-readsb-protobuf:latest
@@ -35,3 +57,5 @@ services:
     tmpfs:
       - /run/readsb:size=64M
       - /var/log:size=32M
+    profiles:
+      - "donotstart"
