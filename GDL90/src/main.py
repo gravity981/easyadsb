@@ -48,7 +48,7 @@ def launch_mqtt(client_name, host, port) -> mqtt.Client:
 
 def on_nmea_message(msg):
     try:
-        nmea = NMEAReader.parse(msg)
+        nmea = NMEAReader.parse(msg.payload.decode())
         logger.debug(nmea)
     except Exception:
         logger.error("nmea message parse error")
@@ -56,7 +56,7 @@ def on_nmea_message(msg):
 
 def on_sbs_message(msg):
     try:
-        sbs = SBSReader.parse(msg)
+        sbs = SBSReader.parse(msg.payload.decode())
         logger.debug(sbs)
     except Exception:
         logger.error("sbs message parse error")
@@ -65,9 +65,9 @@ def on_sbs_message(msg):
     
 def on_message(client, userdata, msg):
     if msg.topic == nmea_topic:
-        on_nmea_message(msg.payload.decode())
+        on_nmea_message(msg)
     elif msg.topic == sbs_topic:
-        on_sbs_message(msg.payload.decode())
+        on_sbs_message(msg)
     else:
         logger.warning("message from unexpected topic \"{topic}\"".format(topic=msg.topic))
 
@@ -76,6 +76,7 @@ if __name__ == '__main__':
     logger = None
     client = None
     run = True
+
     trafficMonitor = Monitor.TrafficMonitor()
 
     logger_name="logger"
@@ -104,6 +105,6 @@ if __name__ == '__main__':
     while(run):
         logger.info("entries: {count}".format(count=len(trafficMonitor.traffic.keys())))
         for k, v in trafficMonitor.traffic.items():
-            logger.info("id={id}, callsign={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}"
-            .format(id=v.id, callsign=v.callsign, lat=v.latitude, lon=v.longitude, alt=v.altitude, trk=v.track, spd=v.groundSpeed))
+            logger.info("id={id}, callsign={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}"
+            .format(id=v.id, callsign=v.callsign, lat=v.latitude, lon=v.longitude, alt=v.altitude, trk=v.track, spd=v.groundSpeed, cnt=v.msgCount))
         time.sleep(10)

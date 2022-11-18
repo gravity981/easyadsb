@@ -3,6 +3,7 @@ from SBSReader import SBSMessage
 from datetime import datetime, timedelta
 import threading
 import logging
+import json
 
 logger = logging.getLogger("logger")
 
@@ -53,6 +54,7 @@ class TrafficEntry:
         self.track = track
         self.groundSpeed = groundSpeed
         self.lastSeen = datetime.now()
+        self.msgCount = 1
     
     def update(self, msg: SBSMessage):
         if self.id != msg.hexIdent:
@@ -69,21 +71,24 @@ class TrafficEntry:
         if msg.groundSpeed != None:
             self.groundSpeed = msg.groundSpeed
         self.lastSeen = datetime.now()
+        self.msgCount += 1
 
 class TrafficMonitor:
 
-    def __init__(self):
+    def __init__(self, ):
         self.traffic = dict()
+        with open('/home/app/aircrafts.json') as json_file:
+            self.db = json.load(json_file)
         self.cleanup()
     
     def cleanup(self):
         threading.Timer(10, self.cleanup).start()
         now = datetime.now()
-        timeout = 20
+        timeout = 300
         for k in list(self.traffic.keys()):
             trafficEntry = self.traffic[k]
             if trafficEntry.lastSeen < now - timedelta(seconds=timeout):
-                logger.info("remove traffic {id} which was unseen for longer than {sec} seconds".format(id=trafficEntry.id, sec=timeout))
+                logger.info("remove unseen traffic entry {id} / {cs} (older than {sec} seconds)".format(id=trafficEntry.id, cs=trafficEntry.callsign, sec=timeout))
                 del self.traffic[k]
 
 
@@ -91,6 +96,7 @@ class TrafficMonitor:
         if msg.hexIdent in self.traffic:
             self.traffic[msg.hexIdent].update(msg)
         else:
-            logger.info("add new traffic entry {id}".format(id=msg.hexIdent))
-            self.traffic[msg.hexIdent] = TrafficEntry(msg.hexIdent, None, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
+            callsign = self.db[msg.hexIdent][0] if msg.hexIdent in self.db.keys() else None
+            logger.info("add new traffic entry for {id} / {cs}".format(id=msg.hexIdent, cs=callsign))
+            self.traffic[msg.hexIdent] = TrafficEntry(msg.hexIdent, callsign, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
 
