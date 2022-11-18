@@ -1,5 +1,5 @@
 from enum import Enum
-from SBSReader import SBSMessage
+from SBSProtocol import SBSMessage
 from datetime import datetime, timedelta
 import threading
 import logging
