@@ -17,14 +17,14 @@ class SimpleMqttClient:
     def __on_connect(self, client, userdata, flags, rc):
         if rc == 0:
             self.is_connected = True
-            self.logger.debug('connected to mqtt server')
+            self.logger.info('connected to mqtt server')
             if self.on_connection_state_changed is not None:
                 self.on_connection_state_changed(self.is_connected)
         else:
             self.logger.error('could not connect to mqtt server. code: %s', str(rc))
 
     def __on_disconnect(self, client, userdata, rc):
-        self.logger.debug('disconnected from mqtt server, code: %s, userdata: %s', str(rc), str(userdata))
+        self.logger.info('disconnected from mqtt server, code: %s, userdata: %s', str(rc), str(userdata))
 
     def connect(self):
         self.client.on_connect = self.__on_connect

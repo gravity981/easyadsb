@@ -6,8 +6,8 @@ volumes:
 
 services:
   gpsreader:
-    image: gpsreader
     container_name: gpsreader
+    image: gpsreader
     devices: 
       - /dev/ttyAMA0
     depends_on: 
@@ -19,14 +19,16 @@ services:
       - GR_MQTT_PORT=1883
       - GR_MQTT_CLIENT_NAME=gps_reader
       - GR_MQTT_PUBLISH_TOPIC=/gps/nmea
+    restart: unless-stopped
 
   mqtt:
+    container_name: mqtt
+    image: eclipse-mosquitto
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     ports:
       - "1883:1883"
-    container_name: mqtt
-    image: eclipse-mosquitto
+    restart: unless-stopped
 
   readsb:
     image: ghcr.io/sdr-enthusiasts/docker-readsb-protobuf:latest
@@ -58,4 +60,4 @@ services:
       - /run/readsb:size=64M
       - /var/log:size=32M
     profiles:
-      - "donotstart"
+      - nostart

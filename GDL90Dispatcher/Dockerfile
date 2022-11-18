@@ -1,4 +1,4 @@
-from arm32v7/ubuntu:bionic
+FROM arm32v7/ubuntu:bionic
 
 # Install packages
 RUN apt-get update && \
