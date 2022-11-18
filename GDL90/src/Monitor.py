@@ -60,6 +60,7 @@ class TrafficEntry:
         if self.id != msg.hexIdent:
             logger.warning("cannot update traffic entry with mismatching hexIdent")
             return
+        # do not update callsign
         if msg.latitude != None:
             self.latitude = msg.latitude
         if msg.longitude != None:
@@ -72,6 +73,20 @@ class TrafficEntry:
             self.groundSpeed = msg.groundSpeed
         self.lastSeen = datetime.now()
         self.msgCount += 1
+
+    def allFieldsSet() -> bool:
+        # do not check callsign
+        if msg.latitude == None:
+            return False
+        if msg.longitude == None:
+            return False
+        if msg.altitude == None:
+            return False
+        if msg.track == None:
+            return False
+        if msg.groundSpeed == None:
+            return False
+        return True
 
 class TrafficMonitor:
 
@@ -91,12 +106,11 @@ class TrafficMonitor:
                 logger.info("remove unseen traffic entry {id} / {cs} (older than {sec} seconds)".format(id=trafficEntry.id, cs=trafficEntry.callsign, sec=timeout))
                 del self.traffic[k]
 
-
     def update(self, msg: SBSMessage):
         if msg.hexIdent in self.traffic:
             self.traffic[msg.hexIdent].update(msg)
         else:
             callsign = self.db[msg.hexIdent][0] if msg.hexIdent in self.db.keys() else None
-            logger.info("add new traffic entry for {id} / {cs}".format(id=msg.hexIdent, cs=callsign))
+            logger.info("add new traffic entry {id} / {cs}".format(id=msg.hexIdent, cs=callsign))
             self.traffic[msg.hexIdent] = TrafficEntry(msg.hexIdent, callsign, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
 

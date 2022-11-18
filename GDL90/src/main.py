@@ -5,7 +5,7 @@ import time
 import atexit
 import os
 from pynmeagps import NMEAReader
-import SBSReader
+import SBSProtocol
 import Monitor
 
 def setup_logging(level: str):
@@ -56,7 +56,7 @@ def on_nmea_message(msg):
 
 def on_sbs_message(msg):
     try:
-        sbs = SBSReader.parse(msg.payload.decode())
+        sbs = SBSProtocol.parse(msg.payload.decode())
         logger.debug(sbs)
     except Exception:
         logger.error("sbs message parse error")
