@@ -51,7 +51,10 @@ def on_nmea_message(msg):
     # todo update position
 
 def on_sbs_message(msg):
-    sbs = SBSReader.parse(msg)
+    try:
+        sbs = SBSReader.parse(msg)
+    except Exception:
+        log.error("sbs message parse error")
     logger.debug(sbs)
     # todo update traffic list
 
