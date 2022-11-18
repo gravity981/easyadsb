@@ -1,25 +1,68 @@
 version: '3.9'
 
-volumes:
-  readsbpb_rrd:
-  readsbpb_autogain:
-
 services:
-  gpsreader:
-    container_name: gpsreader
-    image: gpsreader
+  dump1090:
+    container_name: dump1090
+    image: dump1090
+    build:
+      context: dump1090
+    devices:
+      - /dev/bus/usb
+    restart: unless-stopped
+
+  gps_publisher:
+    container_name: gps_publisher
+    image: streampublisher
+    build:
+      context: StreamPublisher
     devices: 
       - /dev/ttyAMA0
     depends_on: 
       - mqtt
     environment:
-      - GR_LOG_LEVEL=INFO
-      - GR_SERIAL_DEVICE=/dev/ttyAMA0
-      - GR_MQTT_HOST=mqtt
-      - GR_MQTT_PORT=1883
-      - GR_MQTT_CLIENT_NAME=gps_reader
-      - GR_MQTT_PUBLISH_TOPIC=/gps/nmea
+      - SR_LOG_LEVEL=INFO
+      - SR_INPUT_MODE=SERIAL
+      - SR_SERIAL_DEVICE=/dev/ttyAMA0
+      - SR_MQTT_HOST=mqtt
+      - SR_MQTT_PORT=1883
+      - SR_MQTT_CLIENT_NAME=gps_reader
+      - SR_MQTT_PUBLISH_TOPIC=/gps/nmea
     restart: unless-stopped
+
+  adsb_publisher:
+    container_name: adsb_publisher
+    image: streampublisher
+    build:
+      context: StreamPublisher
+    depends_on: 
+      - mqtt
+      - dump1090
+    environment:
+      - SR_LOG_LEVEL=INFO
+      - SR_INPUT_MODE=TCP
+      - SR_TCP_HOST=dump1090
+      - SR_TCP_PORT=30003
+      - SR_MQTT_HOST=mqtt
+      - SR_MQTT_PORT=1883
+      - SR_MQTT_CLIENT_NAME=adsb_reader
+      - SR_MQTT_PUBLISH_TOPIC=/adsb/sbs
+    restart: unless-stopped
+
+  gdl90:
+    container_name: gdl90
+    image: gdl90
+    build:
+      context: GDL90
+    depends_on:
+      - mqtt
+    environment:
+      - GD_LOG_LEVEL=INFO
+      - GD_MQTT_HOST=mqtt
+      - GD_MQTT_PORT=1883
+      - GD_MQTT_CLIENT_NAME=gdl90
+      - GD_MQTT_NMEA_TOPIC=/gps/nmea
+      - GD_MQTT_SBS_TOPIC=/adsb/sbs
+      - GD_MQTT_PUBLISH_TOPIC=/gdl90
 
   mqtt:
     container_name: mqtt
@@ -27,37 +70,5 @@ services:
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
     ports:
-      - "1883:1883"
+      - 1883:1883
     restart: unless-stopped
-
-  readsb:
-    image: ghcr.io/sdr-enthusiasts/docker-readsb-protobuf:latest
-    tty: true
-    container_name: readsb
-    hostname: readsb
-    restart: always
-    devices:
-      - /dev/bus/usb:/dev/bus/usb
-    ports:
-      - 8080:8080
-      - 30005:30005
-    environment:
-      - TZ=UTC
-      - READSB_DCFILTER=true
-      - READSB_DEVICE_TYPE=rtlsdr
-      - READSB_FIX=true
-      - READSB_GAIN=autogain
-      - READSB_LAT=41.3218265
-      - READSB_LON=2.0065446667
-      - READSB_MODEAC=true
-      - READSB_RX_LOCATION_ACCURACY=2
-      - READSB_STATS_RANGE=true
-      - READSB_NET_ENABLE=true
-    volumes:
-      - readsbpb_rrd:/run/collectd
-      - readsbpb_autogain:/run/autogain
-    tmpfs:
-      - /run/readsb:size=64M
-      - /var/log:size=32M
-    profiles:
-      - nostart

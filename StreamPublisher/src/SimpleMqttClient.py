@@ -60,19 +60,6 @@ class SimpleMqttClient:
         self.client.loop_stop()
         self.client.disconnect()
 
-    def publish_retained(self, topic, message):
-        if self.client.is_connected():
-            message_info = self.client.publish(topic, payload=message, qos=0, retain=True)
-            message_info.wait_for_publish()
-            if message_info.is_published():
-                return True
-            else:
-                self.logger.warning("failed to publish message")
-                return False
-        else:
-            self.logger.warning("cannot publish message, client is not connected")
-        return False
-
     def publish(self, topic, message):
         if self.client.is_connected():
             self.client.publish(topic, payload=message)

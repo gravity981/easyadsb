@@ -49,7 +49,7 @@ echo "Install Docker..."
 dockerBin=$(which docker)
 if [ -z "$dockerBin" ]; then
   curl -fsSL https://get.docker.com -o get-docker.sh
-  source get-docker.sh
+  source get-docker.sh # FIXME: scripts exits after this
   usermod -aG docker $(whoami)
   rm get-docker.sh
 else
@@ -104,6 +104,7 @@ echo "done"
 # Switch resolution to 720x480 (3.5" HDMI LCD Display)
 
 function writeXprofile() {
+  # FIXME: the xrandr command seems to be correct but it does not get executed automatically
   echo "#!/bin/bash" > /home/pi/.xprofile
   echo "xrandr -display :0.0 -s 720x480" >> /home/pi/.xprofile
   chmod +x /home/pi/.xprofile
@@ -112,7 +113,7 @@ function writeXprofile() {
 while true; do
       read -p "Do you wish to change the screen resolution to 720x480? " yn
       case $yn in
-          [Yy]* ) writeXprofile; break;; #su - pi -c "xrandr -display :0.0 -s 720x480" 
+          [Yy]* ) writeXprofile; break;;
           [Nn]* ) break;;
           * ) echo "Please answer yes or no.";;
       esac
