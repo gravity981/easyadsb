@@ -1,14 +1,9 @@
-FROM arm32v7/ubuntu:bionic
+FROM arm32v7/alpine:3.16.3
 
 # Install packages
-RUN apt-get update && \
-	apt-get install -y \
-	vim \
-	ifupdown \
-	hostapd \
-	isc-dhcp-server
+RUN apk add	ifupdown hostapd dhcp-server-vanilla
 
-# Configure Hostapd, use open config per default
+# Configure Hostapd
 COPY ./conf/hostapd.conf /etc/hostapd/hostapd.conf
 
 # Configure DHCPD
