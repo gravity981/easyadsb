@@ -6,6 +6,7 @@ import atexit
 import os
 from pynmeagps import NMEAReader
 import SBSReader
+import Monitor
 
 def setup_logging(level: str):
     fmt = '[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s'
@@ -46,18 +47,22 @@ def launch_mqtt(client_name, host, port) -> mqtt.Client:
     return client
 
 def on_nmea_message(msg):
-    nmea = NMEAReader.parse(msg)
-    logger.debug(nmea)
-    # todo update position
+    try:
+        nmea = NMEAReader.parse(msg)
+        logger.debug(nmea)
+    except Exception:
+        logger.error("nmea message parse error")
+        return
 
 def on_sbs_message(msg):
     try:
         sbs = SBSReader.parse(msg)
+        logger.debug(sbs)
     except Exception:
-        log.error("sbs message parse error")
-    logger.debug(sbs)
-    # todo update traffic list
-
+        logger.error("sbs message parse error")
+        return
+    trafficMonitor.update(sbs)
+    
 def on_message(client, userdata, msg):
     if msg.topic == nmea_topic:
         on_nmea_message(msg.payload.decode())
@@ -71,6 +76,7 @@ if __name__ == '__main__':
     logger = None
     client = None
     run = True
+    trafficMonitor = Monitor.TrafficMonitor()
 
     logger_name="logger"
     log_level = str(os.getenv('GD_LOG_LEVEL', default='INFO'))
@@ -96,4 +102,8 @@ if __name__ == '__main__':
     client.subscribe(nmea_topic)
     client.subscribe(sbs_topic)
     while(run):
-        time.sleep(5)
+        logger.info("entries: {count}".format(count=len(trafficMonitor.traffic.keys())))
+        for k, v in trafficMonitor.traffic.items():
+            logger.info("id={id}, callsign={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}"
+            .format(id=v.id, callsign=v.callsign, lat=v.latitude, lon=v.longitude, alt=v.altitude, trk=v.track, spd=v.groundSpeed))
+        time.sleep(10)
