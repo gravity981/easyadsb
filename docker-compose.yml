@@ -48,21 +48,23 @@ services:
       - SR_MQTT_PUBLISH_TOPIC=/adsb/sbs
     restart: unless-stopped
 
-  gdl90:
-    container_name: gdl90
-    image: gdl90
+  monitor:
+    container_name: monitor
+    image: monitor
     build:
-      context: GDL90
+      context: monitor
     depends_on:
       - mqtt
     environment:
-      - GD_LOG_LEVEL=INFO
-      - GD_MQTT_HOST=mqtt
-      - GD_MQTT_PORT=1883
-      - GD_MQTT_CLIENT_NAME=gdl90
-      - GD_MQTT_NMEA_TOPIC=/gps/nmea
-      - GD_MQTT_SBS_TOPIC=/adsb/sbs
-      - GD_MQTT_PUBLISH_TOPIC=/gdl90
+      - MO_LOG_LEVEL=INFO
+      - MO_MQTT_HOST=localhost
+      - MO_MQTT_PORT=1883
+      - MO_MQTT_CLIENT_NAME=monitor
+      - MO_MQTT_NMEA_TOPIC=/gps/nmea
+      - MO_MQTT_SBS_TOPIC=/adsb/sbs
+      - MO_GDL90_BROADCAST_IP=192.168.77.255
+      - MO_GDL90_PORT=4000
+    network_mode: host
 
   mqtt:
     container_name: mqtt

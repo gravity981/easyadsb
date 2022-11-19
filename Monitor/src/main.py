@@ -50,18 +50,26 @@ def launch_mqtt(client_name, host, port) -> mqtt.Client:
 
 def on_nmea_message(msg):
     try:
-        nmea = NMEAReader.parse(msg.payload.decode())
+        dec = msg.payload.decode()
+        nmea = NMEAReader.parse(dec)
         logger.debug(nmea)
-    except Exception as e:
-        logger.error("nmea message parse error, {}".format(e))
+    except UnicodeDecodeError:
+        logger.error("on nmea message payload decode error, \"{}\"".format(msg.payload))
+        return
+    except Exception as ex:
+        logger.error("on nmea message error, {}, \"{}\"".format(str(ex), dec))
         return
 
 def on_sbs_message(msg):
     try:
-        sbs = SBSProtocol.parse(msg.payload.decode())
+        dec = msg.payload.decode("UTF-8").strip()
+        sbs = SBSProtocol.parse(dec)
         logger.debug(sbs)
-    except Exception as e:
-        logger.error("sbs message parse error, {}".format(e))
+    except UnicodeDecodeError:
+        logger.error("on sbs message payload decode error, \"{}\"".format(msg.payload))
+        return
+    except Exception as ex:
+        logger.error("on sbs message error, {}, \"{}\"".format(str(ex), dec))
         return
     trafficMonitor.update(sbs)
     
@@ -82,14 +90,15 @@ if __name__ == '__main__':
     trafficMonitor = Monitor.TrafficMonitor()
 
     logger_name="logger"
-    log_level = str(os.getenv('GD_LOG_LEVEL', default='INFO'))
+    log_level = str(os.getenv('MO_LOG_LEVEL', default='INFO'))
 
-    broker = str(os.getenv('GD_MQTT_HOST', default='localhost'))
-    port = int(os.getenv('GD_MQTT_PORT', default=1883))
-    client_name = str(os.getenv('GD_MQTT_CLIENT_NAME'))
-    nmea_topic = str(os.getenv('GD_MQTT_NMEA_TOPIC', default='/gps/nmea'))
-    sbs_topic = str(os.getenv('GD_MQTT_SBS_TOPIC', default='/adsb/sbs'))
-    publish_topic = str(os.getenv('GD_MQTT_PUBLISH_TOPIC', default='/gdl90'))
+    broker = str(os.getenv('MO_MQTT_HOST', default='localhost'))
+    port = int(os.getenv('MO_MQTT_PORT', default=1883))
+    client_name = str(os.getenv('MO_MQTT_CLIENT_NAME'))
+    nmea_topic = str(os.getenv('MO_MQTT_NMEA_TOPIC', default='/gps/nmea'))
+    sbs_topic = str(os.getenv('MO_MQTT_SBS_TOPIC', default='/adsb/sbs'))
+    gdl90_broadcast_ip = str(os.getenv('MO_GDL90_BROADCAST_IP', default='/monitor'))
+    gdl90_port = int(os.getenv('MO_GDL90_PORT', default=4000))
 
     setup_logging(log_level)
     logger = logging.getLogger(logger_name)
@@ -124,9 +133,9 @@ if __name__ == '__main__':
             altitude=5000, # get from gps
             merit=50,  # get from gps
             isWarning=False)) # derive from information from gps
-        sock.sendto(heartbeat, ("192.168.77.255", 4000))
-        sock.sendto(ownship, ("192.168.77.255", 4000))
-        sock.sendto(ownship_alt, ("192.168.77.255", 4000))
+        sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
+        sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
+        sock.sendto(ownship_alt, (gdl90_broadcast_ip, gdl90_port))
         for k, v in trafficMonitor.traffic.items():
             logger.debug("id={id:X}, cs={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}"
             .format(id=v.id, callsign=v.callsign, lat=v.latitude, lon=v.longitude, alt=v.altitude, trk=v.track, spd=v.groundSpeed, cnt=v.msgCount))
@@ -145,5 +154,5 @@ if __name__ == '__main__':
                     emitterCat=GDL90EmitterCategory.no_info,
                     trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
                     airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne))
-                sock.sendto(traffic, ("192.168.77.255", 4000))
+                sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
         time.sleep(1)

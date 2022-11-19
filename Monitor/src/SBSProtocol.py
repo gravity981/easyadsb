@@ -9,6 +9,7 @@ logger = logging.getLogger("logger")
 class SBSParseError(Exception):
     pass
 
+
 class SBSMessageType(Enum):
     # Generated when the user changes the selected aircraft in BaseStation.
     SEL = 1
@@ -182,9 +183,9 @@ def dateTimeFromTokens(dateVal: str, timeVal: str) -> datetime:
     return datetime.strptime(dateVal + " " + timeVal, '%Y/%m/%d %H:%M:%S.%f')
 
 def parse(msg: str) -> SBSMessage:
-    tokens = msg.strip().split(',')
+    tokens = msg.split(',')
     if len(tokens) != 22:
-        raise SBSParseError
+        raise SBSParseError("invalid token count")
     msg = SBSMessage(
         msgType = msgTypeFromToken(tokens[0]),
         transmissionType = transmissionTypeFromToken(tokens[1]),

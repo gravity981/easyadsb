@@ -118,7 +118,7 @@ class TrafficMonitor:
 
     def __init__(self, ):
         self.traffic = dict()
-        with open('/home/app/aircrafts.json') as json_file:
+        with open('/home/app/data/aircrafts.json') as json_file:
             self.db = json.load(json_file)
         self.cleanup()
     
@@ -143,6 +143,7 @@ class TrafficMonitor:
         else:
             callsign, model, *_ = self.db[msg.hexIdent] if msg.hexIdent in self.db.keys() else [None, None]
             entry = TrafficEntry(msg.hexIdent, callsign, model, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
-            logger.info("add new {}".format(entry))
             self.traffic[msg.hexIdent] = entry
+            logger.info("add new {} (count {})".format(entry, len(self.traffic)))
+            
 
