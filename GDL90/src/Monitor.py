@@ -40,6 +40,7 @@ class TrafficEntry:
     def __init__(self,
         id: str,
         callsign: str,
+        model: str,
         latitude: float,
         longitude: float,
         altitude: int,
@@ -48,6 +49,7 @@ class TrafficEntry:
     ):
         self.id = int(id, 16)
         self.callsign = callsign
+        self.model = model
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
@@ -60,7 +62,6 @@ class TrafficEntry:
         if self.id != int(msg.hexIdent, 16):
             logger.warning("cannot update traffic entry with mismatching hexIdent")
             return
-        # do not update callsign
         if msg.latitude != None:
             self.latitude = msg.latitude
         if msg.longitude != None:
@@ -71,12 +72,11 @@ class TrafficEntry:
             self.track = msg.track
         if msg.groundSpeed != None:
             self.groundSpeed = msg.groundSpeed
-        self.lastSeen = datetime.now()
+        self.lastSeen = datetime.utcnow()
         self.msgCount += 1
 
     # returns true if all relevant fields for a meaningful traffic information are set
     def ready(self) -> bool:
-        # do not check callsign
         if self.latitude == None:
             return False
         if self.longitude == None:
@@ -90,18 +90,20 @@ class TrafficEntry:
         return True
 
     def __str__(self):
-        return ("<TrafficEntry(id={}, "
-            "callsign={}, "
+        return ("<TrafficEntry(id={:X}, "
+            "cs={}, "
+            "mdl={}, "
             "lat={}, "
             "lon={}, "
             "alt={}, "
             "trk={}, "
             "spd={}, "
-            "lastSeen={}, "
+            "lastSeen={:%H:%M:%S}, "
             "msgCount={}, "
-            "allFields={})>").format(
+            "ready={})>").format(
                 self.id,
                 self.callsign,
+                self.model,
                 self.latitude,
                 self.longitude,
                 self.altitude,
@@ -109,7 +111,7 @@ class TrafficEntry:
                 self.groundSpeed,
                 self.lastSeen,
                 self.msgCount,
-                self.allFieldsSet()
+                self.ready()
             )
 
 class TrafficMonitor:
@@ -122,19 +124,25 @@ class TrafficMonitor:
     
     def cleanup(self):
         threading.Timer(10, self.cleanup).start()
-        now = datetime.now()
+        now = datetime.utcnow()
         timeout = 300
         for k in list(self.traffic.keys()):
-            trafficEntry = self.traffic[k]
-            if trafficEntry.lastSeen < now - timedelta(seconds=timeout):
-                logger.info("remove unseen traffic entry {id} / {cs} (older than {sec} seconds)".format(id=trafficEntry.id, cs=trafficEntry.callsign, sec=timeout))
+            entry = self.traffic[k]
+            if entry.lastSeen < now - timedelta(seconds=timeout):
+                logger.info("remove {} (unseen for >{} seconds)".format(entry, timeout))
                 del self.traffic[k]
 
     def update(self, msg: SBSMessage):
         if msg.hexIdent in self.traffic:
-            self.traffic[msg.hexIdent].update(msg)
+            entry = self.traffic[msg.hexIdent]
+            wasReady = entry.ready()    
+            entry.update(msg)
+            nowReady = entry.ready()
+            if nowReady and not wasReady:
+                logger.info("now ready {} ".format(entry))
         else:
-            callsign = self.db[msg.hexIdent][0] if msg.hexIdent in self.db.keys() else None
-            logger.info("add new traffic entry {id} / {cs}".format(id=msg.hexIdent, cs=callsign))
-            self.traffic[msg.hexIdent] = TrafficEntry(msg.hexIdent, callsign, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
+            callsign, model, *_ = self.db[msg.hexIdent] if msg.hexIdent in self.db.keys() else [None, None]
+            entry = TrafficEntry(msg.hexIdent, callsign, model, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
+            logger.info("add new {}".format(entry))
+            self.traffic[msg.hexIdent] = entry
 
