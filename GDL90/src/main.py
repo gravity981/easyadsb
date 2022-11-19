@@ -7,6 +7,8 @@ import os
 from pynmeagps import NMEAReader
 import SBSProtocol
 import Monitor
+import socket
+from GDL90Protocol import *
 
 def setup_logging(level: str):
     fmt = '[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s'
@@ -102,9 +104,86 @@ if __name__ == '__main__':
     client.on_message = on_message
     client.subscribe(nmea_topic)
     client.subscribe(sbs_topic)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+
+    sequence_heartbeat = [
+        b'\x7E\x00\x81\x00\x3E\xCD\x00\x00\xF7\x85\x7E',
+        b'\x7E\x00\x81\x00\x3F\xCD\x00\x00\xC6\xB6\x7E',
+        b'\x7E\x00\x81\x00\x40\xCD\x00\x00\xA1\xAE\x7E',
+        b'\x7E\x00\x81\x00\x41\xCD\x00\x00\x90\x9D\x7E',
+        b'\x7E\x00\x81\x00\x42\xCD\x00\x00\xC3\xC8\x7E',
+        b'\x7E\x00\x81\x00\x43\xCD\x00\x00\xF2\xFB\x7E',
+    ]
+    sequence_ownship = [
+        b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\x73\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\x37\x22\x7E',
+        b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\x8E\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\x03\xFA\x7E',
+        b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\xA9\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\x88\xD4\x7E',
+        b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\xC4\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\xC7\x27\x7E',
+        b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\xDF\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\x05\xFD\x7E',
+        b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\xF9\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\xAA\x7B\x7E',
+    ]
+    sequence_ownship_alt = [
+        b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E',
+        b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E',
+        b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E',
+        b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E',
+        b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E',
+        b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E',
+    ]
+
+    sequence_traffic = [
+        b'',
+        b'',
+        b'',
+        b'',
+        b'',
+        b'',
+        b''
+    ]
+
+    sequence_count = 0
+    sequence_max = 6
+
     while(run):
-        logger.info("entries: {count}".format(count=len(trafficMonitor.traffic.keys())))
+        heartbeat = encodeHeartbeatMessage(GDL90HeartBeatMessage(time=secondsSinceMidnightUTC(datetime.utcnow())))
+        ownship = encodeOwnshipMessage(GDL90TrafficMessage(
+            latitude=46.912222, # get from gps
+            longitude=7.499167, # get from gps
+            altitude=5000, # calculate from barometric pressure
+            hVelocity=50, # get from gps
+            vVelocity=0, # get from gps
+            trackHeading=90, # get from gps
+            navIntegrityCat=8, # derive from infromation from gps
+            navAccuracyCat=9, # derive from infromation from gps
+            emitterCat=GDL90EmitterCategory.light, # make configurable
+            trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle, # derive from infromation from gps
+            airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne)) # derive from speed
+        ownship_alt = encodeOwnshipAltitudeMessage(GDL90OwnshipGeoAltitudeMessage(
+            altitude=5000, # get from gps
+            merit=50,  # get from gps
+            isWarning=False)) # derive from information from gps
+        sock.sendto(heartbeat, ("192.168.77.255", 4000))
+        sock.sendto(ownship, ("192.168.77.255", 4000))
+        sock.sendto(ownship_alt, ("192.168.77.255", 4000))
         for k, v in trafficMonitor.traffic.items():
-            logger.info("id={id}, callsign={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}"
+            logger.info("id={id:X}, cs={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}"
             .format(id=v.id, callsign=v.callsign, lat=v.latitude, lon=v.longitude, alt=v.altitude, trk=v.track, spd=v.groundSpeed, cnt=v.msgCount))
-        time.sleep(10)
+            if v.ready():
+                traffic = encodeTrafficMessage(GDL90TrafficMessage(
+                    latitude=v.latitude, 
+                    longitude=v.longitude, 
+                    altitude=v.altitude, 
+                    hVelocity=v.groundSpeed, 
+                    vVelocity=0, 
+                    trackHeading=v.track,
+                    address=v.id,
+                    callsign=v.callsign,
+                    navIntegrityCat=8,
+                    navAccuracyCat=9,
+                    emitterCat=GDL90EmitterCategory.no_info,
+                    trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+                    airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne))
+                sock.sendto(traffic, ("192.168.77.255", 4000))
+        time.sleep(1)

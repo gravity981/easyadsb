@@ -119,20 +119,22 @@ class GDL90HeartBeatMessage:
         posValid: bool = True,
         isInitialized: bool = True,
         isLowBattery: bool = False,
-        time: datetime = datetime.now(),
-        msgCount: int = 0
+        time: int = 0, # seconds since 0000Z (UTC midnight)
+        uplinkMsgCount: int = 0, # 0 to max 31
+        basicAndLongMsgCount: int = 0 # 0 to max 1023
     ):
         self.posValid = posValid
         self.isInitialized = isInitialized
         self.isLowBattery = isLowBattery
         self.time = time
-        self.msgCount = msgCount
+        self.uplinkMsgCount = uplinkMsgCount
+        self.basicAndLongMsgCount = basicAndLongMsgCount
 
 class GDL90TrafficMessage:
     def __init__(self, 
         status: GDL90TrafficAlertStatus = GDL90TrafficAlertStatus.No_Alert, 
         addrType: GDL90AddressType = GDL90AddressType.ADSB_with_ICAO_addr, 
-        address: int = 0x000000, # transponder id
+        address: int = 0x000000, # 3 byte transponder id
         latitude: float = 0.0, # +/- 180.0°
         longitude: float = 0.0, # +/- 180.0°
         altitude: int = 0 , # ft
@@ -174,6 +176,8 @@ class GDL90OwnshipGeoAltitudeMessage:
         self.merit=merit
         self.isWarning=isWarning
 
+def secondsSinceMidnightUTC(datetime: datetime = datetime.utcnow()) -> int:
+    return (datetime.hour * 3600) + (datetime.minute * 60) + datetime.second
 
 def crc16(data: bytes):
     '''
@@ -198,11 +202,12 @@ def crc16(data: bytes):
         0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8, 0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
     ]
     
-    crc = 0xFFFF
+    crc = 0
     for byte in data:
-        crc = (crc << 8) ^ table[(crc >> 8) ^ byte]
+        crc = (crc << 8) ^ table[(crc >> 8)] ^ byte
         crc &= 0xFFFF # important, crc must stay 16bits all the way through
-    return crc
+    result = (crc & 0xff) << 8 | (crc & 0xff00) >> 8
+    return result
 
 def addCrc(msg: bytes) -> bytes:
     return b''.join([
@@ -264,6 +269,8 @@ def encode_track(track: int) -> int:
     return int(track * 256 / 360.0)
 
 def encode_callsign(callsign: str) -> str:
+    if callsign is None:
+        return ''.ljust(8)
     return callsign.ljust(8)
 
 def encode_merit(merit: int) -> int:
@@ -273,7 +280,6 @@ def encode_merit(merit: int) -> int:
         return 0x7ffe
     return merit
     
-
 def encodeTrafficReport(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> bytes:
     # st aa aa aa ll ll ll nn nn nn dd dm ia hh hv vv tt ee cc cc cc cc cc cc cc cc px
     enc_alt = encode_altitude(msg.altitude)
@@ -312,19 +318,19 @@ def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:
     if msg.isLowBattery:
         status_byte_1 |= GDL90StatusByte1.GPS_Batt_Low
 
-    timestamp = (msg.time.hour * 3600) + (msg.time.minute * 60) + msg.time.second
+    timestamp = msg.time
     if (timestamp & 0x10000) != 0:
         timestamp &= 0x0ffff
         status_byte_2 |= GDL90StatusByte2.Timestamp_MS_bit
+   
+    enc_count = ((msg.uplinkMsgCount & 0x1f) << 11) | (msg.basicAndLongMsgCount & 0x3ff)
 
-    msg_count = msg.msgCount % 0xff
-    
     raw = b''.join([
         GDL90MessageId.Heartbeat.to_bytes(1,'big'),
         status_byte_1.to_bytes(1, 'big'),
         status_byte_2.to_bytes(1,'big'),
-        timestamp.to_bytes(2,'big'),
-        msg_count.to_bytes(2,'big')
+        timestamp.to_bytes(2,'little'),
+        enc_count.to_bytes(2,'big')
     ])
     return encode(raw)
 
@@ -351,9 +357,9 @@ def encodeOwnshipAltitudeMessage(msg: GDL90OwnshipGeoAltitudeMessage) -> bytes:
 def toHexStr(raw: bytes) -> str:
     return ''.join('\\x{:02x}'.format(x) for x in raw)
 
-msg = GDL90HeartBeatMessage(msgCount=126, time=datetime.fromtimestamp(1000))
+msg = GDL90HeartBeatMessage(uplinkMsgCount=4, basicAndLongMsgCount=567, time=54502)
 enc = encodeHeartbeatMessage(msg)
-expected = b'\x7e\x00\x81\x00\x11\xf8\x00\x7d\x5e\xd8\xf7\x7e'
+expected = b'\x7e\x00\x81\x00\xe6\xd4\x22\x37\x56\xb8\x7e'
 print("Test Heartbeat Message")
 print(toHexStr(enc))
 print(toHexStr(expected))
@@ -361,6 +367,7 @@ if enc != expected:
     exit(1)
 
 msg2 = GDL90TrafficMessage(
+    status=GDL90TrafficAlertStatus.No_Alert,
     addrType=GDL90AddressType.ADSB_with_ICAO_addr,
     address=0xAB4549,
     latitude=44.90708, 
@@ -377,7 +384,7 @@ msg2 = GDL90TrafficMessage(
     callsign="N825V",
     emitterCat=GDL90EmitterCategory.light,
     emergencyCode=GDL90EmergencyCode.no_emergency)
-expected = b'\x7e\x14\x00\xAB\x45\x49\x1F\xEF\x15\xA8\x89\x78\x0f\x09\xA9\x07\xb0\x01\x20\x01\x4e\x38\x32\x35\x56\x20\x20\x20\x00\x39\x0c\x7e'
+expected = b'\x7e\x14\x00\xAB\x45\x49\x1F\xEF\x15\xA8\x89\x78\x0f\x09\xA9\x07\xb0\x01\x20\x01\x4e\x38\x32\x35\x56\x20\x20\x20\x00\x57\xd6\x7e'
 enc = encodeTrafficMessage(msg2)
 print("Test Traffic Message")
 print(toHexStr(enc))
@@ -386,13 +393,58 @@ if enc != expected:
     exit(1)
 
 msg3 = GDL90OwnshipGeoAltitudeMessage(
-    altitude=1234,
+    altitude=3280,
     merit=50,
-    isWarning=True)
+    isWarning=False)
 enc = encodeOwnshipAltitudeMessage(msg3)
-expected = b'\x7e\x0b\x00\xf6\x80\x32\xa1\x88\x7e'
-print("Test Onwship Altitude Message")
+expected = b'\x7E\x0B\x02\x90\x00\x32\x18\x15\x7E'
+print("Test Ownship Altitude Message")
 print(toHexStr(enc))
 print(toHexStr(expected))
 if enc != expected:
     exit(1)
+
+msg4 = GDL90TrafficMessage(
+    status=GDL90TrafficAlertStatus.No_Alert,
+    addrType=GDL90AddressType.ADSB_with_ICAO_addr,
+    address=0,
+    latitude=49.99999999986941, 
+    longitude=8.000522948457947, 
+    altitude=3280,
+    trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+    airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne,
+    reportIndicator=GDL90MiscellaneousIndicatorReport.updated,
+    navIntegrityCat=8,
+    navAccuracyCat=9,
+    hVelocity=80,
+    trackHeading=90, 
+    vVelocity=0,
+    callsign="D-EZAA",
+    emitterCat=GDL90EmitterCategory.light,
+    emergencyCode=GDL90EmergencyCode.no_emergency)
+expected = b'\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\x73\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\x37\x22\x7E'
+enc = encodeOwnshipMessage(msg4)
+print("Test Ownship Message")
+print(toHexStr(enc))
+print(toHexStr(expected))
+if enc != expected:
+    exit(1)
+
+msg5 = GDL90TrafficMessage(
+    status=GDL90TrafficAlertStatus.No_Alert,
+    addrType=GDL90AddressType.ADSB_with_ICAO_addr,
+    address=0xAA5506,
+    latitude=46.912222, 
+    longitude=7.499167, 
+    altitude=2000,
+    trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+    airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne,
+    reportIndicator=GDL90MiscellaneousIndicatorReport.updated,
+    navIntegrityCat=10,
+    navAccuracyCat=9,
+    hVelocity=123,
+    trackHeading=45, 
+    vVelocity=64,
+    callsign="N825V",
+    emitterCat=GDL90EmitterCategory.light,
+    emergencyCode=GDL90EmergencyCode.no_emergency)

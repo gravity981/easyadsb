@@ -46,7 +46,7 @@ class TrafficEntry:
         track: int,
         groundSpeed: int
     ):
-        self.id = id
+        self.id = int(id, 16)
         self.callsign = callsign
         self.latitude = latitude
         self.longitude = longitude
@@ -57,7 +57,7 @@ class TrafficEntry:
         self.msgCount = 1
     
     def update(self, msg: SBSMessage):
-        if self.id != msg.hexIdent:
+        if self.id != int(msg.hexIdent, 16):
             logger.warning("cannot update traffic entry with mismatching hexIdent")
             return
         # do not update callsign
@@ -74,19 +74,43 @@ class TrafficEntry:
         self.lastSeen = datetime.now()
         self.msgCount += 1
 
-    def allFieldsSet() -> bool:
+    # returns true if all relevant fields for a meaningful traffic information are set
+    def ready(self) -> bool:
         # do not check callsign
-        if msg.latitude == None:
+        if self.latitude == None:
             return False
-        if msg.longitude == None:
+        if self.longitude == None:
             return False
-        if msg.altitude == None:
+        if self.altitude == None:
             return False
-        if msg.track == None:
+        if self.track == None:
             return False
-        if msg.groundSpeed == None:
+        if self.groundSpeed == None:
             return False
         return True
+
+    def __str__(self):
+        return ("<TrafficEntry(id={}, "
+            "callsign={}, "
+            "lat={}, "
+            "lon={}, "
+            "alt={}, "
+            "trk={}, "
+            "spd={}, "
+            "lastSeen={}, "
+            "msgCount={}, "
+            "allFields={})>").format(
+                self.id,
+                self.callsign,
+                self.latitude,
+                self.longitude,
+                self.altitude,
+                self.track,
+                self.groundSpeed,
+                self.lastSeen,
+                self.msgCount,
+                self.allFieldsSet()
+            )
 
 class TrafficMonitor:
 
