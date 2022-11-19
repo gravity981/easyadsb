@@ -151,7 +151,7 @@ if __name__ == '__main__':
                     callsign=v.callsign,
                     navIntegrityCat=8,
                     navAccuracyCat=9,
-                    emitterCat=GDL90EmitterCategory.no_info,
+                    emitterCat=v.category,
                     trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
                     airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne))
                 sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))

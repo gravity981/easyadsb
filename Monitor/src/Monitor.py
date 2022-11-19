@@ -41,6 +41,7 @@ class TrafficEntry:
         id: str,
         callsign: str,
         model: str,
+        category: int,
         latitude: float,
         longitude: float,
         altitude: int,
@@ -50,6 +51,7 @@ class TrafficEntry:
         self.id = int(id, 16)
         self.callsign = callsign
         self.model = model
+        self.category = category
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
@@ -93,6 +95,7 @@ class TrafficEntry:
         return ("<TrafficEntry(id={:X}, "
             "cs={}, "
             "mdl={}, "
+            "cat={}, "
             "lat={}, "
             "lon={}, "
             "alt={}, "
@@ -104,6 +107,7 @@ class TrafficEntry:
                 self.id,
                 self.callsign,
                 self.model,
+                self.category,
                 self.latitude,
                 self.longitude,
                 self.altitude,
@@ -119,13 +123,15 @@ class TrafficMonitor:
     def __init__(self, ):
         self.traffic = dict()
         with open('/home/app/data/aircrafts.json') as json_file:
-            self.db = json.load(json_file)
+            self.aircrafts_db = json.load(json_file)
+        with open('/home/app/data/models.json') as json_file:
+            self.models_db = json.load(json_file)
         self.cleanup()
     
     def cleanup(self):
         threading.Timer(10, self.cleanup).start()
         now = datetime.utcnow()
-        timeout = 300
+        timeout = 30
         for k in list(self.traffic.keys()):
             entry = self.traffic[k]
             if entry.lastSeen < now - timedelta(seconds=timeout):
@@ -141,8 +147,9 @@ class TrafficMonitor:
             if nowReady and not wasReady:
                 logger.info("now ready {} ".format(entry))
         else:
-            callsign, model, *_ = self.db[msg.hexIdent] if msg.hexIdent in self.db.keys() else [None, None]
-            entry = TrafficEntry(msg.hexIdent, callsign, model, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
+            callsign, model, *_ = self.aircrafts_db[msg.hexIdent] if msg.hexIdent in self.aircrafts_db.keys() else [None, None]
+            category, *_ = self.models_db[model] if model in self.models_db.keys() else [None]
+            entry = TrafficEntry(msg.hexIdent, callsign, model, category, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
             self.traffic[msg.hexIdent] = entry
             logger.info("add new {} (count {})".format(entry, len(self.traffic)))
             
