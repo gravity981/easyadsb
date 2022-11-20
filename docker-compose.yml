@@ -10,42 +10,42 @@ services:
       - /dev/bus/usb
     restart: unless-stopped
 
-  gps_publisher:
-    container_name: gps_publisher
-    image: streampublisher
+  ublox:
+    container_name: ublox
+    image: ublox
     build:
-      context: StreamPublisher
+      context: UbloxGps
     devices: 
       - /dev/ttyAMA0
     depends_on: 
       - mqtt
     environment:
-      - SR_LOG_LEVEL=INFO
-      - SR_INPUT_MODE=SERIAL
-      - SR_SERIAL_DEVICE=/dev/ttyAMA0
-      - SR_MQTT_HOST=mqtt
-      - SR_MQTT_PORT=1883
-      - SR_MQTT_CLIENT_NAME=gps_reader
-      - SR_MQTT_PUBLISH_TOPIC=/gps/nmea
+      - UB_LOG_LEVEL=INFO
+      - UB_SERIAL_DEVICE=/dev/ttyAMA0
+      - UB_SERIAL_BAUD=9600
+      - UB_MQTT_HOST=mqtt
+      - UB_MQTT_PORT=1883
+      - UB_MQTT_CLIENT_NAME=ublox
+      - UB_MQTT_UBX_PUBLISH_TOPIC /easyadsb/ublox/ubx
+      - UB_MQTT_NMEA_PUBLISH_TOPIC /easyadsb/ublox/nmea
     restart: unless-stopped
 
-  adsb_publisher:
-    container_name: adsb_publisher
-    image: streampublisher
+  dump1090mqtt:
+    container_name: dump1090mqtt
+    image: dump1090mqtt
     build:
-      context: StreamPublisher
+      context: Dump1090Mqtt
     depends_on: 
       - mqtt
       - dump1090
     environment:
-      - SR_LOG_LEVEL=INFO
-      - SR_INPUT_MODE=TCP
-      - SR_TCP_HOST=dump1090
-      - SR_TCP_PORT=30003
-      - SR_MQTT_HOST=mqtt
-      - SR_MQTT_PORT=1883
-      - SR_MQTT_CLIENT_NAME=adsb_reader
-      - SR_MQTT_PUBLISH_TOPIC=/adsb/sbs
+      - DU_LOG_LEVEL=INFO
+      - DU_TCP_HOST=dump1090
+      - DU_TCP_PORT=30003
+      - DU_MQTT_HOST=mqtt
+      - DU_MQTT_PORT=1883
+      - DU_MQTT_CLIENT_NAME=dump1090mqtt
+      - DU_MQTT_PUBLISH_TOPIC=/easyadsb/dump1090/sbs
     restart: unless-stopped
 
   monitor:
@@ -60,8 +60,9 @@ services:
       - MO_MQTT_HOST=localhost
       - MO_MQTT_PORT=1883
       - MO_MQTT_CLIENT_NAME=monitor
-      - MO_MQTT_NMEA_TOPIC=/gps/nmea
-      - MO_MQTT_SBS_TOPIC=/adsb/sbs
+      - MO_MQTT_UBX_TOPIC=/easyadsb/ublox/ubx
+      - MO_MQTT_UBX_CTRL_TOPIC=/easyadsb/ublox/ubx/ctrl
+      - MO_MQTT_SBS_TOPIC=/easyadsb/dump1090/sbs
       - MO_GDL90_BROADCAST_IP=192.168.77.255
       - MO_GDL90_PORT=4000
     network_mode: host

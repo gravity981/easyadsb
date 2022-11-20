@@ -1,0 +1,25 @@
+FROM arm32v7/python:3.11-alpine
+
+# general
+# =======
+ENV UB_LOG_LEVEL INFO
+
+# serial
+# ======
+ENV UB_SERIAL_DEVICE /dev/ttyAMA0
+ENV UB_SERIAL_BAUD 9600
+
+# MQTT
+# ====
+ENV UB_MQTT_HOST localhost
+ENV UB_MQTT_PORT 1883
+ENV UB_MQTT_CLIENT_NAME ""
+ENV UB_MQTT_UBX_PUBLISH_TOPIC /easyadsb/ublox/ubx
+ENV UB_MQTT_NMEA_PUBLISH_TOPIC /easyadsb/ublox/nmea
+
+WORKDIR /home
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY ./src ./app
+
+CMD ["python", "/home/app/main.py"]

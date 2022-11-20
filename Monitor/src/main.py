@@ -4,6 +4,7 @@ import uuid
 import time
 import atexit
 import os
+from pyubx2 import UBXReader
 from pynmeagps import NMEAReader
 import SBSProtocol
 import Monitor
@@ -50,14 +51,18 @@ def launch_mqtt(client_name, host, port) -> mqtt.Client:
 
 def on_nmea_message(msg):
     try:
-        dec = msg.payload.decode()
-        nmea = NMEAReader.parse(dec)
-        logger.debug(nmea)
-    except UnicodeDecodeError:
-        logger.error("on nmea message payload decode error, \"{}\"".format(msg.payload))
-        return
+        ubx = NMEAReader.parse(msg.payload)
+        logger.debug(ubx)
     except Exception as ex:
-        logger.error("on nmea message error, {}, \"{}\"".format(str(ex), dec))
+        logger.error("on nmea message error, {}, \"{}\"".format(str(ex), msg.payload))
+        return
+
+def on_ubx_message(msg):
+    try:
+        ubx = UBXReader.parse(msg.payload)
+        logger.debug(nmea)
+    except Exception as ex:
+        logger.error("on ubx message error, {}, \"{}\"".format(str(ex), msg.payload))
         return
 
 def on_sbs_message(msg):
@@ -76,6 +81,8 @@ def on_sbs_message(msg):
 def on_message(client, userdata, msg):
     if msg.topic == nmea_topic:
         on_nmea_message(msg)
+    elif msg.topic == ubx_topic:
+        on_ubx_message(msg)
     elif msg.topic == sbs_topic:
         on_sbs_message(msg)
     else:
@@ -90,15 +97,17 @@ if __name__ == '__main__':
     trafficMonitor = Monitor.TrafficMonitor()
 
     logger_name="logger"
-    log_level = str(os.getenv('MO_LOG_LEVEL', default='INFO'))
+    log_level = str(os.getenv('MO_LOG_LEVEL'))
 
-    broker = str(os.getenv('MO_MQTT_HOST', default='localhost'))
-    port = int(os.getenv('MO_MQTT_PORT', default=1883))
+    broker = str(os.getenv('MO_MQTT_HOST'))
+    port = int(os.getenv('MO_MQTT_PORT'))
     client_name = str(os.getenv('MO_MQTT_CLIENT_NAME'))
-    nmea_topic = str(os.getenv('MO_MQTT_NMEA_TOPIC', default='/gps/nmea'))
-    sbs_topic = str(os.getenv('MO_MQTT_SBS_TOPIC', default='/adsb/sbs'))
-    gdl90_broadcast_ip = str(os.getenv('MO_GDL90_BROADCAST_IP', default='/monitor'))
-    gdl90_port = int(os.getenv('MO_GDL90_PORT', default=4000))
+    nmea_topic = str(os.getenv('MO_MQTT_NMEA_TOPIC'))
+    ubx_topic = str(os.getenv('MO_MQTT_UBX_TOPIC'))
+    ubx_ctrl_topic = str(os.getenv('MO_MQTT_UBX_CTRL_TOPIC'))
+    sbs_topic = str(os.getenv('MO_MQTT_SBS_TOPIC'))
+    gdl90_broadcast_ip = str(os.getenv('MO_GDL90_BROADCAST_IP'))
+    gdl90_port = int(os.getenv('MO_GDL90_PORT'))
 
     setup_logging(log_level)
     logger = logging.getLogger(logger_name)
@@ -112,6 +121,7 @@ if __name__ == '__main__':
     client = launch_mqtt(client_name, broker, port)
     client.on_message = on_message
     client.subscribe(nmea_topic)
+    client.subscribe(ubx_topic)
     client.subscribe(sbs_topic)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
