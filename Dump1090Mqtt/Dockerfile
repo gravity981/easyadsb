@@ -19,6 +19,6 @@ ENV DU_MQTT_PUBLISH_TOPIC /easyadsb/dump1090/sbs
 WORKDIR /home
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ./src ./app
+COPY ./app ./app
 
 CMD ["python", "/home/app/main.py"]

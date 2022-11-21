@@ -20,6 +20,6 @@ ENV UB_MQTT_NMEA_PUBLISH_TOPIC /easyadsb/ublox/nmea
 WORKDIR /home
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ./src ./app
+COPY ./app ./app
 
 CMD ["python", "/home/app/main.py"]
