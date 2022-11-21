@@ -47,7 +47,7 @@ jobs:
             tag: ghcr.io/gravity981/easyadsb/accesspoint:dev
           - context: dump1090
             tag: ghcr.io/gravity981/easyadsb/dump1090:dev
-          - context: Dump1090mqtt
+          - context: Dump1090Mqtt
             tag: ghcr.io/gravity981/easyadsb/dump1090mqtt:dev
           - context: Monitor
             tag: ghcr.io/gravity981/easyadsb/monitor:dev
