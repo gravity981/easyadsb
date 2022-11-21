@@ -51,8 +51,9 @@ def launch_mqtt(client_name, host, port) -> mqtt.Client:
 
 def on_nmea_message(msg):
     try:
-        ubx = NMEAReader.parse(msg.payload)
-        logger.debug(ubx)
+        nmea = NMEAReader.parse(msg.payload)
+        logger.debug(nmea)
+        gpsMonitor.update(nmea)
     except Exception as ex:
         logger.error("on nmea message error, {}, \"{}\"".format(str(ex), msg.payload))
         return
@@ -60,7 +61,7 @@ def on_nmea_message(msg):
 def on_ubx_message(msg):
     try:
         ubx = UBXReader.parse(msg.payload)
-        logger.debug(nmea)
+        logger.debug(ubx)
     except Exception as ex:
         logger.error("on ubx message error, {}, \"{}\"".format(str(ex), msg.payload))
         return
@@ -70,13 +71,13 @@ def on_sbs_message(msg):
         dec = msg.payload.decode("UTF-8").strip()
         sbs = SBSProtocol.parse(dec)
         logger.debug(sbs)
+        trafficMonitor.update(sbs)
     except UnicodeDecodeError:
         logger.error("on sbs message payload decode error, \"{}\"".format(msg.payload))
         return
     except Exception as ex:
         logger.error("on sbs message error, {}, \"{}\"".format(str(ex), dec))
         return
-    trafficMonitor.update(sbs)
     
 def on_message(client, userdata, msg):
     if msg.topic == nmea_topic:
@@ -95,6 +96,7 @@ if __name__ == '__main__':
     run = True
 
     trafficMonitor = Monitor.TrafficMonitor()
+    gpsMonitor = Monitor.GpsMonitor()
 
     logger_name="logger"
     log_level = str(os.getenv('MO_LOG_LEVEL'))
@@ -161,7 +163,7 @@ if __name__ == '__main__':
                     callsign=v.callsign,
                     navIntegrityCat=8,
                     navAccuracyCat=9,
-                    emitterCat=v.category,
+                    emitterCat=v.category if v.category is not None else GDL90EmitterCategory.no_info,
                     trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
                     airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne))
                 sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))

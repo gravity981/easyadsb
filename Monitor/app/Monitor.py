@@ -4,12 +4,38 @@ from datetime import datetime, timedelta
 import threading
 import logging
 import json
+from pynmeagps import NMEAMessage
 
 logger = logging.getLogger("logger")
 
 class GPSStatus(Enum):
     Active = 1
     Void = 0
+
+class GpsMonitor:
+    def __init__(self):
+        pass
+
+    def update(self, msg: NMEAMessage):
+        
+        # satellite status
+        # ID: GSV - GNSS Satellites in View
+        # <NMEA(GPGSV, numMsg=4, msgNum=1, numSV=14, svid_01=2, elv_01=41.0, az_01=149, cno_01=43, svid_02=6, elv_02=3.0, az_02=26, cno_02=10, svid_03=11, elv_03=27.0, az_03=50, cno_03=43, svid_04=12, elv_04=33.0, az_04=90, cno_04=39)>
+        # ID: GSA - GNSS DOP and Active Satellites
+        # <NMEA(GPGSA, opMode=A, navMode=3, svid_01=29, svid_02=25, svid_03=12, svid_04=31, svid_05=11, svid_06=2, svid_07=20, svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=2.71, HDOP=1.59, VDOP=2.19)>
+        
+        # useful for monitoring ownship
+        # ID: VTG - Course Over Ground and Ground Speed
+        # <NMEA(GPVTG, cogt=, cogtUnit=T, cogm=, cogmUnit=M, sogn=0.22, sognUnit=N, sogk=0.408, sogkUnit=K, posMode=A)>
+        # ID: GGA - Global Positioning System Fixed Data
+        # <NMEA(GPGGA, time=19:57:12, lat=46.9263156667, NS=N, lon=7.4543581667, EW=E, quality=1, numSV=7, HDOP=1.59, alt=578.5, altUnit=M, sep=47.2, sepUnit=M, diffAge=, diffStation=)>
+        # ID: RMC - Recommended Minimum Specific GNSS Data
+        # <NMEA(GPRMC, time=19:57:12, status=A, lat=46.9263156667, NS=N, lon=7.4543581667, EW=E, spd=0.22, cog=, date=2022-11-20, mv=, mvEW=, posMode=A)>
+        
+        # probably unused
+        # ID: GLL - Geographic Position - Latitude/Longitude
+        # <NMEA(GPGLL, lat=46.9263158333, NS=N, lon=7.4543563333, EW=E, time=19:57:11, status=A, posMode=A)>
+        return
 
 class OwnshipMonitor:
     def __init__(self,
@@ -22,19 +48,33 @@ class OwnshipMonitor:
         date: str,
         magneticVariation: int # degrees
     ):
-        pass
+        self.status=status
+        self.utc=utc
+        self.latitude=latitude
+        self.longitude=longitude
+        self.groundSpeed=groundSpeed
+        self.track=track
+        self.date=date
+        self.magneticVariation=magneticVariation
+
+class Satellite:
+    def __init__(self,
+        prnNumber,
+        elevation,
+        azimuth,
+        snr):
+        self.prnNumber=prnNumber
+        self.elevation=elevation
+        self.azimuth=azimuth
+        self.snr=snr
 
 class SatellitesMonitor:
     def __init__(self,
         satellitesVisible: int,
-        satellitesInUse: int,
-        # per satellite
-        prnNumber,
-        elevation,
-        azimuth,
-        snr
-    ):
-        pass
+        satellitesInUse: int):
+        self.satellitesVisible=satellitesVisible
+        self.satellitesInUse=satellitesInUse
+
 
 class TrafficEntry:
     def __init__(self,
@@ -120,11 +160,11 @@ class TrafficEntry:
 
 class TrafficMonitor:
 
-    def __init__(self, ):
+    def __init__(self):
         self.traffic = dict()
-        with open('/home/app/data/aircrafts.json') as json_file:
+        with open('/home/data/aircrafts.json') as json_file:
             self.aircrafts_db = json.load(json_file)
-        with open('/home/app/data/models.json') as json_file:
+        with open('/home/data/models.json') as json_file:
             self.models_db = json.load(json_file)
         self.cleanup()
     
