@@ -7,49 +7,53 @@ import os
 import SimpleMqttClient
 import uuid
 
+
 def setup_logging(level: str):
-    fmt = '[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s'
-    if level == 'DEBUG':
+    fmt = "[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s"
+    if level == "DEBUG":
         log_level = logging.DEBUG
-    elif level == 'INFO':
+    elif level == "INFO":
         log_level = logging.INFO
-    elif level == 'WARNING':
+    elif level == "WARNING":
         log_level = logging.WARNING
     else:
         log_level = logging.WARNING
     logging.basicConfig(level=log_level, format=fmt)
 
+
 def on_exit():
     global run
     if logger is not None:
-        logger.info('Exit application')
+        logger.info("Exit application")
     if client is not None:
         client.disconnect()
     run = False
 
+
 def run_serial_publish(mqtt, ubr: UBXReader):
-    while(run):
+    while run:
         (raw_data, parsed_data) = ubr.read()
         logger.debug(parsed_data)
         if type(parsed_data) == UBXMessage:
-            client.publish(publish_topic_ubx, raw_data) 
+            client.publish(publish_topic_ubx, raw_data)
         if type(parsed_data) == NMEAMessage:
-            client.publish(publish_topic_nmea, raw_data) 
+            client.publish(publish_topic_nmea, raw_data)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     logger = None
     client = None
     run = True
 
-    logger_name="logger"
-    log_level = str(os.getenv('UB_LOG_LEVEL'))
-    serial_device = str(os.getenv('UB_SERIAL_DEVICE'))
-    serial_baud = int(os.getenv('UB_SERIAL_BAUD'))
-    broker = str(os.getenv('UB_MQTT_HOST'))
-    port = int(os.getenv('UB_MQTT_PORT'))
-    client_name = str(os.getenv('UB_MQTT_CLIENT_NAME'))
-    publish_topic_ubx = str(os.getenv('UB_MQTT_UBX_PUBLISH_TOPIC'))
-    publish_topic_nmea = str(os.getenv('UB_MQTT_NMEA_PUBLISH_TOPIC'))
+    logger_name = "logger"
+    log_level = str(os.getenv("UB_LOG_LEVEL"))
+    serial_device = str(os.getenv("UB_SERIAL_DEVICE"))
+    serial_baud = int(os.getenv("UB_SERIAL_BAUD"))
+    broker = str(os.getenv("UB_MQTT_HOST"))
+    port = int(os.getenv("UB_MQTT_PORT"))
+    client_name = str(os.getenv("UB_MQTT_CLIENT_NAME"))
+    publish_topic_ubx = str(os.getenv("UB_MQTT_UBX_PUBLISH_TOPIC"))
+    publish_topic_nmea = str(os.getenv("UB_MQTT_NMEA_PUBLISH_TOPIC"))
 
     setup_logging(log_level)
     logger = logging.getLogger(logger_name)
@@ -65,10 +69,8 @@ if __name__ == '__main__':
 
     stream = Serial(serial_device, serial_baud, timeout=3)
     ubr = UBXReader(stream)
-    logger.info("start publishing UBX messages from \"{device}\" to {topic}".format(device=serial_device, topic=publish_topic_ubx))
-    logger.info("start publishing NMEA messages from \"{device}\" to {topic}".format(device=serial_device, topic=publish_topic_nmea))
+    logger.info('start publishing UBX messages from "{device}" to {topic}'.format(device=serial_device, topic=publish_topic_ubx))
+    logger.info('start publishing NMEA messages from "{device}" to {topic}'.format(device=serial_device, topic=publish_topic_nmea))
     run_serial_publish(client, ubr)
 
     exit()
-    
-
