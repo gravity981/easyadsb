@@ -1,5 +1,7 @@
 FROM arm32v7/python:3.11-alpine
 
+LABEL org.opencontainers.image.source = "https://github.com/gravity981/easyadsb"
+
 # general
 # =======
 ENV MO_LOG_LEVEL INFO

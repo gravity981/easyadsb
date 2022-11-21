@@ -1,5 +1,7 @@
 FROM arm32v7/alpine:3.16.3
 
+LABEL org.opencontainers.image.source = "https://github.com/gravity981/easyadsb"
+
 # Install packages
 RUN apk add	ifupdown hostapd dhcp-server-vanilla
 

@@ -1,4 +1,7 @@
-FROM arm32v7/alpine:3.16.3 AS builder 
+FROM arm32v7/alpine:3.16.3 AS builder
+
+LABEL org.opencontainers.image.source = "https://github.com/gravity981/easyadsb"
+
 RUN apk add git make gcc musl-dev ncurses-dev librtlsdr-dev
 WORKDIR /home
 RUN git clone https://github.com/flightaware/dump1090.git && \
