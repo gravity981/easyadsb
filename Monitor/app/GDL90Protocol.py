@@ -6,6 +6,7 @@ from datetime import datetime
 
 logger = logging.getLogger("logger")
 
+
 class GDL90MessageId(IntFlag):
     Heartbeat = 0
     Initialization = 2
@@ -16,6 +17,7 @@ class GDL90MessageId(IntFlag):
     TrafficReport = 20
     BasicReport = 30
     LongReport = 31
+
 
 class GDL90StatusByte1(IntFlag):
     # GDL90 is initialized
@@ -35,6 +37,7 @@ class GDL90StatusByte1(IntFlag):
     # Position available for ADS-B Tx
     GPS_Pos_Valid = 0x80
 
+
 class GDL90StatusByte2(IntFlag):
     # UTC timing is valid
     UTC_OK = 0x1
@@ -48,14 +51,16 @@ class GDL90StatusByte2(IntFlag):
     Reserved4 = 0x10
     # CSA is not available at this time
     CSA_Not_Available = 0x20
-    # CSA has been requested 
+    # CSA has been requested
     CSA_Requested = 0x40
-    # Seconds since 0000Z, bit 16 
+    # Seconds since 0000Z, bit 16
     Timestamp_MS_bit = 0x80
+
 
 class GDL90TrafficAlertStatus(IntFlag):
     No_Alert = 0
     Traffic_Alert = 1
+
 
 class GDL90AddressType(IntFlag):
     ADSB_with_ICAO_addr = 0
@@ -65,19 +70,23 @@ class GDL90AddressType(IntFlag):
     Surface_Vehicle = 4
     Ground_Station_Beacon = 5
 
+
 class GDL90MiscellaneousIndicatorTrack(IntFlag):
     tt_not_valid = 0x0
     tt_true_track_angle = 0x1
     tt_heading_magnetic = 0x2
     tt_heading_true = 0x3
 
+
 class GDL90MiscellaneousIndicatorReport(IntFlag):
     updated = 0x0
     extrapolated = 0x4
 
+
 class GDL90MiscellaneousIndicatorAirborne(IntFlag):
     on_ground = 0x0
     airborne = 0x8
+
 
 class GDL90EmitterCategory(IntFlag):
     no_info = 0
@@ -104,6 +113,7 @@ class GDL90EmitterCategory(IntFlag):
     line_obstacle = 21
     # reserved 22 to 39
 
+
 class GDL90EmergencyCode(IntFlag):
     no_emergency = 0
     general_emergency = 1
@@ -114,14 +124,16 @@ class GDL90EmergencyCode(IntFlag):
     downed_aircraft = 6
     # reserved 7 to 15
 
+
 class GDL90HeartBeatMessage:
-    def __init__(self, 
+    def __init__(
+        self,
         posValid: bool = True,
         isInitialized: bool = True,
         isLowBattery: bool = False,
-        time: int = 0, # seconds since 0000Z (UTC midnight)
-        uplinkMsgCount: int = 0, # 0 to max 31
-        basicAndLongMsgCount: int = 0 # 0 to max 1023
+        time: int = 0,  # seconds since 0000Z (UTC midnight)
+        uplinkMsgCount: int = 0,  # 0 to max 31
+        basicAndLongMsgCount: int = 0,  # 0 to max 1023
     ):
         self.posValid = posValid
         self.isInitialized = isInitialized
@@ -130,59 +142,65 @@ class GDL90HeartBeatMessage:
         self.uplinkMsgCount = uplinkMsgCount
         self.basicAndLongMsgCount = basicAndLongMsgCount
 
+
 class GDL90TrafficMessage:
-    def __init__(self, 
-        status: GDL90TrafficAlertStatus = GDL90TrafficAlertStatus.No_Alert, 
-        addrType: GDL90AddressType = GDL90AddressType.ADSB_with_ICAO_addr, 
-        address: int = 0x000000, # 3 byte transponder id
-        latitude: float = 0.0, # +/- 180.0°
-        longitude: float = 0.0, # +/- 180.0°
-        altitude: int = 0 , # ft
-        trackIndicator: GDL90MiscellaneousIndicatorTrack = GDL90MiscellaneousIndicatorTrack.tt_not_valid, 
+    def __init__(
+        self,
+        status: GDL90TrafficAlertStatus = GDL90TrafficAlertStatus.No_Alert,
+        addrType: GDL90AddressType = GDL90AddressType.ADSB_with_ICAO_addr,
+        address: int = 0x000000,  # 3 byte transponder id
+        latitude: float = 0.0,  # +/- 180.0°
+        longitude: float = 0.0,  # +/- 180.0°
+        altitude: int = 0,  # ft
+        trackIndicator: GDL90MiscellaneousIndicatorTrack = GDL90MiscellaneousIndicatorTrack.tt_not_valid,
         reportIndicator: GDL90MiscellaneousIndicatorReport = GDL90MiscellaneousIndicatorReport.updated,
         airborneIndicator: GDL90MiscellaneousIndicatorAirborne = GDL90MiscellaneousIndicatorAirborne.on_ground,
-        navIntegrityCat: int = 0, # 0 to 11 where 11 is best and 0 worst
-        navAccuracyCat: int = 0, # 0 to 11 where 11 is best and 0 worst
-        hVelocity: int = 0, # unsigned 12 bit, kt 
-        vVelocity: int = 0, # signed 12 bit, ftm
-        trackHeading: int = 0, # 0° to 359°
-        emitterCat: GDL90EmitterCategory = GDL90EmitterCategory.no_info, 
-        callsign: str = "", # max 8 characters long
-        emergencyCode: GDL90EmergencyCode = GDL90EmergencyCode.no_emergency):
-        self.status=status
-        self.addrType=addrType
-        self.address=address
-        self.latitude=latitude
-        self.longitude=longitude
-        self.altitude=altitude
-        self.trackIndicator=trackIndicator
-        self.reportIndicator=reportIndicator
-        self.airborneIndicator=airborneIndicator
-        self.navIntegrityCat=navIntegrityCat
-        self.navAccuracyCat=navAccuracyCat
-        self.hVelocity=hVelocity
-        self.vVelocity=vVelocity
-        self.trackHeading=trackHeading
-        self.emitterCat=emitterCat
-        self.callsign=callsign
-        self.emergencyCode=emergencyCode
+        navIntegrityCat: int = 0,  # 0 to 11 where 11 is best and 0 worst
+        navAccuracyCat: int = 0,  # 0 to 11 where 11 is best and 0 worst
+        hVelocity: int = 0,  # unsigned 12 bit, kt
+        vVelocity: int = 0,  # signed 12 bit, ftm
+        trackHeading: int = 0,  # 0° to 359°
+        emitterCat: GDL90EmitterCategory = GDL90EmitterCategory.no_info,
+        callsign: str = "",  # max 8 characters long
+        emergencyCode: GDL90EmergencyCode = GDL90EmergencyCode.no_emergency,
+    ):
+        self.status = status
+        self.addrType = addrType
+        self.address = address
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitude = altitude
+        self.trackIndicator = trackIndicator
+        self.reportIndicator = reportIndicator
+        self.airborneIndicator = airborneIndicator
+        self.navIntegrityCat = navIntegrityCat
+        self.navAccuracyCat = navAccuracyCat
+        self.hVelocity = hVelocity
+        self.vVelocity = vVelocity
+        self.trackHeading = trackHeading
+        self.emitterCat = emitterCat
+        self.callsign = callsign
+        self.emergencyCode = emergencyCode
+
 
 class GDL90OwnshipGeoAltitudeMessage:
-    def __init__(self, 
-        altitude: int, # ft
-        merit: int, # VFOM, vertical figure of merit (navigation accuracy) 
-        isWarning: bool): # true is set, indicates position alarm or fault)
-        self.altitude=altitude
-        self.merit=merit
-        self.isWarning=isWarning
+    def __init__(
+        self, altitude: int, merit: int, isWarning: bool  # ft  # VFOM, vertical figure of merit (navigation accuracy)
+    ):  # true is set, indicates position alarm or fault)
+        self.altitude = altitude
+        self.merit = merit
+        self.isWarning = isWarning
+
 
 def secondsSinceMidnightUTC(datetime: datetime = datetime.utcnow()) -> int:
     return (datetime.hour * 3600) + (datetime.minute * 60) + datetime.second
 
+
 def crc16(data: bytes):
-    '''
+    """
     CRC-16 (CCITT) implemented with a precomputed lookup table
-    '''
+    """
+    # fmt: off
     table = [ 
         0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7, 0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
         0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6, 0x9339, 0x8318, 0xB37B, 0xA35A, 0xD3BD, 0xC39C, 0xF3FF, 0xE3DE,
@@ -201,85 +219,91 @@ def crc16(data: bytes):
         0xFD2E, 0xED0F, 0xDD6C, 0xCD4D, 0xBDAA, 0xAD8B, 0x9DE8, 0x8DC9, 0x7C26, 0x6C07, 0x5C64, 0x4C45, 0x3CA2, 0x2C83, 0x1CE0, 0x0CC1,
         0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8, 0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
     ]
-    
+    # fmt: on
+
     crc = 0
     for byte in data:
         crc = (crc << 8) ^ table[(crc >> 8)] ^ byte
-        crc &= 0xFFFF # important, crc must stay 16bits all the way through
-    result = (crc & 0xff) << 8 | (crc & 0xff00) >> 8
+        crc &= 0xFFFF  # important, crc must stay 16bits all the way through
+    result = (crc & 0xFF) << 8 | (crc & 0xFF00) >> 8
     return result
 
+
 def addCrc(msg: bytes) -> bytes:
-    return b''.join([
-        msg,
-        crc16(msg).to_bytes(2, 'big')
-    ])
+    return b"".join([msg, crc16(msg).to_bytes(2, "big")])
+
 
 def escape(msg: bytes) -> bytes:
     escaped = bytes()
     for b in msg:
-        if b == 0x7d or b == 0x7e:
-            escaped += b'\x7d'
-            escaped += (b ^ 0x20).to_bytes(1, 'big')
+        if b == 0x7D or b == 0x7E:
+            escaped += b"\x7d"
+            escaped += (b ^ 0x20).to_bytes(1, "big")
         else:
-            escaped += b.to_bytes(1, 'big')
+            escaped += b.to_bytes(1, "big")
     return escaped
+
 
 def encode(msg: bytes) -> bytes:
     msg = addCrc(msg)
     msg = escape(msg)
-    return b''.join([
-        b'\x7e',
-        msg,
-        b'\x7e'
-    ])
+    return b"".join([b"\x7e", msg, b"\x7e"])
+
 
 def encode_latlon(latlon: float) -> int:
-    latlon = int(latlon * (0x7fffff / 180.0))
+    latlon = int(latlon * (0x7FFFFF / 180.0))
     if latlon < 0:
-        latlon &= 0xffffff
+        latlon &= 0xFFFFFF
     return latlon
 
-def encode_altitude(alt: int) -> int:
-    return int((alt + 1000) / 25) & 0xfff
 
-def encode_miscellaneous(trackIndicator: GDL90MiscellaneousIndicatorTrack,
-    reportIndicator: GDL90MiscellaneousIndicatorReport,
-    airborneIndicator: GDL90MiscellaneousIndicatorAirborne) -> int:
+def encode_altitude(alt: int) -> int:
+    return int((alt + 1000) / 25) & 0xFFF
+
+
+def encode_miscellaneous(
+    trackIndicator: GDL90MiscellaneousIndicatorTrack, reportIndicator: GDL90MiscellaneousIndicatorReport, airborneIndicator: GDL90MiscellaneousIndicatorAirborne
+) -> int:
     return trackIndicator | reportIndicator | airborneIndicator
+
 
 def encode_hVelocity(velocity: int) -> int:
     if velocity < 0:
         return 0
-    elif velocity > 0xffe:
-        return 0xffe
+    elif velocity > 0xFFE:
+        return 0xFFE
     return velocity
+
 
 def encode_vVelocity(velocity: int) -> int:
     if velocity is None:
         return 0x800
     if velocity > 32576:
-        return 0x1fe
+        return 0x1FE
     elif velocity < -32576:
-        return 0xe02
+        return 0xE02
     else:
         return int(velocity / 64)
+
 
 def encode_track(track: int) -> int:
     return int(track * 256 / 360.0)
 
+
 def encode_callsign(callsign: str) -> str:
     if callsign is None:
-        return ''.ljust(8)
+        return "".ljust(8)
     return callsign.ljust(8)
+
 
 def encode_merit(merit: int) -> int:
     if merit is None:
-        return 0x7fff
+        return 0x7FFF
     elif merit >= 32766:
-        return 0x7ffe
+        return 0x7FFE
     return merit
-    
+
+
 def encodeTrafficReport(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> bytes:
     # st aa aa aa ll ll ll nn nn nn dd dm ia hh hv vv tt ee cc cc cc cc cc cc cc cc px
     enc_alt = encode_altitude(msg.altitude)
@@ -288,24 +312,27 @@ def encodeTrafficReport(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> byte
     enc_vVel = encode_vVelocity(msg.vVelocity)
     enc_trk = encode_track(msg.trackHeading)
     enc_callsign = encode_callsign(msg.callsign)
-    raw = b''.join([
-        msgId.to_bytes(1, 'big'),
-        ((msg.status << 4) | msg.addrType).to_bytes(1, 'big'),
-        msg.address.to_bytes(3, 'big'),
-        encode_latlon(msg.latitude).to_bytes(3, 'big'),
-        encode_latlon(msg.longitude).to_bytes(3, 'big'),
-        ((enc_alt & 0xff0) >> 4).to_bytes(1, 'big'),
-        (((enc_alt & 0x00f) << 4) | enc_misc).to_bytes(1, 'big'),
-        (((msg.navIntegrityCat & 0xf) << 4) | (msg.navAccuracyCat & 0xf)).to_bytes(1, 'big'),
-        ((enc_hVel & 0xff0) >> 4).to_bytes(1, 'big'),
-        (((enc_hVel & 0x00f) << 4) | ((enc_vVel & 0xf00) >> 8)).to_bytes(1, 'big'),
-        (enc_vVel & 0x0ff).to_bytes(1, 'big'),
-        enc_trk.to_bytes(1, 'big'),
-        msg.emitterCat.to_bytes(1,'big'),
-        enc_callsign.encode('utf-8'),
-        (msg.emergencyCode << 4).to_bytes(1, 'big')
-    ])
+    raw = b"".join(
+        [
+            msgId.to_bytes(1, "big"),
+            ((msg.status << 4) | msg.addrType).to_bytes(1, "big"),
+            msg.address.to_bytes(3, "big"),
+            encode_latlon(msg.latitude).to_bytes(3, "big"),
+            encode_latlon(msg.longitude).to_bytes(3, "big"),
+            ((enc_alt & 0xFF0) >> 4).to_bytes(1, "big"),
+            (((enc_alt & 0x00F) << 4) | enc_misc).to_bytes(1, "big"),
+            (((msg.navIntegrityCat & 0xF) << 4) | (msg.navAccuracyCat & 0xF)).to_bytes(1, "big"),
+            ((enc_hVel & 0xFF0) >> 4).to_bytes(1, "big"),
+            (((enc_hVel & 0x00F) << 4) | ((enc_vVel & 0xF00) >> 8)).to_bytes(1, "big"),
+            (enc_vVel & 0x0FF).to_bytes(1, "big"),
+            enc_trk.to_bytes(1, "big"),
+            msg.emitterCat.to_bytes(1, "big"),
+            enc_callsign.encode("utf-8"),
+            (msg.emergencyCode << 4).to_bytes(1, "big"),
+        ]
+    )
     return encode(raw)
+
 
 def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:
     status_byte_1 = 0
@@ -320,33 +347,34 @@ def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:
 
     timestamp = msg.time
     if (timestamp & 0x10000) != 0:
-        timestamp &= 0x0ffff
+        timestamp &= 0x0FFFF
         status_byte_2 |= GDL90StatusByte2.Timestamp_MS_bit
-   
-    enc_count = ((msg.uplinkMsgCount & 0x1f) << 11) | (msg.basicAndLongMsgCount & 0x3ff)
 
-    raw = b''.join([
-        GDL90MessageId.Heartbeat.to_bytes(1,'big'),
-        status_byte_1.to_bytes(1, 'big'),
-        status_byte_2.to_bytes(1,'big'),
-        timestamp.to_bytes(2,'little'),
-        enc_count.to_bytes(2,'big')
-    ])
+    enc_count = ((msg.uplinkMsgCount & 0x1F) << 11) | (msg.basicAndLongMsgCount & 0x3FF)
+
+    raw = b"".join(
+        [
+            GDL90MessageId.Heartbeat.to_bytes(1, "big"),
+            status_byte_1.to_bytes(1, "big"),
+            status_byte_2.to_bytes(1, "big"),
+            timestamp.to_bytes(2, "little"),
+            enc_count.to_bytes(2, "big"),
+        ]
+    )
     return encode(raw)
+
 
 def encodeOwnshipMessage(msg: GDL90TrafficMessage) -> bytes:
     return encodeTrafficReport(GDL90MessageId.OwnshipReport, msg)
 
+
 def encodeTrafficMessage(msg: GDL90TrafficMessage) -> bytes:
     return encodeTrafficReport(GDL90MessageId.TrafficReport, msg)
 
+
 def encodeOwnshipAltitudeMessage(msg: GDL90OwnshipGeoAltitudeMessage) -> bytes:
-    enc_alt = int(msg.altitude / 5) & 0xffff
+    enc_alt = int(msg.altitude / 5) & 0xFFFF
     enc_merit = encode_merit(msg.merit)
     enc_warn = 0x8000 if msg.isWarning else 0x0000
-    raw = b''.join([
-        GDL90MessageId.OwnshipGeometricAltitude.to_bytes(1,'big'),
-        enc_alt.to_bytes(2, 'big'),
-        (enc_warn | enc_merit).to_bytes(2, 'big')
-    ])
+    raw = b"".join([GDL90MessageId.OwnshipGeometricAltitude.to_bytes(1, "big"), enc_alt.to_bytes(2, "big"), (enc_warn | enc_merit).to_bytes(2, "big")])
     return encode(raw)

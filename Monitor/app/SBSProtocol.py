@@ -6,6 +6,7 @@ from datetime import datetime
 
 logger = logging.getLogger("logger")
 
+
 class SBSParseError(Exception):
     pass
 
@@ -18,7 +19,7 @@ class SBSMessageType(Enum):
     # Generated when the SBS picks up a signal for an aircraft that it
     # isn't currently tracking,
     AIR = 3
-    # Generated when an aircraft's status changes according to the 
+    # Generated when an aircraft's status changes according to the
     # time-out values in the SBS1 Data Settings menu.
     STA = 4
     # Generated when the user double-clicks (or presses return) on an
@@ -28,13 +29,14 @@ class SBSMessageType(Enum):
     # transmission types, see `TransmissionType`.
     MSG = 6
 
+
 class SBSTransmissionType(Enum):
     ESIdentificationAndCategory = 1
     # Triggered by the nose gear squat switch.
     ESSurfacePosMsg = 2
     ESAirbornePosMsg = 3
     ESAirborneVelocityMsg = 4
-    # Triggered by ground radar. Not CRC secured. 
+    # Triggered by ground radar. Not CRC secured.
     SurveillanceAltMsg = 5
     SurveillanceIDMsg = 6
     # Triggered by TCAS.
@@ -42,48 +44,51 @@ class SBSTransmissionType(Enum):
     # Broadcast but also triggered by ground radar.
     AllCallReply = 8
 
+
 class SBSMessage:
-    def __init__(self, 
-            # (MSG, STA, ID, AIR, SEL or CLK)
-            msgType: SBSMessageType, 
-            # MSG sub types 1 to 8. Not used by other message types.
-            transmissionType: SBSTransmissionType,
-            # Database Session record number
-            sessionId: int,
-            # Database Aircraft record number
-            aircraftId: int,
-            # Aircraft Mode S hexadecimal code
-            hexIdent: str,
-            # Database Flight record number
-            flightId: int,
-            # As it says
-            messageGeneratedDateTime: datetime,
-            # As it says
-            messageLoggedDateTime: datetime,
-            # An eight digit flight ID - can be flight number or registration (or even nothing).
-            callsign: str,
-            # Mode C altitude. Height relative to 1013.2mb (Flight Level). Not height AMSL..
-            altitude: int,
-            # Speed over ground (not indicated airspeed)
-            groundSpeed: int,
-            # Track of aircraft (not heading). Derived from the velocity E/W and velocity N/S
-            track: int,
-            # North and East positive. South and West negative.
-            latitude: float,
-            # North and East positive. South and West negative.
-            longitude: float,
-            # 64ft resolution
-            verticalRate: int,
-            # Assigned Mode A squawk code.
-            squawk: int,
-            # Flag to indicate squawk has changed.
-            alert: bool,
-            # Flag to indicate emergency code has been set
-            emergency: bool,
-            # Flag to indicate transponder Ident has been activated.
-            spi: bool,
-            # Flag to indicate ground squat switch is active
-            isOnGround: bool):
+    def __init__(
+        self,
+        # (MSG, STA, ID, AIR, SEL or CLK)
+        msgType: SBSMessageType,
+        # MSG sub types 1 to 8. Not used by other message types.
+        transmissionType: SBSTransmissionType,
+        # Database Session record number
+        sessionId: int,
+        # Database Aircraft record number
+        aircraftId: int,
+        # Aircraft Mode S hexadecimal code
+        hexIdent: str,
+        # Database Flight record number
+        flightId: int,
+        # As it says
+        messageGeneratedDateTime: datetime,
+        # As it says
+        messageLoggedDateTime: datetime,
+        # An eight digit flight ID - can be flight number or registration (or even nothing).
+        callsign: str,
+        # Mode C altitude. Height relative to 1013.2mb (Flight Level). Not height AMSL..
+        altitude: int,
+        # Speed over ground (not indicated airspeed)
+        groundSpeed: int,
+        # Track of aircraft (not heading). Derived from the velocity E/W and velocity N/S
+        track: int,
+        # North and East positive. South and West negative.
+        latitude: float,
+        # North and East positive. South and West negative.
+        longitude: float,
+        # 64ft resolution
+        verticalRate: int,
+        # Assigned Mode A squawk code.
+        squawk: int,
+        # Flag to indicate squawk has changed.
+        alert: bool,
+        # Flag to indicate emergency code has been set
+        emergency: bool,
+        # Flag to indicate transponder Ident has been activated.
+        spi: bool,
+        # Flag to indicate ground squat switch is active
+        isOnGround: bool,
+    ):
         self.type = msgType
         self.transmissionType = transmissionType
         self.sessionId = sessionId
@@ -95,7 +100,7 @@ class SBSMessage:
         self.callsign = callsign
         self.altitude = altitude
         self.groundSpeed = groundSpeed
-        self.track =  track
+        self.track = track
         self.latitude = latitude
         self.longitude = longitude
         self.verticalRate = verticalRate
@@ -106,48 +111,49 @@ class SBSMessage:
         self.isOnGround = isOnGround
 
     def __str__(self):
-        return ("<SBS({type}, "
-        "{transmissionType}, "
-        "sessionId={sessionId}, "
-        "aircraftId={aircraftId}, "
-        "hexIdent={hexIdent}, "
-        "flightId={flightId}, "
-        "msgGenDateTime={messageGeneratedDateTime}, "
-        "msgLogDateTime={messageLoggedDateTime}, "
-        "callsign={callsign}, "
-        "altitude={altitude}, "
-        "groundSpeed={groundSpeed}, "
-        "track={track}, "
-        "latitude={latitude}, "
-        "longitude={longitude}, "
-        "verticalRate={verticalRate}, "
-        "squawk={squawk}, "
-        "alert={alert}, "
-        "emergency={emergency}, "
-        "spi={spi}, "
-        "isOnGround={isOnGround})>"
+        return (
+            "<SBS({type}, "
+            "{transmissionType}, "
+            "sessionId={sessionId}, "
+            "aircraftId={aircraftId}, "
+            "hexIdent={hexIdent}, "
+            "flightId={flightId}, "
+            "msgGenDateTime={messageGeneratedDateTime}, "
+            "msgLogDateTime={messageLoggedDateTime}, "
+            "callsign={callsign}, "
+            "altitude={altitude}, "
+            "groundSpeed={groundSpeed}, "
+            "track={track}, "
+            "latitude={latitude}, "
+            "longitude={longitude}, "
+            "verticalRate={verticalRate}, "
+            "squawk={squawk}, "
+            "alert={alert}, "
+            "emergency={emergency}, "
+            "spi={spi}, "
+            "isOnGround={isOnGround})>"
         ).format(
-                type=str(self.type),
-                transmissionType=self.transmissionType,
-                sessionId=self.sessionId,
-                aircraftId=self.aircraftId,
-                hexIdent=self.hexIdent,
-                flightId=self.flightId,
-                messageGeneratedDateTime=self.messageGeneratedDateTime,
-                messageLoggedDateTime=self.messageLoggedDateTime,
-                callsign=self.callsign,
-                altitude=self.altitude,
-                groundSpeed=self.groundSpeed,
-                track=self.track,
-                latitude=self.latitude,
-                longitude=self.longitude,
-                verticalRate=self.verticalRate,
-                squawk=self.squawk,
-                alert=self.alert,
-                emergency=self.emergency,
-                spi=self.spi,
-                isOnGround=self.isOnGround
-                )
+            type=str(self.type),
+            transmissionType=self.transmissionType,
+            sessionId=self.sessionId,
+            aircraftId=self.aircraftId,
+            hexIdent=self.hexIdent,
+            flightId=self.flightId,
+            messageGeneratedDateTime=self.messageGeneratedDateTime,
+            messageLoggedDateTime=self.messageLoggedDateTime,
+            callsign=self.callsign,
+            altitude=self.altitude,
+            groundSpeed=self.groundSpeed,
+            track=self.track,
+            latitude=self.latitude,
+            longitude=self.longitude,
+            verticalRate=self.verticalRate,
+            squawk=self.squawk,
+            alert=self.alert,
+            emergency=self.emergency,
+            spi=self.spi,
+            isOnGround=self.isOnGround,
+        )
 
 
 def msgTypeFromToken(msgType: str) -> SBSMessageType:
@@ -164,47 +170,55 @@ def msgTypeFromToken(msgType: str) -> SBSMessageType:
     if msgType == "CLK":
         return SBSMessageType.CLK
 
+
 def transmissionTypeFromToken(txType: str) -> SBSTransmissionType:
     return SBSTransmissionType(int(txType)) if txType else None
+
 
 def intFromToken(val: str) -> int:
     return int(val) if val else None
 
+
 def floatFromToken(val: str) -> float:
     return float(val) if val else None
 
+
 def boolFromToken(val: str) -> bool:
-    return val != '0' if val else None
+    return val != "0" if val else None
+
 
 def stringFromToken(val: str) -> str:
     return val if val else None
 
+
 def dateTimeFromTokens(dateVal: str, timeVal: str) -> datetime:
-    return datetime.strptime(dateVal + " " + timeVal, '%Y/%m/%d %H:%M:%S.%f')
+    return datetime.strptime(dateVal + " " + timeVal, "%Y/%m/%d %H:%M:%S.%f")
+
 
 def parse(msg: str) -> SBSMessage:
-    tokens = msg.split(',')
+    tokens = msg.split(",")
     if len(tokens) != 22:
         raise SBSParseError("invalid token count")
     msg = SBSMessage(
-        msgType = msgTypeFromToken(tokens[0]),
-        transmissionType = transmissionTypeFromToken(tokens[1]),
-        sessionId = intFromToken(tokens[2]),
-        aircraftId = intFromToken(tokens[3]),
-        hexIdent = stringFromToken(tokens[4]),
-        flightId = intFromToken(tokens[5]),
-        messageGeneratedDateTime = dateTimeFromTokens(tokens[6], tokens[7]),
-        messageLoggedDateTime = dateTimeFromTokens(tokens[8], tokens[9]),
-        callsign = stringFromToken(tokens[10]),
-        altitude = intFromToken(tokens[11]),
-        groundSpeed = intFromToken(tokens[12]),
-        track = intFromToken(tokens[13]),
-        latitude = floatFromToken(tokens[14]),
-        longitude = floatFromToken(tokens[15]),
-        verticalRate = intFromToken(tokens[16]),
-        squawk = intFromToken(tokens[17]),
-        alert = boolFromToken(tokens[18]),
-        emergency = boolFromToken(tokens[19]),
-        spi = boolFromToken(tokens[20]),
-        isOnGround = boolFromToken(tokens[21]))
+        msgType=msgTypeFromToken(tokens[0]),
+        transmissionType=transmissionTypeFromToken(tokens[1]),
+        sessionId=intFromToken(tokens[2]),
+        aircraftId=intFromToken(tokens[3]),
+        hexIdent=stringFromToken(tokens[4]),
+        flightId=intFromToken(tokens[5]),
+        messageGeneratedDateTime=dateTimeFromTokens(tokens[6], tokens[7]),
+        messageLoggedDateTime=dateTimeFromTokens(tokens[8], tokens[9]),
+        callsign=stringFromToken(tokens[10]),
+        altitude=intFromToken(tokens[11]),
+        groundSpeed=intFromToken(tokens[12]),
+        track=intFromToken(tokens[13]),
+        latitude=floatFromToken(tokens[14]),
+        longitude=floatFromToken(tokens[15]),
+        verticalRate=intFromToken(tokens[16]),
+        squawk=intFromToken(tokens[17]),
+        alert=boolFromToken(tokens[18]),
+        emergency=boolFromToken(tokens[19]),
+        spi=boolFromToken(tokens[20]),
+        isOnGround=boolFromToken(tokens[21]),
+    )
     return msg
