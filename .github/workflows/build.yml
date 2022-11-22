@@ -21,10 +21,10 @@ jobs:
         include:
           - context: AccessPoint
             name: ghcr.io/gravity981/easyadsb/accesspoint
-            file: .
+            file: Dockerfile
           - context: dump1090
             name: ghcr.io/gravity981/easyadsb/dump1090
-            file: .
+            file: Dockerfile
           - context: .
             name: ghcr.io/gravity981/easyadsb/dump1090mqtt
             file: Dockerfile.dump1090mqtt
