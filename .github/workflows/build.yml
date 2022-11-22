@@ -31,6 +31,8 @@ jobs:
             tag: ghcr.io/gravity981/easyadsb/ublox
     steps:
       - uses: actions/checkout@v3
+      - name: Prepare
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: Log in to ghcr
         uses: docker/login-action@v2
         with:
@@ -51,4 +53,4 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           platforms: linux/arm/v7
           push: true
-          tags: ${{ matrix.tag }}:${GITHUB_SHA::7}
+          tags: ${{ matrix.tag }}:${{ env.SHORT_SHA }}
