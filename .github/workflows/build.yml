@@ -20,15 +20,15 @@ jobs:
       matrix:
         include:
           - context: AccessPoint
-            tag: ghcr.io/gravity981/easyadsb/accesspoint:${GITHUB_SHA::7}
+            tag: ghcr.io/gravity981/easyadsb/accesspoint
           - context: dump1090
-            tag: ghcr.io/gravity981/easyadsb/dump1090:${GITHUB_SHA::7}
+            tag: ghcr.io/gravity981/easyadsb/dump1090
           - context: Dump1090Mqtt
-            tag: ghcr.io/gravity981/easyadsb/dump1090mqtt:${GITHUB_SHA::7}
+            tag: ghcr.io/gravity981/easyadsb/dump1090mqtt
           - context: Monitor
-            tag: ghcr.io/gravity981/easyadsb/monitor:${GITHUB_SHA::7}
+            tag: ghcr.io/gravity981/easyadsb/monitor
           - context: UbloxGps
-            tag: ghcr.io/gravity981/easyadsb/ublox:${GITHUB_SHA::7}
+            tag: ghcr.io/gravity981/easyadsb/ublox
     steps:
       - uses: actions/checkout@v3
       - name: Log in to ghcr
@@ -51,4 +51,4 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           platforms: linux/arm/v7
           push: true
-          tags: ${{ matrix.tag }}
+          tags: ${{ matrix.tag }}:${GITHUB_SHA::7}
