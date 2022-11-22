@@ -12,9 +12,9 @@ services:
 
   ublox:
     container_name: ublox
-    image: ublox
+    image: ghcr.io/gravity981/easyadsb/ublox
     build:
-      context: UbloxGps
+      dockerfile: Dockerfile.ublox
     devices: 
       - /dev/ttyAMA0
     depends_on: 
@@ -32,9 +32,9 @@ services:
 
   dump1090mqtt:
     container_name: dump1090mqtt
-    image: dump1090mqtt
+    image: ghcr.io/gravity981/easyadsb/dump1090mqtt
     build:
-      context: Dump1090Mqtt
+      dockerfile: Dockerfile.dump1090mqtt
     depends_on: 
       - mqtt
       - dump1090
@@ -50,9 +50,9 @@ services:
 
   monitor:
     container_name: monitor
-    image: monitor
+    image: ghcr.io/gravity981/easyadsb/monitor
     build:
-      context: monitor
+      dockerfile: Dockerfile.monitor
     depends_on:
       - mqtt
     environment:

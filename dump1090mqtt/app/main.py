@@ -1,23 +1,16 @@
 import logging
 import atexit
 import os
-import SimpleMqttClient
 import socket
 import uuid
 import time
 
-
-def setup_logging(level: str):
-    fmt = "[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s"
-    if level == "DEBUG":
-        log_level = logging.DEBUG
-    elif level == "INFO":
-        log_level = logging.INFO
-    elif level == "WARNING":
-        log_level = logging.WARNING
-    else:
-        log_level = logging.WARNING
-    logging.basicConfig(level=log_level, format=fmt)
+try:
+    import common.mqtt as mqtt
+    import common.logconf as logconf
+except ImportError:
+    import mqtt
+    import logconf
 
 
 def on_exit():
@@ -46,7 +39,7 @@ def socket_readline(skt):
     return skt.recv(size)
 
 
-def run_tcp_publish(mqtt, sock):
+def run_tcp_publish(sock):
     global tcp_connected
     while run:
         try:
@@ -82,7 +75,7 @@ if __name__ == "__main__":
     client_name = str(os.getenv("DU_MQTT_CLIENT_NAME"))
     publish_topic = str(os.getenv("DU_MQTT_PUBLISH_TOPIC"))
 
-    setup_logging(log_level)
+    logconf.setup_logging(log_level)
     logger = logging.getLogger(logger_name)
     atexit.register(on_exit)
 
@@ -90,15 +83,13 @@ if __name__ == "__main__":
         logger.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
-    client = SimpleMqttClient.SimpleMqttClient(broker, port, 60, client_name, logger_name)
-    if not client.connect():
-        exit()
+    client = mqtt.launch(client_name, broker, port)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     logger.debug('connect to "{host}:{port}"'.format(host=tcp_host, port=tcp_port))
     sock.connect((tcp_host, tcp_port))
     tcp_connected = True
     logger.info('start publishing messages from "{host}:{port}" to {topic}'.format(host=tcp_host, port=tcp_port, topic=publish_topic))
-    run_tcp_publish(client, sock)
+    run_tcp_publish(sock)
 
     exit()

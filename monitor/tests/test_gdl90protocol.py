@@ -1,4 +1,4 @@
-import Monitor.app.GDL90Protocol as gdl
+import monitor.app.GDL90Protocol as gdl
 
 
 def toHexStr(raw: bytes) -> str:

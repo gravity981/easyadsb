@@ -1,5 +1,4 @@
 import logging
-import paho.mqtt.client as mqtt
 import uuid
 import time
 import atexit
@@ -7,23 +6,17 @@ import os
 from pyubx2 import UBXReader
 from pynmeagps import NMEAReader
 import SBSProtocol
-import Monitor
+import monitor
 import socket
 import GDL90Protocol as gdl
 from datetime import datetime
 
-
-def setup_logging(level: str):
-    fmt = "[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s"
-    if level == "DEBUG":
-        log_level = logging.DEBUG
-    elif level == "INFO":
-        log_level = logging.INFO
-    elif level == "WARNING":
-        log_level = logging.WARNING
-    else:
-        log_level = logging.WARNING
-    logging.basicConfig(level=log_level, format=fmt)
+try:
+    import common.mqtt as mqtt
+    import common.logconf as logconf
+except ImportError:
+    import mqtt
+    import logconf
 
 
 def on_exit():
@@ -34,28 +27,6 @@ def on_exit():
     if logger is not None:
         logger.info("Exit application")
     run = False
-
-
-def launch_mqtt(client_name, host, port) -> mqtt.Client:
-    def on_connect(client, userdata, flags, rc):
-        if rc == 0:
-            logger.info("mqtt connected")
-        else:
-            logger.warning("could not connect to mqtt server. code: %s", str(rc))
-
-    def on_disconnect(client, userdata, rc):
-        logger.info(
-            "disconnected from mqtt server, code: %s, userdata: %s",
-            str(rc),
-            str(userdata),
-        )
-
-    client = mqtt.Client(client_name)
-    client.on_connect = on_connect
-    client.on_disconnect = on_disconnect
-    client.connect(host, port, keepalive=60)
-    client.loop_start()
-    return client
 
 
 def on_nmea_message(msg):
@@ -107,8 +78,8 @@ if __name__ == "__main__":
     client = None
     run = True
 
-    trafficMonitor = Monitor.TrafficMonitor()
-    gpsMonitor = Monitor.GpsMonitor()
+    trafficMonitor = monitor.TrafficMonitor()
+    gpsMonitor = monitor.GpsMonitor()
 
     logger_name = "logger"
     log_level = str(os.getenv("MO_LOG_LEVEL"))
@@ -123,7 +94,7 @@ if __name__ == "__main__":
     gdl90_broadcast_ip = str(os.getenv("MO_GDL90_BROADCAST_IP"))
     gdl90_port = int(os.getenv("MO_GDL90_PORT"))
 
-    setup_logging(log_level)
+    logconf.setup_logging(log_level)
     logger = logging.getLogger(logger_name)
     atexit.register(on_exit)
 
@@ -132,7 +103,7 @@ if __name__ == "__main__":
         client_name = str(uuid.uuid1())
 
     logger.debug("{client_name}, {broker}, {port}".format(client_name=client_name, broker=broker, port=port))
-    client = launch_mqtt(client_name, broker, port)
+    client = mqtt.launch(client_name, broker, port)
     client.on_message = on_message
     client.subscribe(nmea_topic)
     client.subscribe(ubx_topic)

@@ -4,45 +4,38 @@ from pynmeagps import NMEAMessage
 import logging
 import atexit
 import os
-import SimpleMqttClient
 import uuid
 
-
-def setup_logging(level: str):
-    fmt = "[%(asctime)s][%(levelname)-8s][%(filename)s:%(lineno)d] - %(message)s"
-    if level == "DEBUG":
-        log_level = logging.DEBUG
-    elif level == "INFO":
-        log_level = logging.INFO
-    elif level == "WARNING":
-        log_level = logging.WARNING
-    else:
-        log_level = logging.WARNING
-    logging.basicConfig(level=log_level, format=fmt)
+try:
+    import common.mqtt as mqtt
+    import common.logconf as logconf
+except ImportError:
+    import mqtt
+    import logconf
 
 
 def on_exit():
     global run
     if logger is not None:
         logger.info("Exit application")
-    if client is not None:
-        client.disconnect()
+    if mqClient is not None:
+        mqClient.disconnect()
     run = False
 
 
-def run_serial_publish(mqtt, ubr: UBXReader):
+def run_serial_publish(mqClient, ubr: UBXReader):
     while run:
         (raw_data, parsed_data) = ubr.read()
         logger.debug(parsed_data)
         if type(parsed_data) == UBXMessage:
-            client.publish(publish_topic_ubx, raw_data)
+            mqClient.publish(publish_topic_ubx, raw_data)
         if type(parsed_data) == NMEAMessage:
-            client.publish(publish_topic_nmea, raw_data)
+            mqClient.publish(publish_topic_nmea, raw_data)
 
 
 if __name__ == "__main__":
     logger = None
-    client = None
+    mqClient = None
     run = True
 
     logger_name = "logger"
@@ -55,7 +48,7 @@ if __name__ == "__main__":
     publish_topic_ubx = str(os.getenv("UB_MQTT_UBX_PUBLISH_TOPIC"))
     publish_topic_nmea = str(os.getenv("UB_MQTT_NMEA_PUBLISH_TOPIC"))
 
-    setup_logging(log_level)
+    logconf.setup_logging(log_level)
     logger = logging.getLogger(logger_name)
     atexit.register(on_exit)
 
@@ -63,14 +56,12 @@ if __name__ == "__main__":
         logger.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
-    client = SimpleMqttClient.SimpleMqttClient(broker, port, 60, client_name, logger_name)
-    if not client.connect():
-        exit()
+    mqClient = mqtt.launch(client_name, broker, port)
 
     stream = Serial(serial_device, serial_baud, timeout=3)
     ubr = UBXReader(stream)
     logger.info('start publishing UBX messages from "{device}" to {topic}'.format(device=serial_device, topic=publish_topic_ubx))
     logger.info('start publishing NMEA messages from "{device}" to {topic}'.format(device=serial_device, topic=publish_topic_nmea))
-    run_serial_publish(client, ubr)
+    run_serial_publish(mqClient, ubr)
 
     exit()

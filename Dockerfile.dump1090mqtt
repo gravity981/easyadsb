@@ -19,8 +19,9 @@ ENV DU_MQTT_CLIENT_NAME ""
 ENV DU_MQTT_PUBLISH_TOPIC /easyadsb/dump1090/sbs
 
 WORKDIR /home
-COPY requirements.txt ./
+COPY dump1090mqtt/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ./app ./app
+COPY common/ ./app
+COPY dump1090mqtt/app ./app
 
 CMD ["python", "/home/app/main.py"]

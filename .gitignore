@@ -1,2 +1,4 @@
+sandbox/
 get-docker.sh
 __pycache__
+.pytest_cache/

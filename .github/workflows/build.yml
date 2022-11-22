@@ -20,15 +20,20 @@ jobs:
       matrix:
         include:
           - context: AccessPoint
-            tag: ghcr.io/gravity981/easyadsb/accesspoint
+            name: ghcr.io/gravity981/easyadsb/accesspoint
+            file: .
           - context: dump1090
-            tag: ghcr.io/gravity981/easyadsb/dump1090
-          - context: Dump1090Mqtt
-            tag: ghcr.io/gravity981/easyadsb/dump1090mqtt
-          - context: Monitor
-            tag: ghcr.io/gravity981/easyadsb/monitor
-          - context: UbloxGps
-            tag: ghcr.io/gravity981/easyadsb/ublox
+            name: ghcr.io/gravity981/easyadsb/dump1090
+            file: .
+          - context: .
+            name: ghcr.io/gravity981/easyadsb/dump1090mqtt
+            file: Dockerfile.dump1090mqtt
+          - context: .
+            name: ghcr.io/gravity981/easyadsb/monitor
+            file: Dockerfile.monitor
+          - context: .
+            name: ghcr.io/gravity981/easyadsb/ublox
+            file: Dockerfile.ublox
     steps:
       - uses: actions/checkout@v3
       - name: Prepare
@@ -50,7 +55,8 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: ${{ matrix.context }}
+          file: ${{ matric.file }}
           builder: ${{ steps.buildx.outputs.name }}
           platforms: linux/arm/v7
           push: true
-          tags: ${{ matrix.tag }}:${{ env.SHORT_SHA }}
+          tags: ${{ matrix.name }}:${{ env.SHORT_SHA }}

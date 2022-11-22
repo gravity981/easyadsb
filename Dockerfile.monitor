@@ -16,9 +16,10 @@ ENV MO_GDL90_BROADCAST_IP 192.168.77.255
 ENV MO_GDL90_PORT 4000
 
 WORKDIR /home
-COPY requirements.txt ./
+COPY monitor/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY ./data ./data
-COPY ./app ./app
+COPY monitor/data ./data
+COPY common/ ./app
+COPY monitor/app ./app
 
 CMD ["python", "/home/app/main.py"]
