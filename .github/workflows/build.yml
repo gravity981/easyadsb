@@ -19,21 +19,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - context: AccessPoint
+          - context: core/AccessPoint
             name: ghcr.io/gravity981/easyadsb/accesspoint
-            file: AccessPoint/Dockerfile
-          - context: dump1090
+            file: core/AccessPoint/Dockerfile
+          - context: core/dump1090
             name: ghcr.io/gravity981/easyadsb/dump1090
-            file: dump1090/Dockerfile
-          - context: .
+            file: core/dump1090/Dockerfile
+          - context: core
             name: ghcr.io/gravity981/easyadsb/dump1090mqtt
-            file: Dockerfile.dump1090mqtt
-          - context: .
+            file: core/Dockerfile.dump1090mqtt
+          - context: core
             name: ghcr.io/gravity981/easyadsb/monitor
-            file: Dockerfile.monitor
-          - context: .
+            file: core/Dockerfile.monitor
+          - context: core
             name: ghcr.io/gravity981/easyadsb/ublox
-            file: Dockerfile.ublox
+            file: core/Dockerfile.ublox
     steps:
       - uses: actions/checkout@v3
       - name: Prepare

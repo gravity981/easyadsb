@@ -58,7 +58,7 @@ else
 fi
 echo "done"
 
-# Install easyadsb as a service
+# FIXME Install easyadsb as a service, service files changed
 function installEasyADSBService() {
   systemctl link /home/pi/easyadsb/easyadsb.service
   systemctl enable easyadsb.service
@@ -75,6 +75,7 @@ while true; do
 done
 echo "done"
 
+# TODO remove this
 # Configure LXDE autostart
 function replaceAutostart() {
   cp /etc/xdg/lxsession/LXDE-pi/autostart /etc/xdg/lxsession/LXDE-pi/autostart_backup
@@ -101,6 +102,7 @@ else
 fi
 echo "done"
 
+# FIXME THIS DOES NOT WORK
 # Switch resolution to 720x480 (3.5" HDMI LCD Display)
 
 function writeXprofile() {
@@ -118,6 +120,13 @@ while true; do
           * ) echo "Please answer yes or no.";;
       esac
   done
+
+
+# TODO install pyqt5 dependencies (QtQml)
+# sudo apt install python3-pyqt5 python3-pyqt5.qtquick
+
+# TODO setup to boot into console. disable boot into desktop
+
 
 # Reboot
 while true; do

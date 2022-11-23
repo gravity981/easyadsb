@@ -1,0 +1,14 @@
+[Unit]
+Description=Easy ADS-B Updater Service
+After=multi-user.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/easyadsb/updater/app
+ExecStart=/usr/bin/python main.py
+TimeoutStartSec=0
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Easy ADS-B GUI Service
+After=multi-user.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/easyadsb/gui/app
+ExecStart=/usr/bin/python main.py -platform eglfs
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
