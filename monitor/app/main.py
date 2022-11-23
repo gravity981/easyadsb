@@ -1,6 +1,5 @@
 import logging
 import uuid
-import time
 import atexit
 import os
 from pyubx2 import UBXReader
@@ -9,7 +8,8 @@ import SBSProtocol
 import monitor
 import socket
 import GDL90Protocol as gdl
-from datetime import datetime
+from datetime import datetime, timedelta
+from timeloop import Timeloop
 
 try:
     import common.mqtt as mqtt
@@ -19,8 +19,12 @@ except ImportError:
     import logconf
 
 
+tl = Timeloop()
+
+
 def on_exit():
     global run
+    tl.stop()
     if client is not None:
         client.loop_stop()
         client.disconnect()
@@ -73,10 +77,75 @@ def on_message(client, userdata, msg):
         logger.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
 
 
+@tl.job(interval=timedelta(seconds=1))
+def send_gdl90_messages():
+    heartbeat = gdl.encodeHeartbeatMessage(
+        gdl.GDL90HeartBeatMessage(time=gdl.secondsSinceMidnightUTC(datetime.utcnow()))
+    )  # do not use datetime, use gps time instead
+    ownship = gdl.encodeOwnshipMessage(
+        gdl.GDL90TrafficMessage(
+            latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
+            longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
+            altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
+            hVelocity=int(gpsMonitor.groundSpeedKnots) if gpsMonitor.groundSpeedKnots is not None else 0,
+            vVelocity=0,
+            trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,  # get from gps
+            navIntegrityCat=8,  # derive from infromation from gps
+            navAccuracyCat=9,  # derive from infromation from gps
+            emitterCat=gdl.GDL90EmitterCategory.light,  # make configurable
+            trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
+            airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
+        )
+    )  # derive from speed
+    ownship_alt = gdl.encodeOwnshipAltitudeMessage(
+        gdl.GDL90OwnshipGeoAltitudeMessage(
+            altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
+        )  # get from gps  # get from gps
+    )  # derive from information from gps
+    res = sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
+    if res < 11:
+        logger.warning("sent heartbytes bytes is too small. is socket ok?")
+    sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
+    sock.sendto(ownship_alt, (gdl90_broadcast_ip, gdl90_port))
+    for k, v in trafficMonitor.traffic.items():
+        logger.debug(
+            "id={id:X}, cs={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}".format(
+                id=v.id,
+                callsign=v.callsign,
+                lat=v.latitude,
+                lon=v.longitude,
+                alt=v.altitude,
+                trk=v.track,
+                spd=v.groundSpeed,
+                cnt=v.msgCount,
+            )
+        )
+        if v.ready():
+            traffic = gdl.encodeTrafficMessage(
+                gdl.GDL90TrafficMessage(
+                    latitude=v.latitude,
+                    longitude=v.longitude,
+                    altitude=v.altitude,
+                    hVelocity=v.groundSpeed,
+                    vVelocity=0,
+                    trackHeading=v.track,
+                    address=v.id,
+                    callsign=v.callsign,
+                    navIntegrityCat=8,
+                    navAccuracyCat=9,
+                    emitterCat=v.category if v.category is not None else gdl.GDL90EmitterCategory.no_info,
+                    trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+                    airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
+                )
+            )
+            res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
+
+    # logger.info(str(gpsMonitor))
+
+
 if __name__ == "__main__":
     logger = None
     client = None
-    run = True
 
     trafficMonitor = monitor.TrafficMonitor()
     gpsMonitor = monitor.GpsMonitor()
@@ -96,6 +165,7 @@ if __name__ == "__main__":
 
     logconf.setup_logging(log_level)
     logger = logging.getLogger(logger_name)
+    tl.logger = logger
     atexit.register(on_exit)
 
     if client_name == "":
@@ -110,65 +180,4 @@ if __name__ == "__main__":
     client.subscribe(sbs_topic)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    while run:
-        heartbeat = gdl.encodeHeartbeatMessage(
-            gdl.GDL90HeartBeatMessage(time=gdl.secondsSinceMidnightUTC(datetime.utcnow()))
-        )  # do not use datetime, use gps time instead
-        ownship = gdl.encodeOwnshipMessage(
-            gdl.GDL90TrafficMessage(
-                latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
-                longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
-                altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
-                hVelocity=int(gpsMonitor.groundSpeedKnots) if gpsMonitor.groundSpeedKnots is not None else 0,
-                vVelocity=0,
-                trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,  # get from gps
-                navIntegrityCat=8,  # derive from infromation from gps
-                navAccuracyCat=9,  # derive from infromation from gps
-                emitterCat=gdl.GDL90EmitterCategory.light,  # make configurable
-                trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
-                airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
-            )
-        )  # derive from speed
-        ownship_alt = gdl.encodeOwnshipAltitudeMessage(
-            gdl.GDL90OwnshipGeoAltitudeMessage(
-                altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
-            )  # get from gps  # get from gps
-        )  # derive from information from gps
-        sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
-        sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
-        sock.sendto(ownship_alt, (gdl90_broadcast_ip, gdl90_port))
-        for k, v in trafficMonitor.traffic.items():
-            logger.debug(
-                "id={id:X}, cs={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}".format(
-                    id=v.id,
-                    callsign=v.callsign,
-                    lat=v.latitude,
-                    lon=v.longitude,
-                    alt=v.altitude,
-                    trk=v.track,
-                    spd=v.groundSpeed,
-                    cnt=v.msgCount,
-                )
-            )
-            if v.ready():
-                traffic = gdl.encodeTrafficMessage(
-                    gdl.GDL90TrafficMessage(
-                        latitude=v.latitude,
-                        longitude=v.longitude,
-                        altitude=v.altitude,
-                        hVelocity=v.groundSpeed,
-                        vVelocity=0,
-                        trackHeading=v.track,
-                        address=v.id,
-                        callsign=v.callsign,
-                        navIntegrityCat=8,
-                        navAccuracyCat=9,
-                        emitterCat=v.category if v.category is not None else gdl.GDL90EmitterCategory.no_info,
-                        trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
-                        airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
-                    )
-                )
-                sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
-
-        # logger.info(str(gpsMonitor))
-        time.sleep(1)
+    tl.start()
