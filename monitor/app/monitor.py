@@ -9,74 +9,182 @@ from pynmeagps import NMEAMessage
 logger = logging.getLogger("logger")
 
 
-class GPSStatus(Enum):
-    Active = 1
-    Void = 0
+class GPSNavMode(Enum):
+    nofix = 1
+    fix2D = 2
+    fix3D = 3
+
+
+class GpsSatellite:
+    def __init__(self, id: int = 0, elevation: int = 0, azimuth: int = 0, snr: int = 0, used: bool = False):
+        self.id = id
+        self.elevation = elevation
+        self.azimuth = azimuth
+        self.snr = snr
+        self.used = used
+
+    def __str__(self):
+        return "<Sat(id={}, elv={}, az={}, snr={}, used={})>".format(self.id, self.elevation, self.azimuth, self.snr, self.used)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class GpsMonitor:
     def __init__(self):
-        pass
+        self._gsvMsgNum = 1
+        self.satellites = dict()
+        self.navMode = GPSNavMode.nofix
+        self.opMode = None
+        self.pdop = None
+        self.hdop = None
+        self.vdop = None
+        self.trueTrack = None
+        self.magneticTrack = None
+        self.groundSpeedKnots = None
+        self.groundSpeedKph = None
+        self.latitude = None
+        self.longitude = None
+        self.altitudeMeter = None
+        self.separationMeter = None
+
+    def __str__(self):
+        return (
+            "GpsMonitor<(navMode={}, opMode={}, pdop={}, hdop={}, vdop={}, tt={}, mt={}, gsN={}," "gsK={}, lat={}, lon={}, altM={}, sepM={}, satellites={})>"
+        ).format(
+            self.navMode,
+            self.opMode,
+            self.pdop,
+            self.hdop,
+            self.vdop,
+            self.trueTrack,
+            self.magneticTrack,
+            self.groundSpeedKnots,
+            self.groundSpeedKph,
+            self.latitude,
+            self.longitude,
+            self.altitudeMeter,
+            self.separationMeter,
+            str(self.satellites),
+        )
 
     def update(self, msg: NMEAMessage):
+        oldNavMode = self.navMode
 
-        # satellite status
-        # ID: GSV - GNSS Satellites in View
-        # <NMEA(GPGSV, numMsg=4, msgNum=1, numSV=14, svid_01=2, elv_01=41.0, az_01=149, cno_01=43, svid_02=6, elv_02=3.0, az_02=26,
-        # cno_02=10, svid_03=11, elv_03=27.0, az_03=50, cno_03=43, svid_04=12, elv_04=33.0, az_04=90, cno_04=39)>
-        # ID: GSA - GNSS DOP and Active Satellites
-        # <NMEA(GPGSA, opMode=A, navMode=3, svid_01=29, svid_02=25, svid_03=12, svid_04=31, svid_05=11, svid_06=2, svid_07=20,
-        # svid_08=, svid_09=, svid_10=, svid_11=, svid_12=, PDOP=2.71, HDOP=1.59, VDOP=2.19)>
+        if msg.msgID == "GSV":
+            self.updateSatellites(msg)
+        if msg.msgID == "GSA":
+            self.updateActiveSatellites(msg)
+        if msg.msgID == "VTG":
+            self.updateCourse(msg)
+            self.updateSpeed(msg)
+        if msg.msgID == "GGA":
+            self.updatePosition(msg)
 
-        # useful for monitoring ownship
-        # ID: VTG - Course Over Ground and Ground Speed
-        # <NMEA(GPVTG, cogt=, cogtUnit=T, cogm=, cogmUnit=M, sogn=0.22, sognUnit=N, sogk=0.408, sogkUnit=K, posMode=A)>
-        # ID: GGA - Global Positioning System Fixed Data
-        # <NMEA(GPGGA, time=19:57:12, lat=46.9263156667, NS=N, lon=7.4543581667, EW=E, quality=1, numSV=7, HDOP=1.59, alt=578.5, altUnit=M,
-        # sep=47.2, sepUnit=M, diffAge=, diffStation=)>
-        # ID: RMC - Recommended Minimum Specific GNSS Data
-        # <NMEA(GPRMC, time=19:57:12, status=A, lat=46.9263156667, NS=N, lon=7.4543581667, EW=E, spd=0.22, cog=, date=2022-11-20, mv=, mvEW=, posMode=A)>
+        if oldNavMode != self.navMode:
+            logger.info("GPS NavMode changed to {}".format(self.navMode))
 
-        # probably unused
-        # ID: GLL - Geographic Position - Latitude/Longitude
-        # <NMEA(GPGLL, lat=46.9263158333, NS=N, lon=7.4543563333, EW=E, time=19:57:11, status=A, posMode=A)>
-        return
+    def updateSatellites(self, msg):
+        # in sync
+        if msg.msgNum == self._gsvMsgNum:
+            # first message
+            if msg.msgNum == 1:
+                self._gsvRemaningSVCount = msg.numSV
+                self._intermediateSVs = dict()
 
+            # for each message
+            max = self._gsvRemaningSVCount if self._gsvRemaningSVCount < 4 else 4
+            for i in range(1, max + 1):
+                sv_id = int(getattr(msg, "svid_0{}".format(i)))
+                sv_elv = int(getattr(msg, "elv_0{}".format(i)) or 0)
+                sv_az = int(getattr(msg, "az_0{}".format(i)) or 0)
+                sv_cno = int(getattr(msg, "cno_0{}".format(i)) or 0)
+                self._intermediateSVs[sv_id] = GpsSatellite(sv_id, sv_elv, sv_az, sv_cno)
+            self._gsvRemaningSVCount -= max
+            self._gsvMsgNum += 1
 
-class OwnshipMonitor:
-    def __init__(
-        self,
-        status: GPSStatus,
-        utc: str,  # utc time
-        latitude: float,
-        longitude: float,
-        groundSpeed: int,  # knots
-        track: int,  # degrees
-        date: str,
-        magneticVariation: int,  # degrees
-    ):
-        self.status = status
-        self.utc = utc
-        self.latitude = latitude
-        self.longitude = longitude
-        self.groundSpeed = groundSpeed
-        self.track = track
-        self.date = date
-        self.magneticVariation = magneticVariation
+            # last message
+            if msg.msgNum == msg.numMsg:
+                # update dict instead of replacing it
+                for sat in self._intermediateSVs.values():
+                    if sat.id in self.satellites.keys():
+                        GpsMonitor._updateSatellite(self.satellites[sat.id], sat)
+                    else:
+                        self.satellites[sat.id] = sat
+                for k in list(self.satellites.keys()):
+                    if k not in self._intermediateSVs.keys():
+                        del self.satellites[k]
+                if len(self.satellites) != msg.numSV:
+                    logger.error("number of satellites does not match numSV from message")
+                self._gsvMsgNum = 1
+        else:
+            logger.warning("abort update satellites, message number out of sync")
+            self._gsvMsgNum = 1
+            self._gsvRemaningSVCount = 0
 
+    def _updateSatellite(existing: GpsSatellite, new: GpsSatellite):
+        existing.azimuth = new.azimuth
+        existing.elevation = new.elevation
+        existing.snr = new.snr
 
-class Satellite:
-    def __init__(self, prnNumber, elevation, azimuth, snr):
-        self.prnNumber = prnNumber
-        self.elevation = elevation
-        self.azimuth = azimuth
-        self.snr = snr
+    def updateActiveSatellites(self, msg):
+        self.navMode = GPSNavMode(int(getattr(msg, "navMode")))
+        self.opMode = getattr(msg, "opMode")
+        self.pdop = getattr(msg, "PDOP")
+        self.hdop = getattr(msg, "HDOP")
+        self.vdop = getattr(msg, "VDOP")
+        # assumption always maximal 12 possible used satellites
+        usedSatIds = list()
+        for i in range(1, 13):
+            usedId = int(getattr(msg, "svid_{0:02d}".format(i)) or -1)
+            if usedId != -1:
+                usedSatIds.append(usedId)
+        for satId, sat in self.satellites.items():
+            sat.used = True if satId in usedSatIds else False
 
+    def updateCourse(self, msg):
+        trueTrack = getattr(msg, "cogt")
+        self.trueTrack = int(trueTrack) if trueTrack else None
+        magneticTrack = getattr(msg, "cogm")
+        self.magneticTrack = int(magneticTrack) if magneticTrack else None
 
-class SatellitesMonitor:
-    def __init__(self, satellitesVisible: int, satellitesInUse: int):
-        self.satellitesVisible = satellitesVisible
-        self.satellitesInUse = satellitesInUse
+    def updateSpeed(self, msg):
+        groundSpeedKnots = getattr(msg, "sogn")
+        self.groundSpeedKnots = float(groundSpeedKnots) if groundSpeedKnots else None
+        groundSpeedKph = getattr(msg, "sogk")
+        self.groundSpeedKph = float(groundSpeedKph) if groundSpeedKph else None
+
+    def updatePosition(self, msg):
+        lat = getattr(msg, "lat")
+        ns = getattr(msg, "NS")
+        lon = getattr(msg, "lon")
+        ew = getattr(msg, "EW")
+        alt = getattr(msg, "alt")
+        altUnit = getattr(msg, "altUnit")
+        sep = getattr(msg, "sep")
+        sepUnit = getattr(msg, "sepUnit")
+
+        if ns:
+            c = 1 if ns == "N" else -1
+        lat = float(lat) if lat else None
+        self.latitude = c * lat if lat is not None else None
+
+        if ew:
+            c = 1 if ew == "E" else -1
+        lon = float(lon) if lon else None
+        self.longitude = c * lon if lon is not None else None
+
+        if altUnit and sepUnit:
+            if altUnit != "M":
+                raise Exception("altitude unit must be M")
+            if sepUnit != altUnit:
+                raise Exception("separation unit must be equal to altitude unit")
+
+            self.altitudeMeter = float(alt) if alt else None
+            self.separationMeter = float(sep) if sep else None
+        else:
+            self.altitudeMeter = None
+            self.separationMeter = None
 
 
 class TrafficEntry:

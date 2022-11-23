@@ -111,15 +111,17 @@ if __name__ == "__main__":
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     while run:
-        heartbeat = gdl.encodeHeartbeatMessage(gdl.GDL90HeartBeatMessage(time=gdl.secondsSinceMidnightUTC(datetime.utcnow())))
+        heartbeat = gdl.encodeHeartbeatMessage(
+            gdl.GDL90HeartBeatMessage(time=gdl.secondsSinceMidnightUTC(datetime.utcnow()))
+        )  # do not use datetime, use gps time instead
         ownship = gdl.encodeOwnshipMessage(
             gdl.GDL90TrafficMessage(
-                latitude=46.912222,  # get from gps
-                longitude=7.499167,  # get from gps
-                altitude=5000,  # calculate from barometric pressure
-                hVelocity=50,  # get from gps
-                vVelocity=0,  # get from gps
-                trackHeading=90,  # get from gps
+                latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
+                longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
+                altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
+                hVelocity=int(gpsMonitor.groundSpeedKnots) if gpsMonitor.groundSpeedKnots is not None else 0,
+                vVelocity=0,
+                trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,  # get from gps
                 navIntegrityCat=8,  # derive from infromation from gps
                 navAccuracyCat=9,  # derive from infromation from gps
                 emitterCat=gdl.GDL90EmitterCategory.light,  # make configurable
@@ -128,7 +130,9 @@ if __name__ == "__main__":
             )
         )  # derive from speed
         ownship_alt = gdl.encodeOwnshipAltitudeMessage(
-            gdl.GDL90OwnshipGeoAltitudeMessage(altitude=5000, merit=50, isWarning=False)  # get from gps  # get from gps
+            gdl.GDL90OwnshipGeoAltitudeMessage(
+                altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
+            )  # get from gps  # get from gps
         )  # derive from information from gps
         sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
         sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
@@ -165,4 +169,6 @@ if __name__ == "__main__":
                     )
                 )
                 sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
+
+        # logger.info(str(gpsMonitor))
         time.sleep(1)
