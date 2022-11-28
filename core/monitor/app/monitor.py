@@ -1,6 +1,6 @@
 from enum import Enum
 from SBSProtocol import SBSMessage
-from datetime import datetime, timedelta
+from datetime import datetime
 import threading
 import logging
 import json
@@ -387,6 +387,7 @@ class GpsMonitor:
 class TrafficError(Exception):
     pass
 
+
 class TrafficCategory(Enum):
     no_info = 0
     light = 1
@@ -414,7 +415,18 @@ class TrafficCategory(Enum):
 
 
 class TrafficEntry:
-    def __init__(self, id: str, callsign: str, model: str, category: TrafficCategory, latitude: float, longitude: float, altitude: int, track: int, groundSpeed: int):
+    def __init__(
+        self,
+        id: str,
+        callsign: str,
+        model: str,
+        category: TrafficCategory,
+        latitude: float,
+        longitude: float,
+        altitude: int,
+        track: int,
+        groundSpeed: int
+    ):
         self._id = int(id, 16)
         self._callsign = callsign
         self._model = model
@@ -497,9 +509,9 @@ class TrafficEntry:
     @property
     def lastSeen(self) -> datetime:
         """
-        Timestamp since last message about this :class:`TrafficEntry`
+        seconds since last message about this :class:`TrafficEntry`
         """
-        return self._lastSeen
+        return (datetime.utcnow() - self._lastSeen).total_seconds()
 
     @property
     def msgCount(self):
@@ -618,10 +630,9 @@ class TrafficMonitor:
     def _cleanup(self):
         threading.Timer(10, self._cleanup).start()
         with self._lock:
-            now = datetime.utcnow()
             timeout = 30
             for k in list(self._traffic.keys()):
                 entry = self._traffic[k]
-                if entry.lastSeen < now - timedelta(seconds=timeout):
+                if entry.lastSeen > timeout:
                     logger.info("remove {} (unseen for >{} seconds)".format(entry, timeout))
                     del self._traffic[k]
