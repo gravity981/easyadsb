@@ -10,37 +10,85 @@ from copy import deepcopy
 logger = logging.getLogger("logger")
 
 
-class GPSNavMode(Enum):
-    nofix = 1
-    fix2D = 2
-    fix3D = 3
+class GpsNavMode(Enum):
+    """
+    NavMode, depending on the number of used satellites
+    """
+    NoFix = 1
+    Fix2D = 2
+    Fix3D = 3
 
 
 class GpsOpMode(Enum):
+    """
+    Manual, 'M' = Manually set to operate in 2D or 3D mode
+    Automatic, 'A' = Automatically switching between 2D or 3D mode
+    """
     Automatic = 'A'
     Manual = 'M'
 
 
 class GpsSatellite:
-    def __init__(self, id: int = 0, elevation: int = 0, azimuth: int = 0, snr: int = 0, used: bool = False):
-        self.id = id
-        self.elevation = elevation
-        self.azimuth = azimuth
-        self.snr = snr
-        self.used = used
+    """
+    Represents information about a Gps Satellite. Used within :class:`GpsMonitor`
+    """
+    def __init__(self, id: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
+        self._id = id
+        self._elevation = elevation
+        self._azimuth = azimuth
+        self._cno = cno
+        self._used = used
 
     def __str__(self):
-        return "<Sat(id={}, elv={}, az={}, snr={}, used={})>".format(self.id, self.elevation, self.azimuth, self.snr, self.used)
+        return "<Sat(id={}, elv={}, az={}, cno={}, used={})>".format(self._id, self._elevation, self._azimuth, self._cno, self._used)
 
     def __repr__(self):
         return self.__str__()
 
+    @property
+    def id(self) -> int:
+        """
+        Ubx satellite number, svId
+        """
+        return self._id
+
+    @property
+    def elevation(self) -> int:
+        """
+        Elevation in degrees, range 0 to 90
+        """
+        return self._elevation
+
+    @property
+    def azimuth(self) -> int:
+        """
+        Azimuth in degrees, range 0 to 359
+        """
+        return self._azimuth
+
+    @property
+    def cno(self) -> int:
+        """
+        Carrier to Noise Ratio in dbHz, Signal strength, range 0 to 99, null when not tracking
+        """
+        return self._cno
+
+    @property
+    def used(self) -> bool:
+        """
+        Used for navigation
+        """
+        return self._used
+
 
 class GpsMonitor:
+    """
+    Monitor for satellite navigation. uses :class:`NMeaMessage` to update its state
+    """
     def __init__(self):
         self._gsvMsgNum = 1
         self._satellites = dict()
-        self._navMode = GPSNavMode.nofix
+        self._navMode = GpsNavMode.NoFix
         self._opMode = GpsOpMode.Manual
         self._pdop = None
         self._hdop = None
@@ -57,80 +105,126 @@ class GpsMonitor:
         self._lock = threading.Lock()
 
     @property
-    def satellites(self):
+    def satellites(self) -> dict():
+        """
+        Dictionary of :class:`GpsSatellite`
+        """
         with self._lock:
             return deepcopy(self._satellites)
 
     @property
-    def navMode(self):
+    def navMode(self) -> GpsNavMode:
+        """
+        Navigation Mode, see :class:`GpsNavMode`
+        """
         with self._lock:
             return self._navMode
 
     @property
-    def opMode(self):
+    def opMode(self) -> GpsOpMode:
+        """
+        Operation Mode, see :class:`GpsOpMode`
+        """
         with self._lock:
             return self._opMode
 
     @property
-    def pdop(self):
+    def pdop(self) -> float:
+        """
+        Position Dilution of Precision
+        """
         with self._lock:
             return self._pdop
 
     @property
-    def hdop(self):
+    def hdop(self) -> float:
+        """
+        Horizontal Dilution of Precision
+        """
         with self._lock:
             return self._hdop
 
     @property
-    def vdop(self):
+    def vdop(self) -> float:
+        """
+        Vertical Dilution of Precision
+        """
         with self._lock:
             return self._vdop
 
     @property
-    def trueTrack(self):
+    def trueTrack(self) -> float:
+        """
+        Course over ground (true), can be None
+        """
         with self._lock:
             return self._trueTrack
 
     @property
-    def magneticTrack(self):
+    def magneticTrack(self) -> float:
+        """
+        Course over ground (magnetic), can be None
+        """
         with self._lock:
             return self._magneticTrack
 
     @property
-    def groundSpeedKnots(self):
+    def groundSpeedKnots(self) -> float:
+        """
+        Speed over ground in knots, can be None
+        """
         with self._lock:
             return self._groundSpeedKnots
 
     @property
-    def groundSpeedKph(self):
+    def groundSpeedKph(self) -> float:
+        """
+        Speed over ground in kilometers per hour, can be None
+        """
         with self._lock:
             return self._groundSpeedKph
 
     @property
-    def latitude(self):
+    def latitude(self) -> float:
+        """
+        latitude in the format degrees, minutes and (decimal) fractions of minutes.
+        Positive value is considered North, negative South
+        can be None
+        """
         with self._lock:
             return self._latitude
 
     @property
-    def longitude(self):
+    def longitude(self) -> float:
+        """
+        longitude in the format degrees, minutes and (decimal) fractions of minutes.
+        Positive value is considered East, negative West
+        can be None
+        """
         with self._lock:
             return self._longitude
 
     @property
-    def altitudeMeter(self):
+    def altitudeMeter(self) -> float:
+        """
+        Altitude above mean sea level in meters, can be None
+        """
         with self._lock:
             return self._altitudeMeter
 
     @property
     def separationMeter(self):
         """
-        Geoid separation: difference between ellipsoid and mean sea level
+        Geoid separation: difference between ellipsoid and mean sea level, can be None
         """
         with self._lock:
             return self._separationMeter
 
     @property
-    def utcTime(self):
+    def utcTime(self) -> datetime.time:
+        """
+        UTC time
+        """
         with self._lock:
             return self._utcTime
 
@@ -157,23 +251,32 @@ class GpsMonitor:
         )
 
     def update(self, msg: NMEAMessage):
+        """
+        update TrafficMonitor with an NMEAMessage. The following MsgIDs are supported:
+        - GSV
+        - GSA
+        - VTG
+        - GGA
+
+        other MsgIDs will be ignored
+        """
         with self._lock:
             oldNavMode = self._navMode
 
             if msg.msgID == "GSV":
-                self.updateSatellites(msg)
+                self._updateSatellites(msg)
             elif msg.msgID == "GSA":
-                self.updateActiveSatellites(msg)
+                self._updateActiveSatellites(msg)
             elif msg.msgID == "VTG":
-                self.updateCourse(msg)
-                self.updateSpeed(msg)
+                self._updateCourse(msg)
+                self._updateSpeed(msg)
             elif msg.msgID == "GGA":
-                self.updatePosition(msg)
+                self._updatePosition(msg)
 
             if oldNavMode != self._navMode:
                 logger.info("GPS NavMode changed to {}".format(self._navMode))
 
-    def updateSatellites(self, msg):
+    def _updateSatellites(self, msg):
         # in sync
         if msg.msgNum == self._gsvMsgNum:
             # first message
@@ -212,16 +315,16 @@ class GpsMonitor:
             self._gsvRemaningSVCount = 0
 
     def _updateSatellite(existing: GpsSatellite, new: GpsSatellite):
-        existing.azimuth = new.azimuth
-        existing.elevation = new.elevation
-        existing.snr = new.snr
+        existing._azimuth = new.azimuth
+        existing._elevation = new.elevation
+        existing._cno = new.cno
 
-    def updateActiveSatellites(self, msg):
-        self._navMode = GPSNavMode(int(getattr(msg, "navMode")))
+    def _updateActiveSatellites(self, msg):
+        self._navMode = GpsNavMode(int(getattr(msg, "navMode")))
         self._opMode = GpsOpMode(getattr(msg, "opMode"))
-        self._pdop = getattr(msg, "PDOP")
-        self._hdop = getattr(msg, "HDOP")
-        self._vdop = getattr(msg, "VDOP")
+        self._pdop = float(getattr(msg, "PDOP"))
+        self._hdop = float(getattr(msg, "HDOP"))
+        self._vdop = float(getattr(msg, "VDOP"))
         # assumption always maximal 12 possible used satellites
         usedSatIds = list()
         for i in range(1, 13):
@@ -229,21 +332,21 @@ class GpsMonitor:
             if usedId != -1:
                 usedSatIds.append(usedId)
         for satId, sat in self._satellites.items():
-            sat.used = True if satId in usedSatIds else False
+            sat._used = True if satId in usedSatIds else False
 
-    def updateCourse(self, msg):
+    def _updateCourse(self, msg):
         trueTrack = getattr(msg, "cogt")
-        self._trueTrack = int(trueTrack) if trueTrack else None
+        self._trueTrack = float(trueTrack) if trueTrack else None
         magneticTrack = getattr(msg, "cogm")
-        self._magneticTrack = int(magneticTrack) if magneticTrack else None
+        self._magneticTrack = float(magneticTrack) if magneticTrack else None
 
-    def updateSpeed(self, msg):
+    def _updateSpeed(self, msg):
         groundSpeedKnots = getattr(msg, "sogn")
         self._groundSpeedKnots = float(groundSpeedKnots) if groundSpeedKnots else None
         groundSpeedKph = getattr(msg, "sogk")
         self._groundSpeedKph = float(groundSpeedKph) if groundSpeedKph else None
 
-    def updatePosition(self, msg):
+    def _updatePosition(self, msg):
         lat = getattr(msg, "lat")
         ns = getattr(msg, "NS")
         lon = getattr(msg, "lon")

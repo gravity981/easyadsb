@@ -80,9 +80,9 @@ def on_message(client, userdata, msg):
 
 def getNavScore():
     # score to use for GDL90 nav integrity and accuracy
-    if gpsMonitor.navMode == monitor.GPSNavMode.fix2D:
+    if gpsMonitor.navMode == monitor.GpsNavMode.Fix2D:
         return 5
-    elif gpsMonitor.navMode == monitor.GPSNavMode.fix3D:
+    elif gpsMonitor.navMode == monitor.GpsNavMode.Fix3D:
         return 9
     else:
         return 0
@@ -96,7 +96,7 @@ def send_gdl90_messages():
             isInitialized=True,
             isLowBattery=False,
             time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
-            posValid=gpsMonitor.navMode != monitor.GPSNavMode.nofix)
+            posValid=gpsMonitor.navMode != monitor.GpsNavMode.NoFix)
     )
     ownship = gdl.encodeOwnshipMessage(
         gdl.GDL90TrafficMessage(
