@@ -182,6 +182,7 @@ def init_socket():
     # bind the sockeet to make sure periodic udp broadcast stays alive
     sock.bind((gdl90_broadcast_ip, gdl90_port))
 
+
 if __name__ == "__main__":
     logger = None
     client = None
