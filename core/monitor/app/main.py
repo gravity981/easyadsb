@@ -8,8 +8,9 @@ import SBSProtocol
 import monitor
 import socket
 import GDL90Protocol as gdl
-from datetime import datetime, timedelta
+from datetime import timedelta
 from timeloop import Timeloop
+import threading
 
 try:
     import common.mqtt as mqtt
@@ -79,8 +80,13 @@ def on_message(client, userdata, msg):
 
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
+    lock.acquire()
     heartbeat = gdl.encodeHeartbeatMessage(
-        gdl.GDL90HeartBeatMessage(time=gdl.secondsSinceMidnightUTC(datetime.utcnow()))
+        gdl.GDL90HeartBeatMessage(
+            isInitialized=True,
+            isLowBattery=False,
+            time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
+            posValid=gpsMonitor.navMode != monitor.GPSNavMode.nofix)
     )  # do not use datetime, use gps time instead
     ownship = gdl.encodeOwnshipMessage(
         gdl.GDL90TrafficMessage(
@@ -138,10 +144,33 @@ def send_gdl90_messages():
                     airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
                 )
             )
-            res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
+            res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))    
+    lock.release()
 
-    # logger.info(str(gpsMonitor))
 
+def socket_health_check():
+    # health check is realised by continously reading back broadcast data and checking for socket timeout
+    # timeout indicates that socket does not work anymore and has to be recreated
+    global sock
+    while True:
+        try:
+            # returns up to N bytes, can return less, is blocking if there is no data to read from the socket,
+            # could be made non-blocking (beware of exceptions in this case)
+            sock.recv(1000)
+        except TimeoutError:
+            logger.warning("socket timeout, recreate socket...")
+            lock.acquire()
+            init_socket()
+            lock.release()
+
+
+def init_socket():
+    global sock
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.settimeout(2)
+    # bind the sockeet to make sure periodic udp broadcast stays alive
+    sock.bind((gdl90_broadcast_ip, gdl90_port))
 
 if __name__ == "__main__":
     logger = None
@@ -178,6 +207,8 @@ if __name__ == "__main__":
     client.subscribe(nmea_topic)
     client.subscribe(ubx_topic)
     client.subscribe(sbs_topic)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    init_socket()
     tl.start()
+    lock = threading.Lock()
+    thread = threading.Thread(target=socket_health_check)
+    thread.start()
