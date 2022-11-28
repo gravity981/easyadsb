@@ -7,6 +7,10 @@ from datetime import datetime
 logger = logging.getLogger("logger")
 
 
+class GDL90Error(Exception):
+    pass
+
+
 class GDL90MessageId(IntFlag):
     Heartbeat = 0
     Initialization = 2
@@ -286,8 +290,12 @@ def encode_vVelocity(velocity: int) -> int:
         return int(velocity / 64)
 
 
-def encode_track(track: int) -> int:
-    return int(track * 256 / 360.0)
+def encode_track(trackHeading: int) -> int:
+    if trackHeading < 0 or trackHeading > 360:
+        raise GDL90Error("trackHeading out of bounds, must be between 0 and 360 degrees")
+    elif trackHeading == 360:
+        trackHeading = 0
+    return round(trackHeading * 256 / 360.0)
 
 
 def encode_callsign(callsign: str) -> str:

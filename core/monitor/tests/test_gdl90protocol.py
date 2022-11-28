@@ -1,4 +1,6 @@
 import monitor.app.GDL90Protocol as gdl
+from contextlib import nullcontext as does_not_raise
+import pytest
 
 
 def toHexStr(raw: bytes) -> str:
@@ -67,6 +69,38 @@ def test_OnwshipMessage_wellformed():
     expected = b"\x7E\x0A\x00\x00\x00\x00\x23\x8E\x38\x05\xB0\x73\x0A\xB9\x89\x05\x00\x00\x40\x01\x44\x2D\x45\x5A\x41\x41\x20\x20\x00\x37\x22\x7E"
     enc = gdl.encodeOwnshipMessage(msg4)
     assert enc == expected
+
+
+@pytest.mark.parametrize("track, expectation", [
+    (-1, pytest.raises(gdl.GDL90Error)),
+    (0, does_not_raise()),
+    (90, does_not_raise()),
+    (180, does_not_raise()),
+    (270, does_not_raise()),
+    (359, does_not_raise()),
+    (360, does_not_raise()),
+    (361, pytest.raises(gdl.GDL90Error))])
+def test_TrafficMessageTrack(track, expectation):
+    with expectation:
+        gdl.encodeTrafficMessage(
+            gdl.GDL90TrafficMessage(
+                status=gdl.GDL90TrafficAlertStatus.No_Alert,
+                addrType=gdl.GDL90AddressType.ADSB_with_ICAO_addr,
+                address=0xAB4549,
+                latitude=44.90708,
+                longitude=-122.99488,
+                altitude=5000,
+                trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+                airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
+                reportIndicator=gdl.GDL90MiscellaneousIndicatorReport.updated,
+                navIntegrityCat=10,
+                navAccuracyCat=9,
+                hVelocity=123,
+                trackHeading=track,
+                vVelocity=64,
+                callsign="N825V",
+                emitterCat=gdl.GDL90EmitterCategory.light,
+                emergencyCode=gdl.GDL90EmergencyCode.no_emergency))
 
 
 # msg5 = GDL90TrafficMessage(
