@@ -5,6 +5,7 @@ import threading
 import logging
 import json
 from pynmeagps import NMEAMessage
+from copy import deepcopy
 
 logger = logging.getLogger("logger")
 
@@ -13,6 +14,11 @@ class GPSNavMode(Enum):
     nofix = 1
     fix2D = 2
     fix3D = 3
+
+
+class GpsOpMode(Enum):
+    Automatic = 'A'
+    Manual = 'M'
 
 
 class GpsSatellite:
@@ -33,59 +39,139 @@ class GpsSatellite:
 class GpsMonitor:
     def __init__(self):
         self._gsvMsgNum = 1
-        self.satellites = dict()
-        self.navMode = GPSNavMode.nofix
-        self.opMode = None
-        self.pdop = None
-        self.hdop = None
-        self.vdop = None
-        self.trueTrack = None
-        self.magneticTrack = None
-        self.groundSpeedKnots = None
-        self.groundSpeedKph = None
-        self.latitude = None
-        self.longitude = None
-        self.altitudeMeter = None
-        self.separationMeter = None
-        self.utcTime = None
+        self._satellites = dict()
+        self._navMode = GPSNavMode.nofix
+        self._opMode = GpsOpMode.Manual
+        self._pdop = None
+        self._hdop = None
+        self._vdop = None
+        self._trueTrack = None
+        self._magneticTrack = None
+        self._groundSpeedKnots = None
+        self._groundSpeedKph = None
+        self._latitude = None
+        self._longitude = None
+        self._altitudeMeter = None
+        self._separationMeter = None
+        self._utcTime = None
+        self._lock = threading.Lock()
+
+    @property
+    def satellites(self):
+        with self._lock:
+            return deepcopy(self._satellites)
+
+    @property
+    def navMode(self):
+        with self._lock:
+            return self._navMode
+
+    @property
+    def opMode(self):
+        with self._lock:
+            return self._opMode
+
+    @property
+    def pdop(self):
+        with self._lock:
+            return self._pdop
+
+    @property
+    def hdop(self):
+        with self._lock:
+            return self._hdop
+
+    @property
+    def vdop(self):
+        with self._lock:
+            return self._vdop
+
+    @property
+    def trueTrack(self):
+        with self._lock:
+            return self._trueTrack
+
+    @property
+    def magneticTrack(self):
+        with self._lock:
+            return self._magneticTrack
+
+    @property
+    def groundSpeedKnots(self):
+        with self._lock:
+            return self._groundSpeedKnots
+
+    @property
+    def groundSpeedKph(self):
+        with self._lock:
+            return self._groundSpeedKph
+
+    @property
+    def latitude(self):
+        with self._lock:
+            return self._latitude
+
+    @property
+    def longitude(self):
+        with self._lock:
+            return self._longitude
+
+    @property
+    def altitudeMeter(self):
+        with self._lock:
+            return self._altitudeMeter
+
+    @property
+    def separationMeter(self):
+        """
+        Geoid separation: difference between ellipsoid and mean sea level
+        """
+        with self._lock:
+            return self._separationMeter
+
+    @property
+    def utcTime(self):
+        with self._lock:
+            return self._utcTime
 
     def __str__(self):
         return (
             "GpsMonitor<(navMode={}, opMode={}, pdop={}, hdop={}, vdop={}, tt={}, mt={}, gsN={}," "gsK={}, lat={}, lon={}, altM={}, sepM={}, "
             "time={}, satellites={})>"
         ).format(
-            self.navMode,
-            self.opMode,
-            self.pdop,
-            self.hdop,
-            self.vdop,
-            self.trueTrack,
-            self.magneticTrack,
-            self.groundSpeedKnots,
-            self.groundSpeedKph,
-            self.latitude,
-            self.longitude,
-            self.altitudeMeter,
-            self.separationMeter,
-            self.utcTime,
-            str(self.satellites),
+            self._navMode,
+            self._opMode,
+            self._pdop,
+            self._hdop,
+            self._vdop,
+            self._trueTrack,
+            self._magneticTrack,
+            self._groundSpeedKnots,
+            self._groundSpeedKph,
+            self._latitude,
+            self._longitude,
+            self._altitudeMeter,
+            self._separationMeter,
+            self._utcTime,
+            str(self._satellites),
         )
 
     def update(self, msg: NMEAMessage):
-        oldNavMode = self.navMode
+        with self._lock:
+            oldNavMode = self._navMode
 
-        if msg.msgID == "GSV":
-            self.updateSatellites(msg)
-        if msg.msgID == "GSA":
-            self.updateActiveSatellites(msg)
-        if msg.msgID == "VTG":
-            self.updateCourse(msg)
-            self.updateSpeed(msg)
-        if msg.msgID == "GGA":
-            self.updatePosition(msg)
+            if msg.msgID == "GSV":
+                self.updateSatellites(msg)
+            elif msg.msgID == "GSA":
+                self.updateActiveSatellites(msg)
+            elif msg.msgID == "VTG":
+                self.updateCourse(msg)
+                self.updateSpeed(msg)
+            elif msg.msgID == "GGA":
+                self.updatePosition(msg)
 
-        if oldNavMode != self.navMode:
-            logger.info("GPS NavMode changed to {}".format(self.navMode))
+            if oldNavMode != self._navMode:
+                logger.info("GPS NavMode changed to {}".format(self._navMode))
 
     def updateSatellites(self, msg):
         # in sync
@@ -110,14 +196,14 @@ class GpsMonitor:
             if msg.msgNum == msg.numMsg:
                 # update dict instead of replacing it
                 for sat in self._intermediateSVs.values():
-                    if sat.id in self.satellites.keys():
-                        GpsMonitor._updateSatellite(self.satellites[sat.id], sat)
+                    if sat.id in self._satellites.keys():
+                        GpsMonitor._updateSatellite(self._satellites[sat.id], sat)
                     else:
-                        self.satellites[sat.id] = sat
-                for k in list(self.satellites.keys()):
+                        self._satellites[sat.id] = sat
+                for k in list(self._satellites.keys()):
                     if k not in self._intermediateSVs.keys():
-                        del self.satellites[k]
-                if len(self.satellites) != msg.numSV:
+                        del self._satellites[k]
+                if len(self._satellites) != msg.numSV:
                     logger.error("number of satellites does not match numSV from message")
                 self._gsvMsgNum = 1
         else:
@@ -131,31 +217,31 @@ class GpsMonitor:
         existing.snr = new.snr
 
     def updateActiveSatellites(self, msg):
-        self.navMode = GPSNavMode(int(getattr(msg, "navMode")))
-        self.opMode = getattr(msg, "opMode")
-        self.pdop = getattr(msg, "PDOP")
-        self.hdop = getattr(msg, "HDOP")
-        self.vdop = getattr(msg, "VDOP")
+        self._navMode = GPSNavMode(int(getattr(msg, "navMode")))
+        self._opMode = GpsOpMode(getattr(msg, "opMode"))
+        self._pdop = getattr(msg, "PDOP")
+        self._hdop = getattr(msg, "HDOP")
+        self._vdop = getattr(msg, "VDOP")
         # assumption always maximal 12 possible used satellites
         usedSatIds = list()
         for i in range(1, 13):
             usedId = int(getattr(msg, "svid_{0:02d}".format(i)) or -1)
             if usedId != -1:
                 usedSatIds.append(usedId)
-        for satId, sat in self.satellites.items():
+        for satId, sat in self._satellites.items():
             sat.used = True if satId in usedSatIds else False
 
     def updateCourse(self, msg):
         trueTrack = getattr(msg, "cogt")
-        self.trueTrack = int(trueTrack) if trueTrack else None
+        self._trueTrack = int(trueTrack) if trueTrack else None
         magneticTrack = getattr(msg, "cogm")
-        self.magneticTrack = int(magneticTrack) if magneticTrack else None
+        self._magneticTrack = int(magneticTrack) if magneticTrack else None
 
     def updateSpeed(self, msg):
         groundSpeedKnots = getattr(msg, "sogn")
-        self.groundSpeedKnots = float(groundSpeedKnots) if groundSpeedKnots else None
+        self._groundSpeedKnots = float(groundSpeedKnots) if groundSpeedKnots else None
         groundSpeedKph = getattr(msg, "sogk")
-        self.groundSpeedKph = float(groundSpeedKph) if groundSpeedKph else None
+        self._groundSpeedKph = float(groundSpeedKph) if groundSpeedKph else None
 
     def updatePosition(self, msg):
         lat = getattr(msg, "lat")
@@ -171,12 +257,12 @@ class GpsMonitor:
         if ns:
             c = 1 if ns == "N" else -1
         lat = float(lat) if lat else None
-        self.latitude = c * lat if lat is not None else None
+        self._latitude = c * lat if lat is not None else None
 
         if ew:
             c = 1 if ew == "E" else -1
         lon = float(lon) if lon else None
-        self.longitude = c * lon if lon is not None else None
+        self._longitude = c * lon if lon is not None else None
 
         if altUnit and sepUnit:
             if altUnit != "M":
@@ -184,13 +270,13 @@ class GpsMonitor:
             if sepUnit != altUnit:
                 raise Exception("separation unit must be equal to altitude unit")
 
-            self.altitudeMeter = float(alt) if alt else None
-            self.separationMeter = float(sep) if sep else None
+            self._altitudeMeter = float(alt) if alt else None
+            self._separationMeter = float(sep) if sep else None
         else:
-            self.altitudeMeter = None
-            self.separationMeter = None
+            self._altitudeMeter = None
+            self._separationMeter = None
 
-        self.utcTime = utcTime
+        self._utcTime = utcTime
 
 
 class TrafficEntry:
