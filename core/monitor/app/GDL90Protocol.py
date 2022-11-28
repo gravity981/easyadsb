@@ -153,9 +153,9 @@ class GDL90TrafficMessage:
         status: GDL90TrafficAlertStatus = GDL90TrafficAlertStatus.No_Alert,
         addrType: GDL90AddressType = GDL90AddressType.ADSB_with_ICAO_addr,
         address: int = 0x000000,  # 3 byte transponder id
-        latitude: float = 0.0,  # +/- 180.0°
-        longitude: float = 0.0,  # +/- 180.0°
-        altitude: int = 0,  # ft
+        latitude: float = 0.0,  # +/- 90.0° where + is N and - is S
+        longitude: float = 0.0,  # +/- 180.0° where + is E and - is W
+        altitude: int = 0,  # -1'000 to 101'350 ft (referenced to 29.92 inches Hg)
         trackIndicator: GDL90MiscellaneousIndicatorTrack = GDL90MiscellaneousIndicatorTrack.tt_not_valid,
         reportIndicator: GDL90MiscellaneousIndicatorReport = GDL90MiscellaneousIndicatorReport.updated,
         airborneIndicator: GDL90MiscellaneousIndicatorAirborne = GDL90MiscellaneousIndicatorAirborne.on_ground,
@@ -163,7 +163,7 @@ class GDL90TrafficMessage:
         navAccuracyCat: int = 0,  # 0 to 11 where 11 is best and 0 worst
         hVelocity: int = 0,  # unsigned 12 bit, kt
         vVelocity: int = 0,  # signed 12 bit, ftm
-        trackHeading: int = 0,  # 0° to 359°
+        trackHeading: int = 0,  # 0° to 360°
         emitterCat: GDL90EmitterCategory = GDL90EmitterCategory.no_info,
         callsign: str = "",  # max 8 characters long
         emergencyCode: GDL90EmergencyCode = GDL90EmergencyCode.no_emergency,
