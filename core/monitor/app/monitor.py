@@ -266,7 +266,7 @@ class GpsMonitor:
             if msg.msgID == "GSV":
                 self._updateSatellites(msg)
             elif msg.msgID == "GSA":
-                self._updateActiveSatellites(msg)
+                self._updateUsedSatellites(msg)
             elif msg.msgID == "VTG":
                 self._updateCourse(msg)
                 self._updateSpeed(msg)
@@ -319,13 +319,15 @@ class GpsMonitor:
         existing._elevation = new.elevation
         existing._cno = new.cno
 
-    def _updateActiveSatellites(self, msg):
+    def _updateUsedSatellites(self, msg):
         self._navMode = GpsNavMode(int(getattr(msg, "navMode")))
         self._opMode = GpsOpMode(getattr(msg, "opMode"))
         self._pdop = float(getattr(msg, "PDOP"))
         self._hdop = float(getattr(msg, "HDOP"))
         self._vdop = float(getattr(msg, "VDOP"))
-        # assumption always maximal 12 possible used satellites
+
+        # If less than 12 SVs are used for navigation, the remaining fields are left empty.
+        # If more than 12 SVs are used for navigation, only the IDs of the first 12 are output.
         usedSatIds = list()
         for i in range(1, 13):
             usedId = int(getattr(msg, "svid_{0:02d}".format(i)) or -1)
