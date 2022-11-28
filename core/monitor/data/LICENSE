@@ -1,4 +1,8 @@
-aircrafts.json :
+aircrafts.json by https://www.mictronics.de/aircraft-database/ :
 https://opendatacommons.org/licenses/by/1-0/
 https://opendatacommons.org/licenses/by/odc_by_1.0_public_text.txt 
-https://www.mictronics.de/aircraft-database/ 
+
+models.json by gravity981:
+Contains additional information about aircraft models, for now the GDL90 emitter category (https://www.faa.gov/air_traffic/technology/adsb/archival/media/GDL90_Public_ICD_RevA.PDF)
+https://opendatacommons.org/licenses/by/1-0/
+https://opendatacommons.org/licenses/by/odc_by_1.0_public_text.txt 
