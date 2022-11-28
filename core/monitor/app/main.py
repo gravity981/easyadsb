@@ -154,7 +154,7 @@ def send_gdl90_messages():
                     airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
                 )
             )
-            res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))    
+            res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
     lock.release()
 
 
