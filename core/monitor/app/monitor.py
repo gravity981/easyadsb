@@ -47,10 +47,12 @@ class GpsMonitor:
         self.longitude = None
         self.altitudeMeter = None
         self.separationMeter = None
+        self.utcTime = None
 
     def __str__(self):
         return (
-            "GpsMonitor<(navMode={}, opMode={}, pdop={}, hdop={}, vdop={}, tt={}, mt={}, gsN={}," "gsK={}, lat={}, lon={}, altM={}, sepM={}, satellites={})>"
+            "GpsMonitor<(navMode={}, opMode={}, pdop={}, hdop={}, vdop={}, tt={}, mt={}, gsN={}," "gsK={}, lat={}, lon={}, altM={}, sepM={}, "
+            "time={}, satellites={})>"
         ).format(
             self.navMode,
             self.opMode,
@@ -65,6 +67,7 @@ class GpsMonitor:
             self.longitude,
             self.altitudeMeter,
             self.separationMeter,
+            self.utcTime,
             str(self.satellites),
         )
 
@@ -163,6 +166,7 @@ class GpsMonitor:
         altUnit = getattr(msg, "altUnit")
         sep = getattr(msg, "sep")
         sepUnit = getattr(msg, "sepUnit")
+        utcTime = getattr(msg, "time")
 
         if ns:
             c = 1 if ns == "N" else -1
@@ -185,6 +189,8 @@ class GpsMonitor:
         else:
             self.altitudeMeter = None
             self.separationMeter = None
+
+        self.utcTime = utcTime
 
 
 class TrafficEntry:

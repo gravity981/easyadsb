@@ -78,6 +78,16 @@ def on_message(client, userdata, msg):
         logger.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
 
 
+def getNavScore():
+    # score to use for GDL90 nav integrity and accuracy
+    if gpsMonitor.navMode == monitor.GPSNavMode.fix2D:
+        return 5
+    elif gpsMonitor.navMode == monitor.GPSNavMode.fix3D:
+        return 9
+    else:
+        return 0
+
+
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
     lock.acquire()
@@ -87,7 +97,7 @@ def send_gdl90_messages():
             isLowBattery=False,
             time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
             posValid=gpsMonitor.navMode != monitor.GPSNavMode.nofix)
-    )  # do not use datetime, use gps time instead
+    )
     ownship = gdl.encodeOwnshipMessage(
         gdl.GDL90TrafficMessage(
             latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
@@ -95,9 +105,9 @@ def send_gdl90_messages():
             altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
             hVelocity=int(gpsMonitor.groundSpeedKnots) if gpsMonitor.groundSpeedKnots is not None else 0,
             vVelocity=0,
-            trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,  # get from gps
-            navIntegrityCat=8,  # derive from infromation from gps
-            navAccuracyCat=9,  # derive from infromation from gps
+            trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,
+            navIntegrityCat=getNavScore(),
+            navAccuracyCat=getNavScore(),
             emitterCat=gdl.GDL90EmitterCategory.light,  # make configurable
             trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
             airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
