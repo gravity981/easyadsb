@@ -136,7 +136,7 @@ def send_gdl90_messages():
                 cnt=v.msgCount,
             )
         )
-        if v.ready():
+        if v.ready:
             traffic = gdl.encodeTrafficMessage(
                 gdl.GDL90TrafficMessage(
                     latitude=v.latitude,
