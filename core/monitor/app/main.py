@@ -5,7 +5,8 @@ import os
 from pyubx2 import UBXReader
 from pynmeagps import NMEAReader
 import SBSProtocol
-import monitor
+import gpsMonitor as navMonitor
+import trafficMonitor
 import socket
 import GDL90Protocol as gdl
 from datetime import timedelta
@@ -80,9 +81,9 @@ def on_message(client, userdata, msg):
 
 def getNavScore():
     # score to use for GDL90 nav integrity and accuracy
-    if gpsMonitor.navMode == monitor.GpsNavMode.Fix2D:
+    if gpsMonitor.navMode == navMonitor.GpsNavMode.Fix2D:
         return 5
-    elif gpsMonitor.navMode == monitor.GpsNavMode.Fix3D:
+    elif gpsMonitor.navMode == navMonitor.GpsNavMode.Fix3D:
         return 9
     else:
         return 0
@@ -96,7 +97,7 @@ def send_gdl90_messages():
             isInitialized=True,
             isLowBattery=False,
             time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
-            posValid=gpsMonitor.navMode != monitor.GpsNavMode.NoFix)
+            posValid=gpsMonitor.navMode != navMonitor.GpsNavMode.NoFix)
     )
     ownship = gdl.encodeOwnshipMessage(
         gdl.GDL90TrafficMessage(
@@ -187,8 +188,8 @@ if __name__ == "__main__":
     logger = None
     client = None
 
-    trafficMonitor = monitor.TrafficMonitor()
-    gpsMonitor = monitor.GpsMonitor()
+    trafficMonitor = trafficMonitor.TrafficMonitor()
+    gpsMonitor = navMonitor.GpsMonitor()
 
     logger_name = "logger"
     log_level = str(os.getenv("MO_LOG_LEVEL"))
