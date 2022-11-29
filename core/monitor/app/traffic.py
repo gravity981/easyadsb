@@ -18,6 +18,30 @@ class TrafficError(Exception):
 
 
 class TrafficCategory(Enum):
+    """
+    Traffic Category, defined by GDL90
+    - no_info = 0
+    - light = 1, < 15'500 lbs (7'030 kg)
+    - small = 2, 15'500 lbs < x < 75'000 lbs (34'019 kg)
+    - large = 3, 75'000 lbs < x < 300'000 lbs (136'077 kg)
+    - high_vortex_large = 4
+    - heavy = 5
+    - highly_maneuverable = 6
+    - rotorcraft = 7
+    - glider = 9
+    - lighter_than_air = 10
+    - sky_diver = 11
+    - paraglider = 12
+    - unmanned = 14
+    - spaceship = 15
+    - surface_vehicle_emergency = 17
+    - surface_vehicle_service = 18
+    - point_obstacle = 19
+    - cluster_obstacle = 20
+    - line_obstacle = 21
+
+    """
+
     no_info = 0
     light = 1
     small = 2
@@ -44,9 +68,14 @@ class TrafficCategory(Enum):
 
 
 class TrafficEntry:
+    """TrafficEntry"""
+
     def __init__(
         self, id: str, callsign: str, model: str, category: TrafficCategory, latitude: float, longitude: float, altitude: int, track: int, groundSpeed: int
     ):
+        """
+        Constructor
+        """
         self._id = int(id, 16)
         self._callsign = callsign
         self._model = model
