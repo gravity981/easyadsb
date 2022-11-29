@@ -1,5 +1,5 @@
 from enum import Enum
-from datetime import datetime
+import datetime
 import threading
 import logging
 from pynmeagps import NMEAMessage
@@ -8,28 +8,37 @@ from copy import deepcopy
 logger = logging.getLogger("logger")
 
 
-class GpsNavMode(Enum):
+class NavError(Exception):
+    pass
+
+
+class NavMode(Enum):
     """
-    NavMode, depending on the number of used satellites
+    - NoFix = 1, no position
+    - Fix2D = 2, 2D positoin (indicates low accuracy)
+    - Fix3D = 3, 3D position (indicates high accuracy)
     """
+
     NoFix = 1
     Fix2D = 2
     Fix3D = 3
 
 
-class GpsOpMode(Enum):
+class OperationMode(Enum):
     """
-    Manual, 'M' = Manually set to operate in 2D or 3D mode
-    Automatic, 'A' = Automatically switching between 2D or 3D mode
+    - Automatic = 'A', Automatically switching between 2D or 3D mode
+    - Manual    = 'M', Manually set to operate in 2D or 3D mode
     """
-    Automatic = 'A'
-    Manual = 'M'
+
+    Automatic = "A"
+    Manual = "M"
 
 
-class GpsSatellite:
+class Satellite:
     """
-    Represents information about a Gps Satellite. Used within :class:`GpsMonitor`
+    Represents information about a Nav Satellite. Used within :class:`NavMonitor`
     """
+
     def __init__(self, id: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
         self._id = id
         self._elevation = elevation
@@ -79,15 +88,16 @@ class GpsSatellite:
         return self.__str__()
 
 
-class GpsMonitor:
+class NavMonitor:
     """
     Monitor for satellite navigation. uses :class:`NMeaMessage` to update its state
     """
+
     def __init__(self):
         self._gsvMsgNum = 1
         self._satellites = dict()
-        self._navMode = GpsNavMode.NoFix
-        self._opMode = GpsOpMode.Manual
+        self._navMode = NavMode.NoFix
+        self._opMode = OperationMode.Manual
         self._pdop = None
         self._hdop = None
         self._vdop = None
@@ -105,23 +115,23 @@ class GpsMonitor:
     @property
     def satellites(self) -> dict():
         """
-        Dictionary of :class:`GpsSatellite`
+        Dictionary of :class:`Satellite`
         """
         with self._lock:
             return deepcopy(self._satellites)
 
     @property
-    def navMode(self) -> GpsNavMode:
+    def navMode(self) -> NavMode:
         """
-        Navigation Mode, see :class:`GpsNavMode`
+        Navigation Mode, see :class:`NavMode`
         """
         with self._lock:
             return self._navMode
 
     @property
-    def opMode(self) -> GpsOpMode:
+    def opMode(self) -> OperationMode:
         """
-        Operation Mode, see :class:`GpsOpMode`
+        Operation Mode, see :class:`OperationMode`
         """
         with self._lock:
             return self._opMode
@@ -228,17 +238,15 @@ class GpsMonitor:
 
     def update(self, msg: NMEAMessage):
         """
-        update TrafficMonitor with an NMEAMessage. The following MsgIDs are supported:
+        update TrafficMonitor with an NMEAMessage. The following NMEA messages are supported:
         - GSV
         - GSA
         - VTG
         - GGA
 
-        other MsgIDs will be ignored
+        other messages will raise a :class:`NavError`
         """
         with self._lock:
-            oldNavMode = self._navMode
-
             if msg.msgID == "GSV":
                 self._updateSatellites(msg)
             elif msg.msgID == "GSA":
@@ -248,9 +256,6 @@ class GpsMonitor:
                 self._updateSpeed(msg)
             elif msg.msgID == "GGA":
                 self._updatePosition(msg)
-
-            if oldNavMode != self._navMode:
-                logger.info("GPS NavMode changed to {}".format(self._navMode))
 
     def _updateSatellites(self, msg):
         # in sync
@@ -267,7 +272,7 @@ class GpsMonitor:
                 sv_elv = int(getattr(msg, "elv_0{}".format(i)) or 0)
                 sv_az = int(getattr(msg, "az_0{}".format(i)) or 0)
                 sv_cno = int(getattr(msg, "cno_0{}".format(i)) or 0)
-                self._intermediateSVs[sv_id] = GpsSatellite(sv_id, sv_elv, sv_az, sv_cno)
+                self._intermediateSVs[sv_id] = Satellite(sv_id, sv_elv, sv_az, sv_cno)
             self._gsvRemaningSVCount -= max
             self._gsvMsgNum += 1
 
@@ -276,7 +281,7 @@ class GpsMonitor:
                 # update dict instead of replacing it
                 for sat in self._intermediateSVs.values():
                     if sat.id in self._satellites.keys():
-                        GpsMonitor._updateSatellite(self._satellites[sat.id], sat)
+                        NavMonitor._updateSatellite(self._satellites[sat.id], sat)
                     else:
                         self._satellites[sat.id] = sat
                 for k in list(self._satellites.keys()):
@@ -290,17 +295,21 @@ class GpsMonitor:
             self._gsvMsgNum = 1
             self._gsvRemaningSVCount = 0
 
-    def _updateSatellite(existing: GpsSatellite, new: GpsSatellite):
+    def _updateSatellite(existing: Satellite, new: Satellite):
         existing._azimuth = new.azimuth
         existing._elevation = new.elevation
         existing._cno = new.cno
 
     def _updateUsedSatellites(self, msg):
-        self._navMode = GpsNavMode(int(getattr(msg, "navMode")))
-        self._opMode = GpsOpMode(getattr(msg, "opMode"))
+        oldNavMode = self._navMode
+        self._navMode = NavMode(int(getattr(msg, "navMode")))
+        self._opMode = OperationMode(getattr(msg, "opMode"))
         self._pdop = float(getattr(msg, "PDOP"))
         self._hdop = float(getattr(msg, "HDOP"))
         self._vdop = float(getattr(msg, "VDOP"))
+
+        if oldNavMode != self._navMode:
+            logger.info("NavMode changed to {}".format(self._navMode))
 
         # If less than 12 SVs are used for navigation, the remaining fields are left empty.
         # If more than 12 SVs are used for navigation, only the IDs of the first 12 are output.
@@ -347,9 +356,9 @@ class GpsMonitor:
 
         if altUnit and sepUnit:
             if altUnit != "M":
-                raise Exception("altitude unit must be M")
+                raise NavError("altitude unit must be M")
             if sepUnit != altUnit:
-                raise Exception("separation unit must be equal to altitude unit")
+                raise NavError("separation unit must be equal to altitude unit")
 
             self._altitudeMeter = float(alt) if alt else None
             self._separationMeter = float(sep) if sep else None
@@ -361,7 +370,8 @@ class GpsMonitor:
 
     def __str__(self):
         return (
-            "GpsMonitor<(navMode={}, opMode={}, pdop={}, hdop={}, vdop={}, tt={}, mt={}, gsN={}," "gsK={}, lat={}, lon={}, altM={}, sepM={}, "
+            "NavMonitor<(navMode={}, opMode={}, pdop={}, hdop={}, vdop={}, tt={}, mt={}, gsN={},"
+            "gsK={}, lat={}, lon={}, altM={}, sepM={}, "
             "time={}, satellites={})>"
         ).format(
             self._navMode,

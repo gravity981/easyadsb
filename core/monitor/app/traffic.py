@@ -1,10 +1,14 @@
 from enum import Enum
-from SBSProtocol import SBSMessage
 from datetime import datetime
 import threading
 import logging
 import json
 from copy import deepcopy
+
+try:
+    from monitor.app.SBSProtocol import SBSMessage
+except ImportError:
+    from SBSProtocol import SBSMessage
 
 logger = logging.getLogger("logger")
 
@@ -41,16 +45,7 @@ class TrafficCategory(Enum):
 
 class TrafficEntry:
     def __init__(
-        self,
-        id: str,
-        callsign: str,
-        model: str,
-        category: TrafficCategory,
-        latitude: float,
-        longitude: float,
-        altitude: int,
-        track: int,
-        groundSpeed: int
+        self, id: str, callsign: str, model: str, category: TrafficCategory, latitude: float, longitude: float, altitude: int, track: int, groundSpeed: int
     ):
         self._id = int(id, 16)
         self._callsign = callsign
@@ -216,14 +211,13 @@ class TrafficMonitor:
     """
     Monitors Flight Traffic. Can be updated with :class:`SBSMessage`
     """
-    def __init__(self):
+
+    def __init__(self, aircraftsDB: json = None, modelsDB: json = None):
         self._traffic = dict()
+        self._aircraftsDB = aircraftsDB
+        self._modelsDB = modelsDB
         self._lock = threading.Lock()
-        with open("/home/data/aircrafts.json") as json_file:
-            self._aircrafts_db = json.load(json_file)
-        with open("/home/data/models.json") as json_file:
-            self._models_db = json.load(json_file)
-        self._cleanup()
+        self._timer = None
 
     @property
     def traffic(self) -> dict():
@@ -232,6 +226,19 @@ class TrafficMonitor:
         """
         with self._lock:
             return deepcopy(self._traffic)
+
+    def startAutoCleanup(self, interval: int = 10):
+        """
+        Start cleanup timer, removes unseen traffic
+        """
+        self._cleanup(interval)
+
+    def stopAutoCleanup(self):
+        """
+        Stop cleanup timer, removes unseen traffic
+        """
+        if self._timer is not None:
+            self._timer.cancel()
 
     def update(self, msg: SBSMessage):
         """
@@ -246,18 +253,35 @@ class TrafficMonitor:
                 if nowReady and not wasReady:
                     logger.info("now ready {} ".format(entry))
             else:
-                callsign, model, *_ = self._aircrafts_db[msg.hexIdent] if msg.hexIdent in self._aircrafts_db.keys() else [None, None]
-                category, *_ = self._models_db[model] if model in self._models_db.keys() else [None]
+                callsign, model = self._aircraftLookUp(msg)
+                if callsign is None:
+                    callsign = msg.callsign
+                category = self._modelLookUp(model)
                 entry = TrafficEntry(msg.hexIdent, callsign, model, category, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
                 self._traffic[msg.hexIdent] = entry
                 logger.info("add new {} (count {})".format(entry, len(self._traffic)))
 
-    def _cleanup(self):
-        threading.Timer(10, self._cleanup).start()
+    def _cleanup(self, interval: int):
         with self._lock:
-            timeout = 30
+            self._timer = threading.Timer(interval, self._cleanup, [interval])
+            self._timer.start()
+            maxLastSeenSeconds = 30
             for k in list(self._traffic.keys()):
                 entry = self._traffic[k]
-                if entry.lastSeen > timeout:
-                    logger.info("remove {} (unseen for >{} seconds)".format(entry, timeout))
+                if entry.lastSeen > maxLastSeenSeconds:
+                    logger.info("remove {} (unseen for >{} seconds)".format(entry, maxLastSeenSeconds))
                     del self._traffic[k]
+
+    def _aircraftLookUp(self, msg: SBSMessage) -> tuple[str, str]:
+        if self._aircraftsDB is not None:
+            callsign, model, *_ = self._aircraftsDB[msg.hexIdent] if msg.hexIdent in self._aircraftsDB.keys() else [None, None]
+            return (callsign, model)
+        else:
+            return (None, None)
+
+    def _modelLookUp(self, model: str) -> TrafficCategory:
+        if self._modelsDB is not None:
+            cat, *_ = self._modelsDB[model] if model in self._modelsDB.keys() else [None]
+            return cat
+        else:
+            return None

@@ -49,45 +49,45 @@ class SBSMessage:
     def __init__(
         self,
         # (MSG, STA, ID, AIR, SEL or CLK)
-        msgType: SBSMessageType,
+        msgType: SBSMessageType = None,
         # MSG sub types 1 to 8. Not used by other message types.
-        transmissionType: SBSTransmissionType,
+        transmissionType: SBSTransmissionType = None,
         # Database Session record number
-        sessionId: int,
+        sessionId: int = None,
         # Database Aircraft record number
-        aircraftId: int,
+        aircraftId: int = None,
         # Aircraft Mode S hexadecimal code
-        hexIdent: str,
+        hexIdent: str = None,
         # Database Flight record number
-        flightId: int,
+        flightId: int = None,
         # As it says
-        messageGeneratedDateTime: datetime,
+        messageGeneratedDateTime: datetime = None,
         # As it says
-        messageLoggedDateTime: datetime,
+        messageLoggedDateTime: datetime = None,
         # An eight digit flight ID - can be flight number or registration (or even nothing).
-        callsign: str,
+        callsign: str = None,
         # Mode C altitude. Height relative to 1013.2mb (Flight Level). Not height AMSL..
-        altitude: int,
+        altitude: int = None,
         # Speed over ground (not indicated airspeed)
-        groundSpeed: int,
+        groundSpeed: int = None,
         # Track of aircraft (not heading). Derived from the velocity E/W and velocity N/S
-        track: int,
+        track: int = None,
         # North and East positive. South and West negative.
-        latitude: float,
+        latitude: float = None,
         # North and East positive. South and West negative.
-        longitude: float,
+        longitude: float = None,
         # 64ft resolution
-        verticalRate: int,
+        verticalRate: int = None,
         # Assigned Mode A squawk code.
-        squawk: int,
+        squawk: int = None,
         # Flag to indicate squawk has changed.
-        alert: bool,
+        alert: bool = None,
         # Flag to indicate emergency code has been set
-        emergency: bool,
+        emergency: bool = None,
         # Flag to indicate transponder Ident has been activated.
-        spi: bool,
+        spi: bool = None,
         # Flag to indicate ground squat switch is active
-        isOnGround: bool,
+        isOnGround: bool = None,
     ):
         self.type = msgType
         self.transmissionType = transmissionType
@@ -169,6 +169,7 @@ def msgTypeFromToken(msgType: str) -> SBSMessageType:
         return SBSMessageType.SEL
     if msgType == "CLK":
         return SBSMessageType.CLK
+    raise SBSParseError('unknown msg type "{}"'.format(msgType))
 
 
 def transmissionTypeFromToken(txType: str) -> SBSTransmissionType:

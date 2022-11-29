@@ -5,13 +5,14 @@ import os
 from pyubx2 import UBXReader
 from pynmeagps import NMEAReader
 import SBSProtocol
-import gpsMonitor as navMonitor
-import trafficMonitor
+import positioning as navMonitor
+import traffic as traffic
 import socket
 import GDL90Protocol as gdl
 from datetime import timedelta
 from timeloop import Timeloop
 import threading
+import json
 
 try:
     import common.mqtt as mqtt
@@ -32,6 +33,8 @@ def on_exit():
         client.disconnect()
     if logger is not None:
         logger.info("Exit application")
+    if trafficMonitor is not None:
+        trafficMonitor.stopAutoCleanup()
     run = False
 
 
@@ -81,9 +84,9 @@ def on_message(client, userdata, msg):
 
 def getNavScore():
     # score to use for GDL90 nav integrity and accuracy
-    if gpsMonitor.navMode == navMonitor.GpsNavMode.Fix2D:
+    if gpsMonitor.navMode == navMonitor.NavMode.Fix2D:
         return 5
-    elif gpsMonitor.navMode == navMonitor.GpsNavMode.Fix3D:
+    elif gpsMonitor.navMode == navMonitor.NavMode.Fix3D:
         return 9
     else:
         return 0
@@ -97,7 +100,8 @@ def send_gdl90_messages():
             isInitialized=True,
             isLowBattery=False,
             time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
-            posValid=gpsMonitor.navMode != navMonitor.GpsNavMode.NoFix)
+            posValid=gpsMonitor.navMode != navMonitor.NavMode.NoFix,
+        )
     )
     ownship = gdl.encodeOwnshipMessage(
         gdl.GDL90TrafficMessage(
@@ -167,9 +171,11 @@ def socket_health_check():
         try:
             # returns up to N bytes, can return less, is blocking if there is no data to read from the socket,
             # could be made non-blocking (beware of exceptions in this case)
-            sock.recv(1000)
-        except TimeoutError:
-            logger.warning("socket timeout, recreate socket...")
+            data = sock.recv(1000)
+            if len(data) <= 0:
+                raise ValueError('received unexpected "{}" number of bytes'.format(len(data)))
+        except (TimeoutError, ValueError) as e:
+            logger.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
             lock.acquire()
             init_socket()
             lock.release()
@@ -188,9 +194,6 @@ if __name__ == "__main__":
     logger = None
     client = None
 
-    trafficMonitor = trafficMonitor.TrafficMonitor()
-    gpsMonitor = navMonitor.GpsMonitor()
-
     logger_name = "logger"
     log_level = str(os.getenv("MO_LOG_LEVEL"))
 
@@ -208,6 +211,15 @@ if __name__ == "__main__":
     logger = logging.getLogger(logger_name)
     tl.logger = logger
     atexit.register(on_exit)
+
+    with open("/home/data/aircrafts.json") as json_file:
+        aircrafts = json.load(json_file)
+    with open("/home/data/models.json") as json_file:
+        models = json.load(json_file)
+
+    trafficMonitor = traffic.TrafficMonitor(aircrafts, models)
+    gpsMonitor = navMonitor.NavMonitor()
+    trafficMonitor.startAutoCleanup()
 
     if client_name == "":
         logger.info("client_name is empty, assign uuid")
