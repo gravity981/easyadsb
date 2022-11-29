@@ -4,8 +4,8 @@ import atexit
 import os
 from pyubx2 import UBXReader
 from pynmeagps import NMEAReader
-import SBSProtocol
-import positioning as navMonitor
+from sbs import SBSReader
+import positioning as pos
 import traffic as traffic
 import socket
 import GDL90Protocol as gdl
@@ -60,7 +60,7 @@ def on_ubx_message(msg):
 def on_sbs_message(msg):
     try:
         dec = msg.payload.decode("UTF-8").strip()
-        sbs = SBSProtocol.parse(dec)
+        sbs = SBSReader.parse(dec)
         logger.debug(sbs)
         trafficMonitor.update(sbs)
     except UnicodeDecodeError:
@@ -84,9 +84,9 @@ def on_message(client, userdata, msg):
 
 def getNavScore():
     # score to use for GDL90 nav integrity and accuracy
-    if gpsMonitor.navMode == navMonitor.NavMode.Fix2D:
+    if gpsMonitor.navMode == pos.NavMode.Fix2D:
         return 5
-    elif gpsMonitor.navMode == navMonitor.NavMode.Fix3D:
+    elif gpsMonitor.navMode == pos.NavMode.Fix3D:
         return 9
     else:
         return 0
@@ -100,7 +100,7 @@ def send_gdl90_messages():
             isInitialized=True,
             isLowBattery=False,
             time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
-            posValid=gpsMonitor.navMode != navMonitor.NavMode.NoFix,
+            posValid=gpsMonitor.navMode != pos.NavMode.NoFix,
         )
     )
     ownship = gdl.encodeOwnshipMessage(
@@ -218,7 +218,7 @@ if __name__ == "__main__":
         models = json.load(json_file)
 
     trafficMonitor = traffic.TrafficMonitor(aircrafts, models)
-    gpsMonitor = navMonitor.NavMonitor()
+    gpsMonitor = pos.NavMonitor()
     trafficMonitor.startAutoCleanup()
 
     if client_name == "":

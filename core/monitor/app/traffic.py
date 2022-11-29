@@ -6,9 +6,9 @@ import json
 from copy import deepcopy
 
 try:
-    from monitor.app.SBSProtocol import SBSMessage
+    from monitor.app.sbs import SBSMessage
 except ImportError:
-    from SBSProtocol import SBSMessage
+    from sbs import SBSMessage
 
 logger = logging.getLogger("logger")
 

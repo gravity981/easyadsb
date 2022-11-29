@@ -1,5 +1,5 @@
 import monitor.app.traffic as traffic
-import monitor.app.SBSProtocol as sbs
+import monitor.app.sbs as sbs
 
 
 def test_updateTrafficMonitor():
