@@ -1,4 +1,4 @@
-import core.monitor.app.gdl90 as gdl
+import monitor.app.gdl90 as gdl
 from contextlib import nullcontext as does_not_raise
 import pytest
 
