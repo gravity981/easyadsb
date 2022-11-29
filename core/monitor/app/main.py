@@ -92,6 +92,15 @@ def getNavScore():
         return 0
 
 
+def getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAirborne:
+    if onGround is None:
+        return gdl90.GDL90MiscellaneousIndicatorAirborne.airborne
+    elif onGround:
+        return gdl90.GDL90MiscellaneousIndicatorAirborne.on_ground
+    else:
+        return gdl90.GDL90MiscellaneousIndicatorAirborne.airborne
+
+
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
     lock.acquire()
@@ -121,26 +130,14 @@ def send_gdl90_messages():
     ownship_alt = gdl90.encodeOwnshipAltitudeMessage(
         gdl90.GDL90OwnshipGeoAltitudeMessage(
             altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
-        )  # get from gps  # get from gps
-    )  # derive from information from gps
+        )
+    )
     res = sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
     if res < 11:
         logger.warning("sent heartbytes bytes is too small. is socket ok?")
     sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
     sock.sendto(ownship_alt, (gdl90_broadcast_ip, gdl90_port))
     for k, v in trafficMonitor.traffic.items():
-        logger.debug(
-            "id={id:X}, cs={callsign}, lat={lat}, lon={lon}, alt={alt}, trk={trk}, spd={spd}, cnt={cnt}".format(
-                id=v.id,
-                callsign=v.callsign,
-                lat=v.latitude,
-                lon=v.longitude,
-                alt=v.altitude,
-                trk=v.track,
-                spd=v.groundSpeed,
-                cnt=v.msgCount,
-            )
-        )
         if v.ready:
             traffic = gdl90.encodeTrafficMessage(
                 gdl90.GDL90TrafficMessage(
@@ -148,7 +145,7 @@ def send_gdl90_messages():
                     longitude=v.longitude,
                     altitude=v.altitude,
                     hVelocity=v.groundSpeed,
-                    vVelocity=0,
+                    vVelocity=v.verticalSpeed,
                     trackHeading=v.track,
                     address=v.id,
                     callsign=v.callsign,
@@ -156,7 +153,7 @@ def send_gdl90_messages():
                     navAccuracyCat=9,
                     emitterCat=v.category if v.category is not None else gdl90.GDL90EmitterCategory.no_info,
                     trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
-                    airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
+                    airborneIndicator=getAirborneIndicator(v.isOnGround),
                 )
             )
             res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))

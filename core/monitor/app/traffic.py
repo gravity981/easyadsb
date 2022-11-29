@@ -71,7 +71,22 @@ class TrafficEntry:
     """TrafficEntry"""
 
     def __init__(
-        self, id: str, callsign: str, model: str, category: TrafficCategory, latitude: float, longitude: float, altitude: int, track: int, groundSpeed: int
+        self,
+        id: str,
+        callsign: str,
+        model: str,
+        category: TrafficCategory,
+        latitude: float,
+        longitude: float,
+        altitude: int,
+        track: int,
+        groundSpeed: int,
+        verticalSpeed: int,
+        squawk: int,
+        alert: bool,
+        emergency: bool,
+        spi: bool,
+        isOnGround: bool,
     ):
         """
         Constructor
@@ -87,6 +102,12 @@ class TrafficEntry:
         self._groundSpeed = groundSpeed
         self._lastSeen = datetime.now()
         self._msgCount = 1
+        self._verticalSpeed = verticalSpeed
+        self._squawk = squawk
+        self._alert = alert
+        self._emergency = emergency
+        self._spi = spi
+        self._isOnGround = isOnGround
 
     @property
     def id(self) -> int:
@@ -156,6 +177,48 @@ class TrafficEntry:
         return self._groundSpeed
 
     @property
+    def verticalSpeed(self):
+        """
+        Vertical Speed in ft/min
+        """
+        return self._verticalSpeed
+
+    @property
+    def squawk(self):
+        """
+        squawk code
+        """
+        return self._squawk
+
+    @property
+    def alert(self):
+        """
+        indicates that squawk code has changed
+        """
+        return self._alert
+
+    @property
+    def emergency(self):
+        """
+        indicates that emergency squawk code has been set
+        """
+        return self._emergency
+
+    @property
+    def spi(self):
+        """
+        indicates that transponder ident has been activated
+        """
+        return self._spi
+
+    @property
+    def isOnGround(self):
+        """
+        indicates that ground squat switch is active
+        """
+        return self._isOnGround
+
+    @property
     def lastSeen(self) -> datetime:
         """
         seconds since last message about this :class:`TrafficEntry`
@@ -203,6 +266,19 @@ class TrafficEntry:
             self._track = msg.track
         if msg.groundSpeed is not None:
             self._groundSpeed = msg.groundSpeed
+        if msg.verticalRate is not None:
+            self._verticalSpeed = msg.verticalRate
+        if msg.squawk is not None:
+            self._squawk = msg.squawk
+        if msg.alert is not None:
+            self._alert = msg.alert
+        if msg.emergency is not None:
+            self._emergency = msg.emergency
+        if msg.spi is not None:
+            self._spi = msg.spi
+        if msg.isOnGround is not None:
+            self._isOnGround = msg.isOnGround
+
         self._lastSeen = datetime.utcnow()
         self._msgCount += 1
 
@@ -217,6 +293,12 @@ class TrafficEntry:
             "alt={}, "
             "trk={}, "
             "spd={}, "
+            "vSpd={}, "
+            "sqwk={}, "
+            "alrt={}, "
+            "emrg={}, "
+            "spi={}, "
+            "onGround={}, "
             "lastSeen={:%H:%M:%S}, "
             "msgCount={}, "
             "ready={})>"
@@ -230,6 +312,12 @@ class TrafficEntry:
             self._altitude,
             self._track,
             self._groundSpeed,
+            self._verticalSpeed,
+            self._squawk,
+            self._alert,
+            self._emergency,
+            self._spi,
+            self._isOnGround,
             self._lastSeen,
             self._msgCount,
             self.ready,
@@ -286,7 +374,23 @@ class TrafficMonitor:
                 if callsign is None:
                     callsign = msg.callsign
                 category = self._modelLookUp(model)
-                entry = TrafficEntry(msg.hexIdent, callsign, model, category, msg.latitude, msg.longitude, msg.altitude, msg.track, msg.groundSpeed)
+                entry = TrafficEntry(
+                    msg.hexIdent,
+                    callsign,
+                    model,
+                    category,
+                    msg.latitude,
+                    msg.longitude,
+                    msg.altitude,
+                    msg.track,
+                    msg.groundSpeed,
+                    msg.verticalRate,
+                    msg.squawk,
+                    msg.alert,
+                    msg.emergency,
+                    msg.spi,
+                    msg.isOnGround,
+                )
                 self._traffic[msg.hexIdent] = entry
                 logger.info("add new {} (count {})".format(entry, len(self._traffic)))
 
