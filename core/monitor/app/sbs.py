@@ -5,7 +5,6 @@ from datetime import datetime
 """
 SBS Base Station Protocol implementation, based on:
 http://woodair.net/sbs/article/barebones42_socket_data.htm
-
 """
 
 logger = logging.getLogger("logger")

@@ -8,7 +8,7 @@ from sbs import SBSReader
 import positioning as pos
 import traffic as traffic
 import socket
-import GDL90Protocol as gdl
+import gdl90
 from datetime import timedelta
 from timeloop import Timeloop
 import threading
@@ -95,16 +95,16 @@ def getNavScore():
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
     lock.acquire()
-    heartbeat = gdl.encodeHeartbeatMessage(
-        gdl.GDL90HeartBeatMessage(
+    heartbeat = gdl90.encodeHeartbeatMessage(
+        gdl90.GDL90HeartBeatMessage(
             isInitialized=True,
             isLowBattery=False,
-            time=gdl.secondsSinceMidnightUTC(gpsMonitor.utcTime),
+            time=gdl90.secondsSinceMidnightUTC(gpsMonitor.utcTime),
             posValid=gpsMonitor.navMode != pos.NavMode.NoFix,
         )
     )
-    ownship = gdl.encodeOwnshipMessage(
-        gdl.GDL90TrafficMessage(
+    ownship = gdl90.encodeOwnshipMessage(
+        gdl90.GDL90TrafficMessage(
             latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
             longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
             altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
@@ -113,13 +113,13 @@ def send_gdl90_messages():
             trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,
             navIntegrityCat=getNavScore(),
             navAccuracyCat=getNavScore(),
-            emitterCat=gdl.GDL90EmitterCategory.light,  # make configurable
-            trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
-            airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
+            emitterCat=gdl90.GDL90EmitterCategory.light,  # make configurable
+            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
+            airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
         )
     )  # derive from speed
-    ownship_alt = gdl.encodeOwnshipAltitudeMessage(
-        gdl.GDL90OwnshipGeoAltitudeMessage(
+    ownship_alt = gdl90.encodeOwnshipAltitudeMessage(
+        gdl90.GDL90OwnshipGeoAltitudeMessage(
             altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
         )  # get from gps  # get from gps
     )  # derive from information from gps
@@ -142,8 +142,8 @@ def send_gdl90_messages():
             )
         )
         if v.ready:
-            traffic = gdl.encodeTrafficMessage(
-                gdl.GDL90TrafficMessage(
+            traffic = gdl90.encodeTrafficMessage(
+                gdl90.GDL90TrafficMessage(
                     latitude=v.latitude,
                     longitude=v.longitude,
                     altitude=v.altitude,
@@ -154,9 +154,9 @@ def send_gdl90_messages():
                     callsign=v.callsign,
                     navIntegrityCat=8,
                     navAccuracyCat=9,
-                    emitterCat=v.category if v.category is not None else gdl.GDL90EmitterCategory.no_info,
-                    trackIndicator=gdl.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
-                    airborneIndicator=gdl.GDL90MiscellaneousIndicatorAirborne.airborne,
+                    emitterCat=v.category if v.category is not None else gdl90.GDL90EmitterCategory.no_info,
+                    trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+                    airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
                 )
             )
             res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))

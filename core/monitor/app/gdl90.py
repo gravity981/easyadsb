@@ -2,7 +2,11 @@ from enum import IntFlag
 import logging
 from datetime import datetime
 
-# https://www.faa.gov/air_traffic/technology/adsb/archival/media/GDL90_Public_ICD_RevA.PDF
+"""
+GDL90 protocol implementation based on:
+https://www.faa.gov/air_traffic/technology/adsb/archival/media/GDL90_Public_ICD_RevA.PDF
+"""
+
 
 logger = logging.getLogger("logger")
 

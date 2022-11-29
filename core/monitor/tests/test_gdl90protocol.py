@@ -1,4 +1,4 @@
-import monitor.app.GDL90Protocol as gdl
+import core.monitor.app.gdl90 as gdl
 from contextlib import nullcontext as does_not_raise
 import pytest
 
@@ -71,15 +71,19 @@ def test_OnwshipMessage_wellformed():
     assert enc == expected
 
 
-@pytest.mark.parametrize("track, expectation", [
-    (-1, pytest.raises(gdl.GDL90Error)),
-    (0, does_not_raise()),
-    (90, does_not_raise()),
-    (180, does_not_raise()),
-    (270, does_not_raise()),
-    (359, does_not_raise()),
-    (360, does_not_raise()),
-    (361, pytest.raises(gdl.GDL90Error))])
+@pytest.mark.parametrize(
+    "track, expectation",
+    [
+        (-1, pytest.raises(gdl.GDL90Error)),
+        (0, does_not_raise()),
+        (90, does_not_raise()),
+        (180, does_not_raise()),
+        (270, does_not_raise()),
+        (359, does_not_raise()),
+        (360, does_not_raise()),
+        (361, pytest.raises(gdl.GDL90Error)),
+    ],
+)
 def test_TrafficMessageTrack(track, expectation):
     with expectation:
         gdl.encodeTrafficMessage(
@@ -100,7 +104,9 @@ def test_TrafficMessageTrack(track, expectation):
                 vVelocity=64,
                 callsign="N825V",
                 emitterCat=gdl.GDL90EmitterCategory.light,
-                emergencyCode=gdl.GDL90EmergencyCode.no_emergency))
+                emergencyCode=gdl.GDL90EmergencyCode.no_emergency,
+            )
+        )
 
 
 # msg5 = GDL90TrafficMessage(
