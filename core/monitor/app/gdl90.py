@@ -324,6 +324,8 @@ def encodeTrafficReport(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> byte
     enc_vVel = encode_vVelocity(msg.vVelocity)
     enc_trk = encode_track(msg.trackHeading)
     enc_callsign = encode_callsign(msg.callsign)
+    if enc_trk < 0 or enc_trk > 255:
+        logger.error("enc track out of bounds: {}, track was: {}".format(enc_trk, msg.trackHeading))
     raw = b"".join(
         [
             msgId.to_bytes(1, "big"),

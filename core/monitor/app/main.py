@@ -103,61 +103,60 @@ def getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAir
 
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
-    lock.acquire()
-    heartbeat = gdl90.encodeHeartbeatMessage(
-        gdl90.GDL90HeartBeatMessage(
-            isInitialized=True,
-            isLowBattery=False,
-            time=gdl90.secondsSinceMidnightUTC(gpsMonitor.utcTime),
-            posValid=gpsMonitor.navMode != pos.NavMode.NoFix,
-        )
-    )
-    ownship = gdl90.encodeOwnshipMessage(
-        gdl90.GDL90TrafficMessage(
-            latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
-            longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
-            altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
-            hVelocity=int(gpsMonitor.groundSpeedKnots) if gpsMonitor.groundSpeedKnots is not None else 0,
-            vVelocity=0,
-            trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,
-            navIntegrityCat=getNavScore(),
-            navAccuracyCat=getNavScore(),
-            emitterCat=gdl90.GDL90EmitterCategory.light,  # make configurable
-            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
-            airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
-        )
-    )  # derive from speed
-    ownship_alt = gdl90.encodeOwnshipAltitudeMessage(
-        gdl90.GDL90OwnshipGeoAltitudeMessage(
-            altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
-        )
-    )
-    res = sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
-    if res < 11:
-        logger.warning("sent heartbytes bytes is too small. is socket ok?")
-    sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
-    sock.sendto(ownship_alt, (gdl90_broadcast_ip, gdl90_port))
-    for k, v in trafficMonitor.traffic.items():
-        if v.ready:
-            traffic = gdl90.encodeTrafficMessage(
-                gdl90.GDL90TrafficMessage(
-                    latitude=v.latitude,
-                    longitude=v.longitude,
-                    altitude=v.altitude,
-                    hVelocity=v.groundSpeed,
-                    vVelocity=v.verticalSpeed,
-                    trackHeading=v.track,
-                    address=v.id,
-                    callsign=v.callsign,
-                    navIntegrityCat=8,
-                    navAccuracyCat=9,
-                    emitterCat=v.category if v.category is not None else gdl90.GDL90EmitterCategory.no_info,
-                    trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
-                    airborneIndicator=getAirborneIndicator(v.isOnGround),
-                )
+    with lock:
+        heartbeat = gdl90.encodeHeartbeatMessage(
+            gdl90.GDL90HeartBeatMessage(
+                isInitialized=True,
+                isLowBattery=False,
+                time=gdl90.secondsSinceMidnightUTC(gpsMonitor.utcTime),
+                posValid=gpsMonitor.navMode != pos.NavMode.NoFix,
             )
-            res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
-    lock.release()
+        )
+        ownship = gdl90.encodeOwnshipMessage(
+            gdl90.GDL90TrafficMessage(
+                latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
+                longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
+                altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0,
+                hVelocity=int(gpsMonitor.groundSpeedKnots) if gpsMonitor.groundSpeedKnots is not None else 0,
+                vVelocity=0,
+                trackHeading=gpsMonitor.trueTrack if gpsMonitor.trueTrack is not None else 0,
+                navIntegrityCat=getNavScore(),
+                navAccuracyCat=getNavScore(),
+                emitterCat=gdl90.GDL90EmitterCategory.light,  # make configurable
+                trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
+                airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
+            )
+        )  # derive from speed
+        ownship_alt = gdl90.encodeOwnshipAltitudeMessage(
+            gdl90.GDL90OwnshipGeoAltitudeMessage(
+                altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
+            )
+        )
+        res = sock.sendto(heartbeat, (gdl90_broadcast_ip, gdl90_port))
+        if res < 11:
+            logger.warning("sent heartbytes bytes is too small. is socket ok?")
+        sock.sendto(ownship, (gdl90_broadcast_ip, gdl90_port))
+        sock.sendto(ownship_alt, (gdl90_broadcast_ip, gdl90_port))
+        for k, v in trafficMonitor.traffic.items():
+            if v.ready:
+                traffic = gdl90.encodeTrafficMessage(
+                    gdl90.GDL90TrafficMessage(
+                        latitude=v.latitude,
+                        longitude=v.longitude,
+                        altitude=v.altitude,
+                        hVelocity=v.groundSpeed,
+                        vVelocity=v.verticalSpeed,
+                        trackHeading=v.track,
+                        address=v.id,
+                        callsign=v.callsign,
+                        navIntegrityCat=8,
+                        navAccuracyCat=9,
+                        emitterCat=v.category if v.category is not None else gdl90.GDL90EmitterCategory.no_info,
+                        trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+                        airborneIndicator=getAirborneIndicator(v.isOnGround),
+                    )
+                )
+                res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
 
 
 def socket_health_check():
@@ -173,9 +172,8 @@ def socket_health_check():
                 raise ValueError('received unexpected "{}" number of bytes'.format(len(data)))
         except (TimeoutError, ValueError) as e:
             logger.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
-            lock.acquire()
-            init_socket()
-            lock.release()
+            with lock:
+                init_socket()
 
 
 def init_socket():
