@@ -80,6 +80,7 @@ def test_OnwshipMessage_wellformed():
         (180, does_not_raise()),
         (270, does_not_raise()),
         (359, does_not_raise()),
+        (359.87, does_not_raise()),
         (360, does_not_raise()),
         (361, pytest.raises(gdl.GDL90Error)),
     ],

@@ -103,7 +103,8 @@ def getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAir
 
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
-    with lock:
+    try:
+        lock.acquire()
         heartbeat = gdl90.encodeHeartbeatMessage(
             gdl90.GDL90HeartBeatMessage(
                 isInitialized=True,
@@ -157,6 +158,8 @@ def send_gdl90_messages():
                     )
                 )
                 res = sock.sendto(traffic, (gdl90_broadcast_ip, gdl90_port))
+    finally:
+        lock.release()
 
 
 def socket_health_check():

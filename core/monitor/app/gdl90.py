@@ -1,6 +1,7 @@
 from enum import IntFlag
 import logging
 from datetime import datetime
+import math
 
 """
 GDL90 protocol implementation based on:
@@ -299,7 +300,7 @@ def encode_track(trackHeading: int) -> int:
         raise GDL90Error("trackHeading out of bounds, must be between 0 and 360 degrees")
     elif trackHeading == 360:
         trackHeading = 0
-    return round(trackHeading * 256 / 360.0)
+    return math.floor(trackHeading * 256 / 360.0)
 
 
 def encode_callsign(callsign: str) -> str:
@@ -324,8 +325,7 @@ def encodeTrafficReport(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> byte
     enc_vVel = encode_vVelocity(msg.vVelocity)
     enc_trk = encode_track(msg.trackHeading)
     enc_callsign = encode_callsign(msg.callsign)
-    if enc_trk < 0 or enc_trk > 255:
-        logger.error("enc track out of bounds: {}, track was: {}".format(enc_trk, msg.trackHeading))
+
     raw = b"".join(
         [
             msgId.to_bytes(1, "big"),
