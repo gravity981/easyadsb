@@ -249,6 +249,8 @@ class TrafficEntry:
             return False
         return True
 
+    # TODO stop updating with SBSMessage, provide generic update method
+    # this is to make this module independent of SBS and allow other sources to update traffic
     def update(self, msg: SBSMessage):
         """
         Update :class:`TrafficEntry` from :class:`SBSMessage`.
@@ -324,6 +326,7 @@ class TrafficEntry:
         )
 
 
+# TODO make this an observable subject
 class TrafficMonitor:
     """
     Monitors Flight Traffic. Can be updated with :class:`SBSMessage`
@@ -357,6 +360,8 @@ class TrafficMonitor:
         if self._timer is not None:
             self._timer.cancel()
 
+    # TODO stop updating with SBSMessage, provide generic update method
+    # this is to make this module independent of SBS and allow other sources to update traffic
     def update(self, msg: SBSMessage):
         """
         Update :class:`TrafficMonitor` from :class:`SBSMessage`

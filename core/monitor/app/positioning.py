@@ -88,6 +88,7 @@ class Satellite:
         return self.__str__()
 
 
+# TODO make this an observable subject so that it's possible to subscribe for changes
 class NavMonitor:
     """
     Monitor for satellite navigation. uses :class:`NMeaMessage` to update its state
@@ -236,6 +237,10 @@ class NavMonitor:
         with self._lock:
             return self._utcTime
 
+    # TODO positioning should not know about NMEAMessage,
+    # the interface to update should take an argument of type of this own module
+    # this makes it possible to not only update positioning through nmea messages but other
+    # sources as well
     def update(self, msg: NMEAMessage):
         """
         update TrafficMonitor with an NMEAMessage. The following NMEA messages are supported:

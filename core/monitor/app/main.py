@@ -82,6 +82,7 @@ def on_message(client, userdata, msg):
         logger.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
 
 
+# TODO move to dedicated converter class
 def getNavScore():
     # score to use for GDL90 nav integrity and accuracy
     if gpsMonitor.navMode == pos.NavMode.Fix2D:
@@ -92,6 +93,7 @@ def getNavScore():
         return 0
 
 
+# TODO move to dedicated converter class
 def getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAirborne:
     if onGround is None:
         return gdl90.GDL90MiscellaneousIndicatorAirborne.airborne
@@ -101,6 +103,9 @@ def getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAir
         return gdl90.GDL90MiscellaneousIndicatorAirborne.airborne
 
 
+# TODO move dispatching of GDL90 messages into dedicated class.
+# this class should observe changes of NavMonitor and TrafficMonitor
+# TODO move message construction logic to dedicated converter class
 @tl.job(interval=timedelta(seconds=1))
 def send_gdl90_messages():
     try:
