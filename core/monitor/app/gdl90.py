@@ -192,6 +192,10 @@ class GDL90TrafficMessage:
         self.emergencyCode = emergencyCode
 
 
+class GDL90OwnshipMessage(GDL90TrafficMessage):
+    pass
+
+
 class GDL90OwnshipGeoAltitudeMessage:
     def __init__(
         self, altitude: int, merit: int, isWarning: bool  # ft  # VFOM, vertical figure of merit (navigation accuracy)
@@ -317,7 +321,7 @@ def encode_merit(merit: int) -> int:
     return merit
 
 
-def encodeTrafficReport(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> bytes:
+def _encodeTrafficMessage(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> bytes:
     # st aa aa aa ll ll ll nn nn nn dd dm ia hh hv vv tt ee cc cc cc cc cc cc cc cc px
     enc_alt = encode_altitude(msg.altitude)
     enc_misc = encode_miscellaneous(msg.trackIndicator, msg.reportIndicator, msg.airborneIndicator)
@@ -378,12 +382,12 @@ def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:
     return encode(raw)
 
 
-def encodeOwnshipMessage(msg: GDL90TrafficMessage) -> bytes:
-    return encodeTrafficReport(GDL90MessageId.OwnshipReport, msg)
+def encodeOwnshipMessage(msg: GDL90OwnshipMessage) -> bytes:
+    return _encodeTrafficMessage(GDL90MessageId.OwnshipReport, msg)
 
 
 def encodeTrafficMessage(msg: GDL90TrafficMessage) -> bytes:
-    return encodeTrafficReport(GDL90MessageId.TrafficReport, msg)
+    return _encodeTrafficMessage(GDL90MessageId.TrafficReport, msg)
 
 
 def encodeOwnshipAltitudeMessage(msg: GDL90OwnshipGeoAltitudeMessage) -> bytes:
