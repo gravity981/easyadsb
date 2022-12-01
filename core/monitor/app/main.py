@@ -94,6 +94,21 @@ def getNavScore():
         return 0
 
 
+def getTrafficNavScore(entry):
+    if entry.latitude is None:
+        return 0
+    if entry.longitude is None:
+        return 0
+    if entry.groundSpeed is None:
+        return 0
+    if entry.verticalSpeed is None:
+        return 0
+    if entry.track is None:
+        return 0
+    else:
+        return 10
+
+
 # TODO move to dedicated converter class
 def getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAirborne:
     if onGround is None:
@@ -116,7 +131,6 @@ def send_gdl90_messages():
             time=gdl90.secondsSinceMidnightUTC(gpsMonitor.utcTime),
             posValid=gpsMonitor.navMode != pos.NavMode.NoFix,
         )
-
         ownship = gdl90.GDL90OwnshipMessage(
             latitude=gpsMonitor.latitude if gpsMonitor.latitude is not None else 0,
             longitude=gpsMonitor.longitude if gpsMonitor.longitude is not None else 0,
@@ -130,34 +144,14 @@ def send_gdl90_messages():
             trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
             airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,  # derive from speed
         )
-
         ownship_alt = gdl90.GDL90OwnshipGeoAltitudeMessage(
             altitude=gpsMonitor.altitudeMeter * 3.28084 if gpsMonitor.altitudeMeter is not None else 0, merit=50, isWarning=False
         )
-
         gdl90Port.sendMessage(heartbeat)
         gdl90Port.sendMessage(ownship)
         gdl90Port.sendMessage(ownship_alt)
-        for k, v in trafficMonitor.traffic.items():
-            if v.ready:
-                traffic = gdl90.GDL90TrafficMessage(
-                    latitude=v.latitude,
-                    longitude=v.longitude,
-                    altitude=v.altitude,
-                    hVelocity=v.groundSpeed,
-                    vVelocity=v.verticalSpeed,
-                    trackHeading=v.track,
-                    address=v.id,
-                    callsign=v.callsign,
-                    navIntegrityCat=8,
-                    navAccuracyCat=9,
-                    emitterCat=v.category if v.category is not None else gdl90.GDL90EmitterCategory.no_info,
-                    trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
-                    airborneIndicator=getAirborneIndicator(v.isOnGround),
-                )
-                gdl90Port.sendMessage(traffic)
-    finally:
-        pass
+    except Exception as e:
+        logger.error("error sending gdl90 message, {}".format(str(e)))
 
 
 class GDL90Port:
@@ -177,6 +171,24 @@ class GDL90Port:
         self._queue.join()
         self._sendThread.join()
         self._recvThread.join()
+
+    def notify(self, v):
+        msg = gdl90.GDL90TrafficMessage(
+            latitude=v.latitude if v.latitude is not None else 0,
+            longitude=v.longitude if v.longitude is not None else 0,
+            altitude=v.altitude if v.altitude is not None else 0,
+            hVelocity=v.groundSpeed if v.groundSpeed is not None else 0,
+            vVelocity=v.verticalSpeed if v.verticalSpeed is not None else 0,
+            trackHeading=v.track if v.track is not None else 0,
+            address=v.id,
+            callsign=v.callsign if v.callsign is not None else "",
+            navIntegrityCat=getTrafficNavScore(v),
+            navAccuracyCat=getTrafficNavScore(v),
+            emitterCat=gdl90.GDL90EmitterCategory(v.category) if v.category is not None else gdl90.GDL90EmitterCategory.no_info,
+            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+            airborneIndicator=getAirborneIndicator(v.isOnGround),
+        )
+        self.sendMessage(msg)
 
     def sendMessage(self, msg):
         self._queue.put(msg)
@@ -271,5 +283,6 @@ if __name__ == "__main__":
     client.subscribe(sbs_topic)
     gdl90Port = GDL90Port()
     gdl90Port.start()
+    trafficMonitor.register(gdl90Port)
 
     tl.start()

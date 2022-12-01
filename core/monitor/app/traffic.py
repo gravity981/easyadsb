@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum
 from datetime import datetime
 import threading
 import logging
@@ -17,7 +17,7 @@ class TrafficError(Exception):
     pass
 
 
-class TrafficCategory(Enum):
+class TrafficCategory(IntEnum):
     """
     Traffic Category, defined by GDL90
     - no_info = 0
@@ -232,23 +232,6 @@ class TrafficEntry:
         """
         return self._msgCount
 
-    @property
-    def ready(self) -> bool:
-        """
-        Returns true if all relevant fields for a meaningful traffic information are set
-        """
-        if self._latitude is None:
-            return False
-        if self._longitude is None:
-            return False
-        if self._altitude is None:
-            return False
-        if self._track is None:
-            return False
-        if self._groundSpeed is None:
-            return False
-        return True
-
     # TODO stop updating with SBSMessage, provide generic update method
     # this is to make this module independent of SBS and allow other sources to update traffic
     def update(self, msg: SBSMessage):
@@ -302,8 +285,7 @@ class TrafficEntry:
             "spi={}, "
             "onGround={}, "
             "lastSeen={:%H:%M:%S}, "
-            "msgCount={}, "
-            "ready={})>"
+            "msgCount={})>"
         ).format(
             self._id,
             self._callsign,
@@ -322,7 +304,6 @@ class TrafficEntry:
             self._isOnGround,
             self._lastSeen,
             self._msgCount,
-            self.ready,
         )
 
 
@@ -338,6 +319,7 @@ class TrafficMonitor:
         self._modelsDB = modelsDB
         self._lock = threading.Lock()
         self._timer = None
+        self._observers = list()
 
     @property
     def traffic(self) -> dict():
@@ -360,6 +342,9 @@ class TrafficMonitor:
         if self._timer is not None:
             self._timer.cancel()
 
+    def register(self, obj):
+        self._observers.append(obj)
+
     # TODO stop updating with SBSMessage, provide generic update method
     # this is to make this module independent of SBS and allow other sources to update traffic
     def update(self, msg: SBSMessage):
@@ -369,11 +354,7 @@ class TrafficMonitor:
         with self._lock:
             if msg.hexIdent in self._traffic:
                 entry = self._traffic[msg.hexIdent]
-                wasReady = entry.ready
                 entry.update(msg)
-                nowReady = entry.ready
-                if nowReady and not wasReady:
-                    logger.info("now ready {} ".format(entry))
             else:
                 callsign, model = self._aircraftLookUp(msg)
                 if callsign is None:
@@ -397,17 +378,23 @@ class TrafficMonitor:
                     msg.isOnGround,
                 )
                 self._traffic[msg.hexIdent] = entry
-                logger.info("add new {} (count {})".format(entry, len(self._traffic)))
+                logger.info("add new {:X}, {}, {}, {} (count {})".format(entry.id, entry.callsign, entry.model, entry.category.name, len(self._traffic)))
+            self._notify(entry)
+
+    def _notify(self, trafficEntry):
+        for obj in self._observers:
+            obj.notify(trafficEntry)
 
     def _cleanup(self, interval: int):
         with self._lock:
             self._timer = threading.Timer(interval, self._cleanup, [interval])
             self._timer.start()
-            maxLastSeenSeconds = 30
+            maxLastSeenSeconds = 300
             for k in list(self._traffic.keys()):
                 entry = self._traffic[k]
                 if entry.lastSeen > maxLastSeenSeconds:
-                    logger.info("remove {} (unseen for >{} seconds)".format(entry, maxLastSeenSeconds))
+                    logger.info("remove {:X}, {}, {}, {} (unseen for >{} seconds)".format(entry.id, entry.callsign, entry.model,
+                                entry.category.name, maxLastSeenSeconds))
                     del self._traffic[k]
 
     def _aircraftLookUp(self, msg: SBSMessage) -> tuple[str, str]:
@@ -420,6 +407,6 @@ class TrafficMonitor:
     def _modelLookUp(self, model: str) -> TrafficCategory:
         if self._modelsDB is not None:
             cat, *_ = self._modelsDB[model] if model in self._modelsDB.keys() else [None]
-            return cat
+            return TrafficCategory(cat)
         else:
             return None
