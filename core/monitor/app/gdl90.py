@@ -195,6 +195,10 @@ class GDL90TrafficMessage:
 
 
 class GDL90OwnshipMessage(GDL90TrafficMessage):
+    """
+    The same as a `GDL90TrafficMessage` but encoded differently
+    """
+
     pass
 
 
@@ -283,7 +287,65 @@ class GDL90Port:
                     self._initSocket()
 
 
-def crc16(data: bytes):
+def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:
+    """
+    Encode a `GDL90HeartBeatMessage` to a bytes array
+    """
+    status_byte_1 = 0
+    status_byte_2 = 0
+
+    if msg.posValid:
+        status_byte_1 |= GDL90StatusByte1.GPS_Pos_Valid
+    if msg.isInitialized:
+        status_byte_1 |= GDL90StatusByte1.UAT_Initialized
+    if msg.isLowBattery:
+        status_byte_1 |= GDL90StatusByte1.GPS_Batt_Low
+
+    timestamp = msg.time
+    if (timestamp & 0x10000) != 0:
+        timestamp &= 0x0FFFF
+        status_byte_2 |= GDL90StatusByte2.Timestamp_MS_bit
+
+    enc_count = ((msg.uplinkMsgCount & 0x1F) << 11) | (msg.basicAndLongMsgCount & 0x3FF)
+
+    raw = b"".join(
+        [
+            GDL90MessageId.Heartbeat.to_bytes(1, "big"),
+            status_byte_1.to_bytes(1, "big"),
+            status_byte_2.to_bytes(1, "big"),
+            timestamp.to_bytes(2, "little"),
+            enc_count.to_bytes(2, "big"),
+        ]
+    )
+    return _encode(raw)
+
+
+def encodeOwnshipMessage(msg: GDL90OwnshipMessage) -> bytes:
+    """
+    Encode a `GDL90OwnshipMessage` to a bytes array
+    """
+    return _encodeTrafficMessage(GDL90MessageId.OwnshipReport, msg)
+
+
+def encodeTrafficMessage(msg: GDL90TrafficMessage) -> bytes:
+    """
+    Encode a `GDL90TrafficMessage` to a bytes array
+    """
+    return _encodeTrafficMessage(GDL90MessageId.TrafficReport, msg)
+
+
+def encodeOwnshipAltitudeMessage(msg: GDL90OwnshipGeoAltitudeMessage) -> bytes:
+    """
+    Encode a `GDL90OwnshipGeoAltitudeMessage` to a bytes array
+    """
+    enc_alt = int(msg.altitude / 5) & 0xFFFF
+    enc_merit = _encode_merit(msg.merit)
+    enc_warn = 0x8000 if msg.isWarning else 0x0000
+    raw = b"".join([GDL90MessageId.OwnshipGeometricAltitude.to_bytes(1, "big"), enc_alt.to_bytes(2, "big"), (enc_warn | enc_merit).to_bytes(2, "big")])
+    return _encode(raw)
+
+
+def _crc16(data: bytes):
     """
     CRC-16 (CCITT) implemented with a precomputed lookup table
     """
@@ -316,11 +378,11 @@ def crc16(data: bytes):
     return result
 
 
-def addCrc(msg: bytes) -> bytes:
-    return b"".join([msg, crc16(msg).to_bytes(2, "big")])
+def _addCrc(msg: bytes) -> bytes:
+    return b"".join([msg, _crc16(msg).to_bytes(2, "big")])
 
 
-def escape(msg: bytes) -> bytes:
+def _escape(msg: bytes) -> bytes:
     escaped = bytes()
     for b in msg:
         if b == 0x7D or b == 0x7E:
@@ -331,30 +393,30 @@ def escape(msg: bytes) -> bytes:
     return escaped
 
 
-def encode(msg: bytes) -> bytes:
-    msg = addCrc(msg)
-    msg = escape(msg)
+def _encode(msg: bytes) -> bytes:
+    msg = _addCrc(msg)
+    msg = _escape(msg)
     return b"".join([b"\x7e", msg, b"\x7e"])
 
 
-def encode_latlon(latlon: float) -> int:
+def _encode_latlon(latlon: float) -> int:
     latlon = int(latlon * (0x7FFFFF / 180.0))
     if latlon < 0:
         latlon &= 0xFFFFFF
     return latlon
 
 
-def encode_altitude(alt: int) -> int:
+def _encode_altitude(alt: int) -> int:
     return int((alt + 1000) / 25) & 0xFFF
 
 
-def encode_miscellaneous(
+def _encode_miscellaneous(
     trackIndicator: GDL90MiscellaneousIndicatorTrack, reportIndicator: GDL90MiscellaneousIndicatorReport, airborneIndicator: GDL90MiscellaneousIndicatorAirborne
 ) -> int:
     return trackIndicator | reportIndicator | airborneIndicator
 
 
-def encode_hVelocity(velocity: int) -> int:
+def _encode_hVelocity(velocity: int) -> int:
     if velocity < 0:
         return 0
     elif velocity > 0xFFE:
@@ -362,7 +424,7 @@ def encode_hVelocity(velocity: int) -> int:
     return velocity
 
 
-def encode_vVelocity(velocity: int) -> int:
+def _encode_vVelocity(velocity: int) -> int:
     if velocity is None:
         return 0x800
     if velocity > 32576:
@@ -373,7 +435,7 @@ def encode_vVelocity(velocity: int) -> int:
         return int(velocity / 64)
 
 
-def encode_track(trackHeading: int) -> int:
+def _encode_track(trackHeading: int) -> int:
     if trackHeading < 0 or trackHeading > 360:
         raise GDL90Error("trackHeading out of bounds, must be between 0 and 360 degrees")
     elif trackHeading == 360:
@@ -381,13 +443,13 @@ def encode_track(trackHeading: int) -> int:
     return math.floor(trackHeading * 256 / 360.0)
 
 
-def encode_callsign(callsign: str) -> str:
+def _encode_callsign(callsign: str) -> str:
     if callsign is None:
         return "".ljust(8)
     return callsign.ljust(8)
 
 
-def encode_merit(merit: int) -> int:
+def _encode_merit(merit: int) -> int:
     if merit is None:
         return 0x7FFF
     elif merit >= 32766:
@@ -397,20 +459,20 @@ def encode_merit(merit: int) -> int:
 
 def _encodeTrafficMessage(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> bytes:
     # st aa aa aa ll ll ll nn nn nn dd dm ia hh hv vv tt ee cc cc cc cc cc cc cc cc px
-    enc_alt = encode_altitude(msg.altitude)
-    enc_misc = encode_miscellaneous(msg.trackIndicator, msg.reportIndicator, msg.airborneIndicator)
-    enc_hVel = encode_hVelocity(msg.hVelocity)
-    enc_vVel = encode_vVelocity(msg.vVelocity)
-    enc_trk = encode_track(msg.trackHeading)
-    enc_callsign = encode_callsign(msg.callsign)
+    enc_alt = _encode_altitude(msg.altitude)
+    enc_misc = _encode_miscellaneous(msg.trackIndicator, msg.reportIndicator, msg.airborneIndicator)
+    enc_hVel = _encode_hVelocity(msg.hVelocity)
+    enc_vVel = _encode_vVelocity(msg.vVelocity)
+    enc_trk = _encode_track(msg.trackHeading)
+    enc_callsign = _encode_callsign(msg.callsign)
 
     raw = b"".join(
         [
             msgId.to_bytes(1, "big"),
             ((msg.status << 4) | msg.addrType).to_bytes(1, "big"),
             msg.address.to_bytes(3, "big"),
-            encode_latlon(msg.latitude).to_bytes(3, "big"),
-            encode_latlon(msg.longitude).to_bytes(3, "big"),
+            _encode_latlon(msg.latitude).to_bytes(3, "big"),
+            _encode_latlon(msg.longitude).to_bytes(3, "big"),
             ((enc_alt & 0xFF0) >> 4).to_bytes(1, "big"),
             (((enc_alt & 0x00F) << 4) | enc_misc).to_bytes(1, "big"),
             (((msg.navIntegrityCat & 0xF) << 4) | (msg.navAccuracyCat & 0xF)).to_bytes(1, "big"),
@@ -423,50 +485,4 @@ def _encodeTrafficMessage(msgId: GDL90MessageId, msg: GDL90TrafficMessage) -> by
             (msg.emergencyCode << 4).to_bytes(1, "big"),
         ]
     )
-    return encode(raw)
-
-
-def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:
-    status_byte_1 = 0
-    status_byte_2 = 0
-
-    if msg.posValid:
-        status_byte_1 |= GDL90StatusByte1.GPS_Pos_Valid
-    if msg.isInitialized:
-        status_byte_1 |= GDL90StatusByte1.UAT_Initialized
-    if msg.isLowBattery:
-        status_byte_1 |= GDL90StatusByte1.GPS_Batt_Low
-
-    timestamp = msg.time
-    if (timestamp & 0x10000) != 0:
-        timestamp &= 0x0FFFF
-        status_byte_2 |= GDL90StatusByte2.Timestamp_MS_bit
-
-    enc_count = ((msg.uplinkMsgCount & 0x1F) << 11) | (msg.basicAndLongMsgCount & 0x3FF)
-
-    raw = b"".join(
-        [
-            GDL90MessageId.Heartbeat.to_bytes(1, "big"),
-            status_byte_1.to_bytes(1, "big"),
-            status_byte_2.to_bytes(1, "big"),
-            timestamp.to_bytes(2, "little"),
-            enc_count.to_bytes(2, "big"),
-        ]
-    )
-    return encode(raw)
-
-
-def encodeOwnshipMessage(msg: GDL90OwnshipMessage) -> bytes:
-    return _encodeTrafficMessage(GDL90MessageId.OwnshipReport, msg)
-
-
-def encodeTrafficMessage(msg: GDL90TrafficMessage) -> bytes:
-    return _encodeTrafficMessage(GDL90MessageId.TrafficReport, msg)
-
-
-def encodeOwnshipAltitudeMessage(msg: GDL90OwnshipGeoAltitudeMessage) -> bytes:
-    enc_alt = int(msg.altitude / 5) & 0xFFFF
-    enc_merit = encode_merit(msg.merit)
-    enc_warn = 0x8000 if msg.isWarning else 0x0000
-    raw = b"".join([GDL90MessageId.OwnshipGeometricAltitude.to_bytes(1, "big"), enc_alt.to_bytes(2, "big"), (enc_warn | enc_merit).to_bytes(2, "big")])
-    return encode(raw)
+    return _encode(raw)
