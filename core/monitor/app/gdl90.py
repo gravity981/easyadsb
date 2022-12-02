@@ -1,6 +1,5 @@
 from enum import IntFlag
 import logging
-from datetime import datetime
 import math
 
 """
@@ -203,10 +202,6 @@ class GDL90OwnshipGeoAltitudeMessage:
         self.altitude = altitude
         self.merit = merit
         self.isWarning = isWarning
-
-
-def secondsSinceMidnightUTC(datetime: datetime = datetime.utcnow()) -> int:
-    return (datetime.hour * 3600) + (datetime.minute * 60) + datetime.second
 
 
 def crc16(data: bytes):

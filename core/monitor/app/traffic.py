@@ -343,6 +343,9 @@ class TrafficMonitor:
             self._timer.cancel()
 
     def register(self, obj):
+        """
+        Register an observer for `TrafficEntry` updates
+        """
         self._observers.append(obj)
 
     # TODO stop updating with SBSMessage, provide generic update method
@@ -393,8 +396,11 @@ class TrafficMonitor:
             for k in list(self._traffic.keys()):
                 entry = self._traffic[k]
                 if entry.lastSeen > maxLastSeenSeconds:
-                    logger.info("remove {:X}, {}, {}, {} (unseen for >{} seconds)".format(entry.id, entry.callsign, entry.model,
-                                entry.category.name, maxLastSeenSeconds))
+                    logger.info(
+                        "remove {:X}, {}, {}, {} (unseen for >{} seconds)".format(
+                            entry.id, entry.callsign, entry.model, entry.category.name, maxLastSeenSeconds
+                        )
+                    )
                     del self._traffic[k]
 
     def _aircraftLookUp(self, msg: SBSMessage) -> tuple[str, str]:
@@ -409,4 +415,4 @@ class TrafficMonitor:
             cat, *_ = self._modelsDB[model] if model in self._modelsDB.keys() else [None]
             return TrafficCategory(cat)
         else:
-            return None
+            return TrafficCategory.no_info
