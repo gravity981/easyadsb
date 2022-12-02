@@ -412,7 +412,7 @@ class TrafficMonitor:
 
     def _modelLookUp(self, model: str) -> TrafficCategory:
         if self._modelsDB is not None:
-            cat, *_ = self._modelsDB[model] if model in self._modelsDB.keys() else [None]
-            return TrafficCategory(cat)
+            cat, *_ = TrafficCategory(self._modelsDB[model]) if model in self._modelsDB.keys() else [TrafficCategory.no_info]
+            return cat
         else:
             return TrafficCategory.no_info
