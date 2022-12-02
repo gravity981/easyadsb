@@ -1,6 +1,9 @@
 from enum import IntFlag
 import logging
 import math
+import queue
+import threading
+import socket
 
 """
 GDL90 protocol implementation based on:
@@ -202,6 +205,82 @@ class GDL90OwnshipGeoAltitudeMessage:
         self.altitude = altitude
         self.merit = merit
         self.isWarning = isWarning
+
+
+class GDL90Port:
+    """
+    Used to manage UDP broadcast socket for GDL90 messages.
+    Can enqueue messages for sending.
+    Performs socket health check.
+    """
+
+    def __init__(self, ip: str, port: int, queueSize: int = 1000):
+        self._socket = None
+        self._ip = ip
+        self._port = port
+        self._lock = threading.Lock()
+        self._sendThread = threading.Thread(target=self._send, name="GDL90Sender")
+        self._recvThread = threading.Thread(target=self._recv, name="GDL90Receiver")
+        self._queue = queue.Queue(maxsize=queueSize)
+        self._initSocket()
+        self._sendThread.start()
+        self._recvThread.start()
+
+    def putMessage(self, msg):
+        try:
+            self._queue.put(msg, block=False)
+        except queue.Full:
+            logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._queue.maxsize))
+
+    def _initSocket(self):
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self._socket.settimeout(2)
+        # bind the socket to readback broadcast packages for health check purposes
+        self._socket.bind((self._ip, self._port))
+
+    def _send(self):
+        """
+        Get messages from queue and send them to udp address.
+        Uses a lock to make sure socket is not modified while sending.
+        """
+        while True:
+            try:
+                self._lock.acquire()
+                msg = self._queue.get()
+                if type(msg) == GDL90HeartBeatMessage:
+                    bytes = encodeHeartbeatMessage(msg)
+                elif type(msg) == GDL90TrafficMessage:
+                    bytes = encodeTrafficMessage(msg)
+                elif type(msg) == GDL90OwnshipMessage:
+                    bytes = encodeOwnshipMessage(msg)
+                elif type(msg) == GDL90OwnshipGeoAltitudeMessage:
+                    bytes = encodeOwnshipAltitudeMessage(msg)
+                else:
+                    raise TypeError("msg has unexpected type {}".format(type(msg)))
+                self._socket.sendto(bytes, (self._ip, self._port))
+            except Exception as e:
+                logger.error("error sending gdl90 message, {}".format(str(e)))
+            finally:
+                self._queue.task_done()
+                self._lock.release()
+
+    def _recv(self):
+        """
+        Continously read back broadcast data and check for socket timeout.
+        Timeout indicates that socket does not work anymore and has to be recreated.
+        """
+        while True:
+            try:
+                # returns up to N bytes, can return less, is blocking if there is no data to read from the socket,
+                # could be made non-blocking (beware of exceptions in this case)
+                data = self._socket.recv(1000)
+                if len(data) <= 0:
+                    raise ValueError('received unexpected "{}" number of bytes'.format(len(data)))
+            except (TimeoutError, ValueError) as e:
+                logger.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
+                with self._lock:
+                    self._initSocket()
 
 
 def crc16(data: bytes):
