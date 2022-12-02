@@ -78,23 +78,28 @@ def on_message(client, userdata, msg):
 
 class GDL90Port:
     """
-    used to manage UDP broadcast socket for GDL90 messages, offers a queue to put messages onto
+    Used to manage UDP broadcast socket for GDL90 messages.
+    Can enqueue messages for sending.
+    Performs socket health check.
     """
 
-    def __init__(self, ip: str, port: int):
+    def __init__(self, ip: str, port: int, queueSize: int = 1000):
         self._socket = None
         self._ip = ip
         self._port = port
         self._lock = threading.Lock()
         self._sendThread = threading.Thread(target=self._send, name="GDL90Sender")
         self._recvThread = threading.Thread(target=self._recv, name="GDL90Receiver")
-        self._queue = queue.Queue()
+        self._queue = queue.Queue(maxsize=queueSize)
         self._initSocket()
         self._sendThread.start()
         self._recvThread.start()
 
     def putMessage(self, msg):
-        self._queue.put(msg)
+        try:
+            self._queue.put(msg, block=False)
+        except queue.Full:
+            logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._queue.maxsize))
 
     def _initSocket(self):
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -104,6 +109,10 @@ class GDL90Port:
         self._socket.bind((self._ip, self._port))
 
     def _send(self):
+        """
+        Get messages from queue and send them to udp address.
+        Uses a lock to make sure socket is not modified while sending.
+        """
         while True:
             try:
                 self._lock.acquire()
@@ -127,8 +136,8 @@ class GDL90Port:
 
     def _recv(self):
         """
-        continously read back broadcast data and check for socket timeout.
-        timeout indicates that socket does not work anymore and has to be recreated.
+        Continously read back broadcast data and check for socket timeout.
+        Timeout indicates that socket does not work anymore and has to be recreated.
         """
         while True:
             try:
@@ -147,7 +156,6 @@ class GDL90Sender:
     """
     used to send various GDL90 messages to a `GDL90Port`.
     Manages periodic GDL90 Heartbeat.
-
     """
 
     def __init__(self, gdl90Port: GDL90Port):
