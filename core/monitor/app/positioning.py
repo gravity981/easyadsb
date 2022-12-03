@@ -388,7 +388,10 @@ class NavMonitor:
             self._posInfo._altitudeMeter = None
             self._posInfo._separationMeter = None
 
-        self._posInfo._utcTime = utcTime
+        if utcTime:
+            self._posInfo._utcTime = utcTime
+        else:
+            self._posInfo._utcTime = None
         self._ggaDone = True
 
     def _updateCylceDone(self):
