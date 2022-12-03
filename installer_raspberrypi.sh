@@ -127,6 +127,8 @@ while true; do
 
 # TODO setup to boot into console. disable boot into desktop
 
+# TODO setup init i2c and load kernel modules
+
 
 # Reboot
 while true; do

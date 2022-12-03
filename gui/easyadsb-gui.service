@@ -6,7 +6,7 @@ After=multi-user.target
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/easyadsb/gui/app
-ExecStart=/usr/bin/python main.py -platform eglfs
+ExecStart=/usr/bin/sh launch.sh
 TimeoutStartSec=0
 
 [Install]
