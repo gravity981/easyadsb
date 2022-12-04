@@ -21,9 +21,20 @@ Page {
         width: parent.width
         model: satellitesModel
         z: -1
-        delegate: Text {
-            font.pointSize: 10
-            text: "svid: " + svid + ", cno: " + cno + ", used: " + isUsed
+        delegate: Item {
+            width: listview.width
+            height: 50
+            Rectangle {
+                width: cno / 80 * parent.width 
+                height: parent.height
+                color: isUsed ? "palegreen" : "paleturquoise"
+            }
+            Text{
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                font.pointSize: 10
+                text: "svid: " + svid + ", cno: " + (cno ?? 0)
+            }
         }
     }
 }
