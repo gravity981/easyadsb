@@ -23,9 +23,9 @@ Page {
         z: -1
         delegate: Item {
             width: listview.width
-            height: 50
+            height: 45
             Rectangle {
-                width: cno / 80 * parent.width 
+                width: (cno ?? 0) / 80.0 * parent.width 
                 height: parent.height
                 color: isUsed ? "palegreen" : "paleturquoise"
             }

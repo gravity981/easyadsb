@@ -30,8 +30,10 @@ Item {
         anchors.top: header.bottom
         anchors.bottom: footer.top
         width: parent.width
+        z: -1
 
         SatellitesPage {}
+        SatellitesPositionPage {}
         PositionPage {}
         TrafficPage {}
         SystemPage {}
