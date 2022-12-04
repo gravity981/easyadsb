@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
-from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG
+from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG, QVariant
 import mqtt
 import json
 import logging
@@ -23,28 +23,26 @@ def updateSatellites(msg):
         oldSvIds = satellitesModel.svids
         for sat in satellites:
             if sat["svid"] in oldSvIds:
-                logger.info("edit " + str(sat["svid"]))
                 QMetaObject.invokeMethod(
                     satellitesModel,
-                    "editSatellite",
+                    "updateSatellite",
                     Qt.QueuedConnection,
                     Q_ARG(int, sat["svid"]),
-                    Q_ARG(int, sat["cno"]),
+                    Q_ARG(QVariant, sat["cno"]),
                     Q_ARG(bool, sat["used"]),
-                    Q_ARG(int, sat["elevation"]),
-                    Q_ARG(int, sat["azimuth"]),
+                    Q_ARG(QVariant, sat["elevation"]),
+                    Q_ARG(QVariant, sat["azimuth"]),
                 )
             else:
-                logger.info("add " + str(sat["svid"]))
                 QMetaObject.invokeMethod(
                     satellitesModel,
                     "addSatellite",
                     Qt.QueuedConnection,
                     Q_ARG(int, sat["svid"]),
-                    Q_ARG(int, sat["cno"]),
+                    Q_ARG(QVariant, sat["cno"]),
                     Q_ARG(bool, sat["used"]),
-                    Q_ARG(int, sat["elevation"]),
-                    Q_ARG(int, sat["azimuth"]),
+                    Q_ARG(QVariant, sat["elevation"]),
+                    Q_ARG(QVariant, sat["azimuth"]),
                 )
         svids = [s["svid"] for s in satellites]
         for oldSvId in oldSvIds:
@@ -67,9 +65,9 @@ class SatellitesModel(QAbstractListModel):
         QObject.__init__(self, parent)
         self._testProperty = "test data"
         self._satellites = [
-            {"svid": 20, "elv": 0, "az": 0, "cno": "23", "isUsed": False},
-            {"svid": 17, "elv": 0, "az": 0, "cno": "65", "isUsed": True},
-            {"svid": 12, "elv": 0, "az": 0, "cno": "55", "isUsed": True},
+            {"svid": 20, "elv": 0.0, "az": 0.0, "cno": 23, "isUsed": False},
+            {"svid": 17, "elv": 0.0, "az": 0.0, "cno": 65, "isUsed": True},
+            {"svid": 12, "elv": 0.0, "az": 0.0, "cno": 55, "isUsed": True},
         ]
 
     @pyqtProperty(str, notify=testPropertyChanged)
@@ -101,18 +99,38 @@ class SatellitesModel(QAbstractListModel):
             SatellitesModel.AzimuthRole: b"az",
         }
 
-    @pyqtSlot(int, int, bool, int, int)
+    @pyqtSlot(int, QVariant, bool, QVariant, QVariant)
     def addSatellite(self, svid, cno, isUsed, elv, az):
+        logger.info("add: svid={}, cno={}, used={}, elv={}, az={}".format(svid, cno, isUsed, elv, az))
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._satellites.append({"svid": svid, "elv": elv, "az": az, "cno": cno, "isUsed": isUsed})
         self.endInsertRows()
 
-    @pyqtSlot(int, int, bool, int, int)
-    def editSatellite(self, svid, cno, isUsed, elv, az):
+    @pyqtSlot(int, QVariant, bool, QVariant, QVariant)
+    def updateSatellite(self, svid, cno, isUsed, elv, az):
+
         row = self._rowFromSvId(svid)
         ix = self.index(row, 0)
-        self._satellites[row] = {"svid": svid, "elv": elv, "az": az, "cno": cno, "isUsed": isUsed}
-        self.dataChanged.emit(ix, ix, self.roleNames())
+        changedRoles = []
+        if self._satellites[row]["svid"] != svid:
+            self._satellites[row]["svid"] = svid
+            changedRoles.append(SatellitesModel.SvIdRole)
+        if self._satellites[row]["elv"] != elv:
+            self._satellites[row]["elv"] = elv
+            changedRoles.append(SatellitesModel.ElevationRole)
+        if self._satellites[row]["az"] != az:
+            self._satellites[row]["az"] = az
+            changedRoles.append(SatellitesModel.AzimuthRole)
+        if self._satellites[row]["cno"] != cno:
+            self._satellites[row]["cno"] = cno
+            changedRoles.append(SatellitesModel.CnoRole)
+        if self._satellites[row]["isUsed"] != isUsed:
+            self._satellites[row]["isUsed"] = isUsed
+            changedRoles.append(SatellitesModel.IsUsedRole)
+
+        if len(changedRoles) > 0:
+            logger.info("update: svid={}, cno={}, used={}, elv={}, az={}".format(svid, cno, isUsed, elv, az))
+        self.dataChanged.emit(ix, ix, changedRoles)
 
     @pyqtSlot(int)
     def removeSatellite(self, svid):
