@@ -312,9 +312,9 @@ class NavMonitor:
             self._gsvRemaningSVCount = 0
 
     def _updateSatInfo(existing: SatInfo, new: SatInfo):
-        existing._azimuth = new.azimuth
-        existing._elevation = new.elevation
-        existing._cno = new.cno
+        existing["azimuth"] = new.azimuth
+        existing["elevation"] = new.elevation
+        existing["cno"] = new.cno
 
     def _updateGSA(self, msg):
         oldNavMode = self._posInfo._navMode
@@ -335,7 +335,7 @@ class NavMonitor:
             if usedId != -1:
                 usedSatIds.append(usedId)
         for satId, sat in self._satellites.items():
-            sat._used = True if satId in usedSatIds else False
+            sat["used"] = True if satId in usedSatIds else False
         self._gsaDone = True
 
     def _updateVTG(self, msg):
