@@ -67,7 +67,7 @@ class TrafficCategory(IntEnum):
     # reserved 22 to 39
 
 
-class TrafficEntry:
+class TrafficEntry(dict):
     """TrafficEntry"""
 
     def __init__(
@@ -91,51 +91,52 @@ class TrafficEntry:
         """
         Constructor
         """
-        self._id = int(id, 16)
-        self._callsign = callsign
-        self._model = model
-        self._category = category
-        self._latitude = latitude
-        self._longitude = longitude
-        self._altitude = altitude
-        self._track = track
-        self._groundSpeed = groundSpeed
+        self["id"] = int(id, 16)
+        self["callsign"] = callsign
+        self["model"] = model
+        self["category"] = category
+        self["latitude"] = latitude
+        self["longitude"] = longitude
+        self["altitude"] = altitude
+        self["track"] = track
+        self["groundSpeed"] = groundSpeed
+        self["verticalSpeed"] = verticalSpeed
+        self["squawk"] = squawk
+        self["alert"] = alert
+        self["emergency"] = emergency
+        self["spi"] = spi
+        self["isOnGround"] = isOnGround
         self._lastSeen = datetime.now()
-        self._msgCount = 1
-        self._verticalSpeed = verticalSpeed
-        self._squawk = squawk
-        self._alert = alert
-        self._emergency = emergency
-        self._spi = spi
-        self._isOnGround = isOnGround
+        self["lastSeen"] = self._lastSeen.strftime("%H:%M:%S")
+        self["msgCount"] = 1
 
     @property
     def id(self) -> int:
         """
         Transponder ID
         """
-        return self._id
+        return self["id"]
 
     @property
     def callsign(self) -> str:
         """
         Callsign, can be None
         """
-        return self._callsign
+        return self["callsign"]
 
     @property
     def model(self) -> str:
         """
         ICAO Type designator, can be None
         """
-        return self._model
+        return self["model"]
 
     @property
     def category(self) -> TrafficCategory:
         """
         See :class:`TrafficCategory`, can be None
         """
-        return self._category
+        return self["category"]
 
     @property
     def latitude(self) -> float:
@@ -144,7 +145,7 @@ class TrafficEntry:
         Positive value is considered North, negative South
         can be None
         """
-        return self._latitude
+        return self["latitude"]
 
     @property
     def longitude(self) -> float:
@@ -153,70 +154,70 @@ class TrafficEntry:
         Positive value is considered East, negative West
         can be None
         """
-        return self._longitude
+        return self["longitude"]
 
     @property
     def altitude(self) -> int:
         """
         Altitude above mean sea level in ft (referenced to 29.92 inches Hg)
         """
-        return self._altitude
+        return self["altitude"]
 
     @property
     def track(self) -> int:
         """
         Track in degrees from 0 to 360
         """
-        return self._track
+        return self["track"]
 
     @property
     def groundSpeed(self):
         """
         Ground Speed in knots
         """
-        return self._groundSpeed
+        return self["groundSpeed"]
 
     @property
     def verticalSpeed(self):
         """
         Vertical Speed in ft/min
         """
-        return self._verticalSpeed
+        return self["verticalSpeed"]
 
     @property
     def squawk(self):
         """
         squawk code
         """
-        return self._squawk
+        return self["squawk"]
 
     @property
     def alert(self):
         """
         indicates that squawk code has changed
         """
-        return self._alert
+        return self["alert"]
 
     @property
     def emergency(self):
         """
         indicates that emergency squawk code has been set
         """
-        return self._emergency
+        return self["emergency"]
 
     @property
     def spi(self):
         """
         indicates that transponder ident has been activated
         """
-        return self._spi
+        return self["spi"]
 
     @property
     def isOnGround(self):
         """
         indicates that ground squat switch is active
         """
-        return self._isOnGround
+        return self["isOnGround"]
 
     @property
     def lastSeen(self) -> datetime:
@@ -230,7 +231,7 @@ class TrafficEntry:
         """
         Number of messages about this :class:`TrafficEntry`
         """
-        return self._msgCount
+        return self["msgCount"]
 
     # TODO stop updating with SBSMessage, provide generic update method
     # this is to make this module independent of SBS and allow other sources to update traffic
@@ -239,33 +240,34 @@ class TrafficEntry:
         Update :class:`TrafficEntry` from :class:`SBSMessage`.
         Will raise :class:`TrafficError` on transponder ID mismatch
         """
-        if self._id != int(msg.hexIdent, 16):
+        if self["id"] != int(msg.hexIdent, 16):
             raise TrafficError("Cannot update traffic entry with mismatching hexIdent")
         if msg.latitude is not None:
-            self._latitude = msg.latitude
+            self["latitude"] = msg.latitude
         if msg.longitude is not None:
-            self._longitude = msg.longitude
+            self["longitude"] = msg.longitude
         if msg.altitude is not None:
-            self._altitude = msg.altitude
+            self["altitude"] = msg.altitude
         if msg.track is not None:
-            self._track = msg.track
+            self["track"] = msg.track
         if msg.groundSpeed is not None:
-            self._groundSpeed = msg.groundSpeed
+            self["groundSpeed"] = msg.groundSpeed
         if msg.verticalRate is not None:
-            self._verticalSpeed = msg.verticalRate
+            self["verticalSpeed"] = msg.verticalRate
         if msg.squawk is not None:
-            self._squawk = msg.squawk
+            self["squawk"] = msg.squawk
         if msg.alert is not None:
-            self._alert = msg.alert
+            self["alert"] = msg.alert
         if msg.emergency is not None:
-            self._emergency = msg.emergency
+            self["emergency"] = msg.emergency
         if msg.spi is not None:
-            self._spi = msg.spi
+            self["spi"] = msg.spi
         if msg.isOnGround is not None:
-            self._isOnGround = msg.isOnGround
+            self["isOnGround"] = msg.isOnGround
 
         self._lastSeen = datetime.utcnow()
-        self._msgCount += 1
+        self["lastSeen"] = self._lastSeen.strftime("%H:%M:%S")
+        self["msgCount"] += 1
 
     def __str__(self):
         return (
@@ -287,23 +289,23 @@ class TrafficEntry:
             "lastSeen={:%H:%M:%S}, "
             "msgCount={})>"
         ).format(
-            self._id,
-            self._callsign,
-            self._model,
-            self._category,
-            self._latitude,
-            self._longitude,
-            self._altitude,
-            self._track,
-            self._groundSpeed,
-            self._verticalSpeed,
-            self._squawk,
-            self._alert,
-            self._emergency,
-            self._spi,
-            self._isOnGround,
-            self._lastSeen,
-            self._msgCount,
+            self["id"],
+            self["callsign"],
+            self["model"],
+            self["category"],
+            self["latitude"],
+            self["longitude"],
+            self["altitude"],
+            self["track"],
+            self["groundSpeed"],
+            self["verticalSpeed"],
+            self["squawk"],
+            self["alert"],
+            self["emergency"],
+            self["spi"],
+            self["isOnGround"],
+            self["lastSeen"],
+            self["msgCount"],
         )
 
 

@@ -10,10 +10,12 @@ Page {
     }
     Text {
         id: title
-        text: "NavMode: " + satellitesModel.testProperty
         anchors.top: parent.top
+        text: "NavMode: " + satellitesModel.testProperty + ", sat count: " + listview.count
+        font.pointSize: 8
     }
     ListView {
+        id: listview
         anchors.top: title.bottom
         anchors.bottom: parent.bottom
         width: parent.width

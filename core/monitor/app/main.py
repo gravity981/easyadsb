@@ -202,6 +202,32 @@ class MessageConverter:
             return 10
 
 
+class JsonSender:
+    """
+    used to periodically send traffic and position messages to mqtt topic
+    """
+
+    def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, mqttClient):
+        self._navMonitor = navMonitor
+        self._trafficMonitor = trafficMonitor
+        self._mqttClient = mqttClient
+        self._intervalSeconds = 5
+        self._sendMessages()
+
+    def _sendMessages(self):
+        try:
+            self._timer = threading.Timer(self._intervalSeconds, self._sendMessages)
+            self._timer.start()
+            satellites = json.dumps(list(self._navMonitor.satellites.values()))
+            traffic = json.dumps(list(self._trafficMonitor.traffic.values()))
+            # todo pos information
+            self._mqttClient.publish("/easyadsb/json/satellites", satellites)
+            self._mqttClient.publish("/easyadsb/json/traffic", traffic)
+
+        except Exception as ex:
+            logger.error("error sending json messages, {}".format(str(ex)))
+
+
 if __name__ == "__main__":
     logger = None
     mqttClient = None
@@ -244,5 +270,6 @@ if __name__ == "__main__":
     gdl90Port = gdl90.GDL90Port(gdl90_broadcast_ip, gdl90_port)
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)
+    jsonSender = JsonSender(gpsMonitor, trafficMonitor, mqttClient)
     trafficMonitor.register(msgConverter)
     gpsMonitor.register(msgConverter)

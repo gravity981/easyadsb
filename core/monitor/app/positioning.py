@@ -34,58 +34,55 @@ class OperationMode(Enum):
     Manual = "M"
 
 
-class SatInfo:
+class SatInfo(dict):
     """
     Represents information about a Nav Satellite. Used within :class:`NavMonitor`
     """
 
-    def __init__(self, id: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
-        self._id = id
-        self._elevation = elevation
-        self._azimuth = azimuth
-        self._cno = cno
-        self._used = used
+    def __init__(self, svid: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
+        self["svid"] = svid
+        self["elevation"] = elevation
+        self["azimuth"] = azimuth
+        self["cno"] = cno
+        self["used"] = used
 
     @property
     def id(self) -> int:
         """
         Ubx satellite number, svId
         """
-        return self._id
+        return self["svid"]
 
     @property
     def elevation(self) -> int:
         """
         Elevation in degrees, range 0 to 90
         """
-        return self._elevation
+        return self["elevation"]
 
     @property
     def azimuth(self) -> int:
         """
         Azimuth in degrees, range 0 to 359
         """
-        return self._azimuth
+        return self["azimuth"]
 
     @property
     def cno(self) -> int:
         """
         Carrier to Noise Ratio in dbHz, Signal strength, range 0 to 99, null when not tracking
         """
-        return self._cno
+        return self["cno"]
 
     @property
     def used(self) -> bool:
         """
         Used for navigation
         """
-        return self._used
+        return self["used"]
 
     def __str__(self):
-        return "<Sat(id={}, elv={}, az={}, cno={}, used={})>".format(self._id, self._elevation, self._azimuth, self._cno, self._used)
-
-    def __repr__(self):
-        return self.__str__()
+        return "<Sat(id={}, elv={}, az={}, cno={}, used={})>".format(self["svid"], self["elevation"], self["azimuth"], self["cno"], self["used"])
 
 
 class PosInfo:
@@ -285,9 +282,12 @@ class NavMonitor:
             max = self._gsvRemaningSVCount if self._gsvRemaningSVCount < 4 else 4
             for i in range(1, max + 1):
                 sv_id = int(getattr(msg, "svid_0{}".format(i)))
-                sv_elv = int(getattr(msg, "elv_0{}".format(i)) or 0)
-                sv_az = int(getattr(msg, "az_0{}".format(i)) or 0)
-                sv_cno = int(getattr(msg, "cno_0{}".format(i)) or 0)
+                sv_elv = getattr(msg, "elv_0{}".format(i))
+                sv_elv = sv_elv if sv_elv else None
+                sv_az = getattr(msg, "az_0{}".format(i))
+                sv_az = sv_az if sv_az else None
+                sv_cno = getattr(msg, "cno_0{}".format(i))
+                sv_cno = sv_cno if sv_cno else None
                 self._intermediateSVs[sv_id] = SatInfo(sv_id, sv_elv, sv_az, sv_cno)
             self._gsvRemaningSVCount -= max
             self._gsvMsgNum += 1
