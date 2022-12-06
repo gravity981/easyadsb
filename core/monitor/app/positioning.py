@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import IntEnum, Enum
 import datetime
 import threading
 import logging
@@ -12,7 +12,7 @@ class NavError(Exception):
     pass
 
 
-class NavMode(Enum):
+class NavMode(IntEnum):
     """
     - NoFix = 1, no position
     - Fix2D = 2, 2D positoin (indicates low accuracy)
@@ -24,7 +24,7 @@ class NavMode(Enum):
     Fix3D = 3
 
 
-class OperationMode(Enum):
+class OperationMode(str, Enum):
     """
     - Automatic = 'A', Automatically switching between 2D or 3D mode
     - Manual    = 'M', Manually set to operate in 2D or 3D mode
@@ -85,21 +85,22 @@ class SatInfo(dict):
         return "<Sat(id={}, elv={}, az={}, cno={}, used={})>".format(self["svid"], self["elevation"], self["azimuth"], self["cno"], self["used"])
 
 
-class PosInfo:
+class PosInfo(dict):
     def __init__(self):
-        self._navMode = None
-        self._opMode = None
-        self._pdop = None
-        self._hdop = None
-        self._vdop = None
-        self._trueTrack = None
-        self._magneticTrack = None
-        self._groundSpeedKnots = None
-        self._groundSpeedKph = None
-        self._latitude = None
-        self._longitude = None
-        self._altitudeMeter = None
-        self._separationMeter = None
+        self["navMode"] = None
+        self["opMode"] = None
+        self["pdop"] = None
+        self["hdop"] = None
+        self["vdop"] = None
+        self["trueTack"] = None
+        self["magneticTrack"] = None
+        self["groundSpeedKnots"] = None
+        self["groundSpeedKph"] = None
+        self["latitude"] = None
+        self["longitude"] = None
+        self["altitudeMeter"] = None
+        self["separationMeter"] = None
+        self["utcTime"] = None
         self._utcTime = None
 
     @property
@@ -107,63 +108,63 @@ class PosInfo:
         """
         Navigation Mode, see :class:`NavMode`
         """
-        return self._navMode
+        return self["navMode"]
 
     @property
     def opMode(self) -> OperationMode:
         """
         Operation Mode, see :class:`OperationMode`
         """
-        return self._opMode
+        return self["opMode"]
 
     @property
     def pdop(self) -> float:
         """
         Position Dilution of Precision
         """
-        return self._pdop
+        return self["pdop"]
 
     @property
     def hdop(self) -> float:
         """
         Horizontal Dilution of Precision
         """
-        return self._hdop
+        return self["hdop"]
 
     @property
     def vdop(self) -> float:
         """
         Vertical Dilution of Precision
         """
-        return self._vdop
+        return self["vdop"]
 
     @property
     def trueTrack(self) -> float:
         """
         Course over ground (true), can be None
         """
-        return self._trueTrack
+        return self["trueTack"]
 
     @property
     def magneticTrack(self) -> float:
         """
         Course over ground (magnetic), can be None
         """
-        return self._magneticTrack
+        return self["magneticTrack"]
 
     @property
     def groundSpeedKnots(self) -> float:
         """
         Speed over ground in knots, can be None
         """
-        return self._groundSpeedKnots
+        return self["groundSpeedKnots"]
 
     @property
     def groundSpeedKph(self) -> float:
         """
         Speed over ground in kilometers per hour, can be None
         """
-        return self._groundSpeedKph
+        return self["groundSpeedKph"]
 
     @property
     def latitude(self) -> float:
@@ -172,7 +173,7 @@ class PosInfo:
         Positive value is considered North, negative South
         can be None
         """
-        return self._latitude
+        return self["latitude"]
 
     @property
     def longitude(self) -> float:
@@ -181,21 +182,21 @@ class PosInfo:
         Positive value is considered East, negative West
         can be None
         """
-        return self._longitude
+        return self["longitude"]
 
     @property
     def altitudeMeter(self) -> float:
         """
         Altitude above mean sea level in meters, can be None
         """
-        return self._altitudeMeter
+        return self["altitudeMeter"]
 
     @property
     def separationMeter(self):
         """
         Geoid separation: difference between ellipsoid and mean sea level, can be None
         """
-        return self._separationMeter
+        return self["separationMeter"]
 
     @property
     def utcTime(self) -> datetime.time:
@@ -224,7 +225,7 @@ class NavMonitor:
         self._ggaDone = False
 
     @property
-    def satellites(self) -> dict():
+    def satellites(self) -> dict:
         """
         Dictionary of :class:`SatInfo`
         """
@@ -232,7 +233,7 @@ class NavMonitor:
             return deepcopy(self._satellites)
 
     @property
-    def posInfo(self) -> PosInfo():
+    def posInfo(self) -> PosInfo:
         """
         Current `PosInfo`
         """
@@ -317,15 +318,15 @@ class NavMonitor:
         existing["cno"] = new.cno
 
     def _updateGSA(self, msg):
-        oldNavMode = self._posInfo._navMode
-        self._posInfo._navMode = NavMode(int(getattr(msg, "navMode")))
-        self._posInfo._opMode = OperationMode(getattr(msg, "opMode"))
-        self._posInfo._pdop = float(getattr(msg, "PDOP"))
-        self._posInfo._hdop = float(getattr(msg, "HDOP"))
-        self._posInfo._vdop = float(getattr(msg, "VDOP"))
+        oldNavMode = self._posInfo["navMode"]
+        self._posInfo["navMode"] = NavMode(int(getattr(msg, "navMode")))
+        self._posInfo["opMode"] = OperationMode(getattr(msg, "opMode"))
+        self._posInfo["pdop"] = float(getattr(msg, "PDOP"))
+        self._posInfo["hdop"] = float(getattr(msg, "HDOP"))
+        self._posInfo["vdop"] = float(getattr(msg, "VDOP"))
 
-        if oldNavMode != self._posInfo._navMode:
-            logger.info("NavMode changed to {}".format(self._posInfo._navMode))
+        if oldNavMode != self._posInfo["navMode"]:
+            logger.info("NavMode changed to {}".format(self._posInfo["navMode"]))
 
         # If less than 12 SVs are used for navigation, the remaining fields are left empty.
         # If more than 12 SVs are used for navigation, only the IDs of the first 12 are output.
@@ -345,15 +346,15 @@ class NavMonitor:
 
     def _updateCourse(self, msg):
         trueTrack = getattr(msg, "cogt")
-        self._posInfo._trueTrack = float(trueTrack) if trueTrack else None
+        self._posInfo["trueTack"] = float(trueTrack) if trueTrack else None
         magneticTrack = getattr(msg, "cogm")
-        self._posInfo._magneticTrack = float(magneticTrack) if magneticTrack else None
+        self._posInfo["magneticTrack"] = float(magneticTrack) if magneticTrack else None
 
     def _updateSpeed(self, msg):
         groundSpeedKnots = getattr(msg, "sogn")
-        self._posInfo._groundSpeedKnots = float(groundSpeedKnots) if groundSpeedKnots else None
+        self._posInfo["groundSpeedKnots"] = float(groundSpeedKnots) if groundSpeedKnots else None
         groundSpeedKph = getattr(msg, "sogk")
-        self._posInfo._groundSpeedKph = float(groundSpeedKph) if groundSpeedKph else None
+        self._posInfo["groundSpeedKph"] = float(groundSpeedKph) if groundSpeedKph else None
 
     def _updateGGA(self, msg):
         lat = getattr(msg, "lat")
@@ -369,12 +370,12 @@ class NavMonitor:
         if ns:
             c = 1 if ns == "N" else -1
         lat = float(lat) if lat else None
-        self._posInfo._latitude = c * lat if lat is not None else None
+        self._posInfo["latitude"] = c * lat if lat is not None else None
 
         if ew:
             c = 1 if ew == "E" else -1
         lon = float(lon) if lon else None
-        self._posInfo._longitude = c * lon if lon is not None else None
+        self._posInfo["longitude"] = c * lon if lon is not None else None
 
         if altUnit and sepUnit:
             if altUnit != "M":
@@ -382,15 +383,17 @@ class NavMonitor:
             if sepUnit != altUnit:
                 raise NavError("separation unit must be equal to altitude unit")
 
-            self._posInfo._altitudeMeter = float(alt) if alt else None
-            self._posInfo._separationMeter = float(sep) if sep else None
+            self._posInfo["altitudeMeter"] = float(alt) if alt else None
+            self._posInfo["separationMeter"] = float(sep) if sep else None
         else:
-            self._posInfo._altitudeMeter = None
-            self._posInfo._separationMeter = None
+            self._posInfo["altitudeMeter"] = None
+            self._posInfo["separationMeter"] = None
 
         if utcTime:
+            self._posInfo["utcTime"] = utcTime.strftime("%H:%M:%S")
             self._posInfo._utcTime = utcTime
         else:
+            self._posInfo["utcTime"] = None
             self._posInfo._utcTime = None
         self._ggaDone = True
 
@@ -413,19 +416,19 @@ class NavMonitor:
             "gsK={}, lat={}, lon={}, altM={}, sepM={}, "
             "time={}, satellites={})>"
         ).format(
-            self._posInfo._navMode,
-            self._posInfo._opMode,
-            self._posInfo._pdop,
-            self._posInfo._hdop,
-            self._posInfo._vdop,
-            self._posInfo._trueTrack,
-            self._posInfo._magneticTrack,
-            self._posInfo._groundSpeedKnots,
-            self._posInfo._groundSpeedKph,
-            self._posInfo._latitude,
-            self._posInfo._longitude,
-            self._posInfo._altitudeMeter,
-            self._posInfo._separationMeter,
-            self._posInfo._utcTime,
+            self._posInfo["navMode"],
+            self._posInfo["opMode"],
+            self._posInfo["pdop"],
+            self._posInfo["hdop"],
+            self._posInfo["vdop"],
+            self._posInfo["trueTack"],
+            self._posInfo["magneticTrack"],
+            self._posInfo["groundSpeedKnots"],
+            self._posInfo["groundSpeedKph"],
+            self._posInfo["latitude"],
+            self._posInfo["longitude"],
+            self._posInfo["altitudeMeter"],
+            self._posInfo["separationMeter"],
+            self._posInfo["utcTime"],
             str(self._satellites),
         )
