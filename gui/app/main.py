@@ -14,6 +14,8 @@ logger = logging.getLogger("logger")
 def on_message(client, userdata, msg):
     if msg.topic == "/easyadsb/json/satellites":
         updateSatellites(msg)
+    elif msg.topic == "/easyadsb/json/position":
+        updatePosition(msg)
 
 
 def updateSatellites(msg):
@@ -51,6 +53,34 @@ def updateSatellites(msg):
                 QMetaObject.invokeMethod(satellitesModel, "removeSatellite", Qt.QueuedConnection, Q_ARG(int, oldSvId))
     except Exception as ex:
         logger.error("could not parse satellites message, {}".format(str(ex)))
+
+
+def updatePosition(msg):
+    try:
+        position = json.loads(msg.payload.decode("utf-8").strip())
+        """QMetaObject.invokeMethod(
+                    positionModel,
+                    "updatePosition",
+                    Qt.QueuedConnection,
+                    Q_ARG(int, position["navMode"]),
+                    Q_ARG(str, position["opMode"]),
+                    Q_ARG(QVariant, position["pdop"]),
+                    Q_ARG(QVariant, position["hdop"]),
+                    Q_ARG(QVariant, position["vdop"]),
+                    Q_ARG(QVariant, position["trueTack"]),
+                    Q_ARG(QVariant, position["magneticTrack"]),
+                    Q_ARG(QVariant, position["groundSpeedKnots"]),
+                    Q_ARG(QVariant, position["groundSpeedKph"]),
+                    Q_ARG(QVariant, position["latitude"]),
+                    Q_ARG(QVariant, position["longitude"]),
+                    Q_ARG(QVariant, position["altitudeMeter"]),
+                    Q_ARG(QVariant, position["separationMeter"]),
+                    Q_ARG(str, position["utcTime"]),
+                )"""
+
+        QMetaObject.invokeMethod(positionModel, "updateNavMode", Qt.QueuedConnection, Q_ARG(int, position["navMode"]))
+    except Exception as ex:
+        logger.error("could not parse position message, {}".format(str(ex)))
 
 
 class SatellitesModel(QAbstractListModel):
@@ -108,7 +138,6 @@ class SatellitesModel(QAbstractListModel):
 
     @pyqtSlot(int, QVariant, bool, QVariant, QVariant)
     def updateSatellite(self, svid, cno, isUsed, elv, az):
-
         row = self._rowFromSvId(svid)
         ix = self.index(row, 0)
         changedRoles = []
@@ -150,15 +179,94 @@ class SatellitesModel(QAbstractListModel):
         raise ValueError("no satellite for svid {}".format(svid))
 
 
+class PositionModel(QObject):
+    positionChanged = pyqtSignal()
+
+    def __init__(self, parent=None):
+        QObject.__init__(self, parent)
+        self._navMode = 1
+        self._opMode = ""
+        self._pdop = None
+
+    @pyqtProperty(int, notify=positionChanged)
+    def navMode(self):
+        return self._navMode
+
+    @pyqtProperty(str, notify=positionChanged)
+    def opMode(self):
+        return self._opMode
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def pdop(self):
+        return self._pdop
+
+    @pyqtSlot(int)
+    def updateNavMode(self, navMode):
+        self._navMode = navMode
+        self.positionChanged.emit()
+
+    @pyqtSlot(
+        int,
+        str,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        QVariant,
+        str)
+    def updatePosition(
+            self,
+            navMode,
+            opMode,
+            pdop,
+            hdop,
+            vdop,
+            trueTrack,
+            magneticTrack,
+            groundSpeedKnots,
+            groundSpeedKph,
+            latitude,
+            longitude,
+            altitudeMeter,
+            separationMeter,
+            utcTime
+            ):
+        self._navMode = navMode
+        self._opMode = opMode
+        self._pdop = pdop
+        self._hdop = hdop
+        self._vdop = vdop
+        self._trueTrack = trueTrack
+        self._magneticTrack = magneticTrack
+        self._groundSpeedKnots = groundSpeedKnots
+        self._groundSpeedKph = groundSpeedKph
+        self._latitude = latitude
+        self._longitude = longitude
+        self._altitudeMeter = altitudeMeter
+        self._separationMeter = separationMeter
+        self._utcTime = utcTime
+        logger.info("update position")
+        self.positionChanged.emit()
+
+
 app = QGuiApplication(sys.argv)
 satellitesModel = SatellitesModel()
+positionModel = PositionModel()
 engine = QQmlApplicationEngine()
 engine.rootContext().setContextProperty("satellitesModel", satellitesModel)
+engine.rootContext().setContextProperty("positionModel", positionModel)
 engine.quit.connect(app.quit)
 engine.load("main.qml")
 mqttClient = mqtt.launch("easyadsb-gui", "localhost", 1883)
 mqttClient.on_message = on_message
 mqttClient.subscribe("/easyadsb/json/satellites")
 mqttClient.subscribe("/easyadsb/json/traffic")
+mqttClient.subscribe("/easyadsb/json/position")
 
 sys.exit(app.exec())

@@ -32,9 +32,9 @@ Item {
         width: parent.width
         z: -1
 
+        PositionPage {}
         SatellitesPage {}
         SatellitesPositionPage {}
-        PositionPage {}
         TrafficPage {}
         SystemPage {}
     }
