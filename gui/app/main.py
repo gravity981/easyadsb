@@ -58,27 +58,12 @@ def updateSatellites(msg):
 def updatePosition(msg):
     try:
         position = json.loads(msg.payload.decode("utf-8").strip())
-        """QMetaObject.invokeMethod(
-                    positionModel,
-                    "updatePosition",
-                    Qt.QueuedConnection,
-                    Q_ARG(int, position["navMode"]),
-                    Q_ARG(str, position["opMode"]),
-                    Q_ARG(QVariant, position["pdop"]),
-                    Q_ARG(QVariant, position["hdop"]),
-                    Q_ARG(QVariant, position["vdop"]),
-                    Q_ARG(QVariant, position["trueTack"]),
-                    Q_ARG(QVariant, position["magneticTrack"]),
-                    Q_ARG(QVariant, position["groundSpeedKnots"]),
-                    Q_ARG(QVariant, position["groundSpeedKph"]),
-                    Q_ARG(QVariant, position["latitude"]),
-                    Q_ARG(QVariant, position["longitude"]),
-                    Q_ARG(QVariant, position["altitudeMeter"]),
-                    Q_ARG(QVariant, position["separationMeter"]),
-                    Q_ARG(str, position["utcTime"]),
-                )"""
-
-        QMetaObject.invokeMethod(positionModel, "updateNavMode", Qt.QueuedConnection, Q_ARG(int, position["navMode"]))
+        QMetaObject.invokeMethod(
+            positionModel,
+            "updatePosition",
+            Qt.QueuedConnection,
+            Q_ARG(QVariant, position),
+        )
     except Exception as ex:
         logger.error("could not parse position message, {}".format(str(ex)))
 
@@ -187,6 +172,17 @@ class PositionModel(QObject):
         self._navMode = 1
         self._opMode = ""
         self._pdop = None
+        self._hdop = None
+        self._vdop = None
+        self._trueTrack = None
+        self._magneticTrack = None
+        self._groundSpeedKnots = None
+        self._groundSpeedKph = None
+        self._latitude = None
+        self._longitude = None
+        self._altitudeMeter = None
+        self._separationMeter = None
+        self._utcTime = None
 
     @pyqtProperty(int, notify=positionChanged)
     def navMode(self):
@@ -200,58 +196,66 @@ class PositionModel(QObject):
     def pdop(self):
         return self._pdop
 
-    @pyqtSlot(int)
-    def updateNavMode(self, navMode):
-        self._navMode = navMode
-        self.positionChanged.emit()
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def hdop(self):
+        return self._hdop
 
-    @pyqtSlot(
-        int,
-        str,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        QVariant,
-        str)
-    def updatePosition(
-            self,
-            navMode,
-            opMode,
-            pdop,
-            hdop,
-            vdop,
-            trueTrack,
-            magneticTrack,
-            groundSpeedKnots,
-            groundSpeedKph,
-            latitude,
-            longitude,
-            altitudeMeter,
-            separationMeter,
-            utcTime
-            ):
-        self._navMode = navMode
-        self._opMode = opMode
-        self._pdop = pdop
-        self._hdop = hdop
-        self._vdop = vdop
-        self._trueTrack = trueTrack
-        self._magneticTrack = magneticTrack
-        self._groundSpeedKnots = groundSpeedKnots
-        self._groundSpeedKph = groundSpeedKph
-        self._latitude = latitude
-        self._longitude = longitude
-        self._altitudeMeter = altitudeMeter
-        self._separationMeter = separationMeter
-        self._utcTime = utcTime
-        logger.info("update position")
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def vdop(self):
+        return self._vdop
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def trueTrack(self):
+        return self._trueTrack
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def magneticTrack(self):
+        return self._magneticTrack
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def groundSpeedKnots(self):
+        return self._groundSpeedKnots
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def groundSpeedKph(self):
+        return self._groundSpeedKph
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def latitude(self):
+        return self._latitude
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def longitude(self):
+        return self._longitude
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def altitudeMeter(self):
+        return self._altitudeMeter
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def separationMeter(self):
+        return self._separationMeter
+
+    @pyqtProperty(str, notify=positionChanged)
+    def utcTime(self):
+        return self._utcTime
+
+    @pyqtSlot(QVariant)
+    def updatePosition(self, position):
+        self._navMode = position["navMode"]
+        self._opMode = position["opMode"]
+        self._pdop = position["pdop"]
+        self._hdop = position["hdop"]
+        self._vdop = position["vdop"]
+        self._trueTrack = position["trueTack"]
+        self._magneticTrack = position["magneticTrack"]
+        self._groundSpeedKnots = position["groundSpeedKnots"]
+        self._groundSpeedKph = position["groundSpeedKph"]
+        self._latitude = position["latitude"]
+        self._longitude = position["longitude"]
+        self._altitudeMeter = position["altitudeMeter"]
+        self._separationMeter = position["separationMeter"]
+        self._utcTime = position["utcTime"]
         self.positionChanged.emit()
 
 

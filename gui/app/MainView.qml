@@ -19,7 +19,7 @@ Item {
         Text {
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            text: "Easy ADS-B - " + view.currentItem.title
+            text: view.currentItem.title
             color: "white"
             elide: Text.ElideRight
         }
