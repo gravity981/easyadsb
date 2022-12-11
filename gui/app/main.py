@@ -69,6 +69,8 @@ def updatePosition(msg):
 
 
 class SatellitesModel(QAbstractListModel):
+    dataChanged = pyqtSignal()
+
     SvIdRole = Qt.UserRole + 1
     CnoRole = Qt.UserRole + 2
     IsUsedRole = Qt.UserRole + 3
@@ -77,7 +79,7 @@ class SatellitesModel(QAbstractListModel):
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
-        self._satellites = list()
+        self._satellites = []
 
     def data(self, index, role=Qt.DisplayRole):
         row = index.row()
@@ -103,6 +105,14 @@ class SatellitesModel(QAbstractListModel):
             SatellitesModel.ElevationRole: b"elv",
             SatellitesModel.AzimuthRole: b"az",
         }
+
+    @pyqtProperty(int, notify=dataChanged)
+    def usedCount(self):
+        return sum(map(lambda sat: sat["isUsed"], self._satellites))
+
+    @pyqtProperty(int, notify=dataChanged)
+    def count(self):
+        return len(self._satellites)
 
     @pyqtSlot(int, QVariant, bool, QVariant, QVariant)
     def addSatellite(self, svid, cno, isUsed, elv, az):
