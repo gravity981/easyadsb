@@ -69,7 +69,6 @@ def updatePosition(msg):
 
 
 class SatellitesModel(QAbstractListModel):
-    testPropertyChanged = pyqtSignal()
     SvIdRole = Qt.UserRole + 1
     CnoRole = Qt.UserRole + 2
     IsUsedRole = Qt.UserRole + 3
@@ -78,16 +77,7 @@ class SatellitesModel(QAbstractListModel):
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
-        self._testProperty = "test data"
-        self._satellites = [
-            {"svid": 20, "elv": 0.0, "az": 0.0, "cno": 23, "isUsed": False},
-            {"svid": 17, "elv": 0.0, "az": 0.0, "cno": 65, "isUsed": True},
-            {"svid": 12, "elv": 0.0, "az": 0.0, "cno": 55, "isUsed": True},
-        ]
-
-    @pyqtProperty(str, notify=testPropertyChanged)
-    def testProperty(self):
-        return self._testProperty
+        self._satellites = list()
 
     def data(self, index, role=Qt.DisplayRole):
         row = index.row()
