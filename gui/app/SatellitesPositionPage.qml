@@ -9,7 +9,7 @@ Page {
             font.pointSize: 8
         }
         Text {
-            text: "count: " + satellitesModel.count
+            text: "count: " + satellitesModel.knownPosCount
             font.pointSize: 8
         }
         Text {

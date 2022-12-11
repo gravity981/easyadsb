@@ -11,7 +11,7 @@ Page {
     Text {
         id: title
         anchors.top: parent.top
-        text: "NavMode: " + satellitesModel.testProperty + ", sat count: " + listview.count
+        text: "NavMode: " + positionModel.navMode + ", sat count: " + listview.count
         font.pointSize: 8
     }
     ListView {
@@ -22,10 +22,11 @@ Page {
         model: satellitesModel
         z: -1
         delegate: Item {
+            property double maxCno: 80.0
             width: listview.width
             height: 45
             Rectangle {
-                width: (cno ?? 0) / 80.0 * parent.width 
+                width: (cno ?? 0) / maxCno * parent.width 
                 height: parent.height
                 color: isUsed ? "palegreen" : "paleturquoise"
             }
