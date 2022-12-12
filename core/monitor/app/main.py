@@ -59,7 +59,17 @@ def on_sbs_message(msg):
         logger.error('on sbs message payload decode error, "{}"'.format(msg.payload))
         return
     except Exception as ex:
-        logger.error('on sbs message error, {}, "{}"'.format(str(ex), dec))
+        logger.error('on sbs message error, {}, "{}"'.format(str(ex), msg.payload))
+        return
+
+
+def on_bme_message(msg):
+    try:
+        bme = json.loads(msg.payload.decode("UTF-8").strip())
+        logger.debug(bme)
+        gpsMonitor.updateBme(bme)
+    except Exception as ex:
+        logger.error('on bme message error, {}, "{}"'.format(str(ex), msg.payload))
         return
 
 
@@ -70,6 +80,8 @@ def on_message(client, userdata, msg):
         on_ubx_message(msg)
     elif msg.topic == sbs_topic:
         on_sbs_message(msg)
+    elif msg.topic == bme_topic:
+        on_bme_message(msg)
     else:
         logger.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
 
@@ -243,6 +255,7 @@ if __name__ == "__main__":
     ubx_topic = str(os.getenv("MO_MQTT_UBX_TOPIC"))
     ubx_ctrl_topic = str(os.getenv("MO_MQTT_UBX_CTRL_TOPIC"))
     sbs_topic = str(os.getenv("MO_MQTT_SBS_TOPIC"))
+    bme_topic = str(os.getenv("MO_MQTT_BME280_TOPIC"))
     gdl90_broadcast_ip = str(os.getenv("MO_GDL90_BROADCAST_IP"))
     gdl90_port = int(os.getenv("MO_GDL90_PORT"))
 
@@ -268,6 +281,7 @@ if __name__ == "__main__":
     mqttClient.subscribe(nmea_topic)
     mqttClient.subscribe(ubx_topic)
     mqttClient.subscribe(sbs_topic)
+    mqttClient.subscribe(bme_topic)
     gdl90Port = gdl90.GDL90Port(gdl90_broadcast_ip, gdl90_port)
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)

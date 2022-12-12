@@ -101,6 +101,10 @@ class PosInfo(dict):
         self["altitudeMeter"] = None
         self["separationMeter"] = None
         self["utcTime"] = None
+        self["temperature"] = None
+        self["humidity"] = None
+        self["pressure"] = None
+        self["pressureAltitude"] = None
         self._utcTime = None
 
     @property
@@ -205,6 +209,34 @@ class PosInfo(dict):
         """
         return self._utcTime
 
+    @property
+    def temperature(self) -> float:
+        """
+        Temperature in °C
+        """
+        return self["temperature"]
+
+    @property
+    def humidity(self) -> float:
+        """
+        Humidity in %H
+        """
+        return self["humidity"]
+
+    @property
+    def pressure(self) -> float:
+        """
+        Pressure in hPa
+        """
+        return self["pressure"]
+
+    @property
+    def pressureAltitude(self) -> float:
+        """
+        Altitude calculated from `pressure` and `temperature` with reference to 1013.25 hPa
+        """
+        return self["pressureAltitude"]
+
 
 class NavMonitor:
     """
@@ -246,9 +278,19 @@ class NavMonitor:
         """
         self._observers.append(obj)
 
+    def updateBme(self, msg: dict):
+        """
+        update `NavMonitor` with BME280 json message
+        """
+        with self._lock:
+            self._posInfo["temperature"] = msg["temperature"]
+            self._posInfo["humidity"] = msg["humidity"]
+            self._posInfo["pressure"] = msg["pressure"]
+            self._posInfo["pressureAltitude"] = msg["pressureAltitude"]
+
     def update(self, msg: NMEAMessage):
         """
-        update TrafficMonitor with an NMEAMessage. The following NMEA messages are supported:
+        update `NavMonitor` with an NMEAMessage. The following NMEA messages are supported:
         - GSV, satellites
         - GSA, used satellites
         - VTG, speed and track

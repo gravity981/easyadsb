@@ -12,6 +12,7 @@ ENV MO_MQTT_NMEA_TOPIC /easyadsb/ublox/nmea
 ENV MO_MQTT_UBX_TOPIC /easyadsb/ublox/ubx
 ENV MO_MQTT_UBX_CTRL_TOPIC /easyadsb/ublox/ubx/ctrl
 ENV MO_MQTT_SBS_TOPIC /easyadsb/dump1090/sbs
+ENV MO_MQTT_BME280_TOPIC /easyadsb/bme280/json
 ENV MO_GDL90_BROADCAST_IP 192.168.77.255
 ENV MO_GDL90_PORT 4000
 

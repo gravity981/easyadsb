@@ -204,6 +204,10 @@ class PositionModel(QObject):
         self._altitudeMeter = None
         self._separationMeter = None
         self._utcTime = None
+        self._temperature = None
+        self._humidity = None
+        self._pressure = None
+        self._pressureAltitude = None
 
     @pyqtProperty(int, notify=positionChanged)
     def navMode(self):
@@ -261,6 +265,22 @@ class PositionModel(QObject):
     def utcTime(self):
         return self._utcTime
 
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def temperature(self):
+        return self._temperature
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def humidity(self):
+        return self._humidity
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def pressure(self):
+        return self._pressure
+
+    @pyqtProperty(QVariant, notify=positionChanged)
+    def pressureAltitude(self):
+        return self._pressureAltitude
+
     @pyqtSlot(QVariant)
     def updatePosition(self, position):
         self._navMode = position["navMode"]
@@ -277,6 +297,10 @@ class PositionModel(QObject):
         self._altitudeMeter = position["altitudeMeter"]
         self._separationMeter = position["separationMeter"]
         self._utcTime = position["utcTime"]
+        self._temperature = position["temperature"]
+        self._humidity = position["humidity"]
+        self._pressure = position["pressure"]
+        self._pressureAltitude = position["pressureAltitude"]
         self.positionChanged.emit()
 
 

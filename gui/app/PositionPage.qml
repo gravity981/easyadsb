@@ -121,6 +121,30 @@ Page {
             Text {
                 text: positionModel.utcTime
             }
+            Text {
+                text: "Temp. °C"
+            }
+            Text {
+                text: positionModel.temperature
+            }
+            Text {
+                text: "Humidity %H"
+            }
+            Text {
+                text: positionModel.humidity
+            }
+            Text {
+                text: "Pressure hPa"
+            }
+            Text {
+                text: positionModel.pressure
+            }
+            Text {
+                text: "Pressure Alt. m"
+            }
+            Text {
+                text: positionModel.pressureAltitude
+            }
         }
     }
 }
