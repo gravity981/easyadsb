@@ -3,9 +3,9 @@ version: '3.9'
 services:
   dump1090:
     container_name: dump1090
-    image: dump1090
+    image: ghcr.io/gravity981/easyadsb/dump1090
     build:
-      context: dump1090
+      dockerfile: Dockerfile.dump1090
     devices:
       - /dev/bus/usb
     restart: unless-stopped

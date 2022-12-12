@@ -22,9 +22,9 @@ jobs:
           - context: core/AccessPoint
             name: ghcr.io/gravity981/easyadsb/accesspoint
             file: core/AccessPoint/Dockerfile
-          - context: core/dump1090
+          - context: core
             name: ghcr.io/gravity981/easyadsb/dump1090
-            file: core/dump1090/Dockerfile
+            file: core/Dockerfile.dump1090
           - context: core
             name: ghcr.io/gravity981/easyadsb/dump1090mqtt
             file: core/Dockerfile.dump1090mqtt
