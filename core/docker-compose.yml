@@ -67,6 +67,24 @@ services:
       - MO_GDL90_PORT=4000
     network_mode: host
 
+  bme280:
+    container_name: bme280
+    image: ghcr.io/gravity981/easyadsb/bme280
+    build:
+      dockerfile: Dockerfile.bme280
+    devices: 
+      - /dev/i2c-1
+    depends_on:
+      - mqtt
+    environment:
+      - BM_LOG_LEVEL=INFO
+      - BM_MQTT_HOST=mqtt
+      - BM_MQTT_PORT=1883
+      - BM_MQTT_CLIENT_NAME=bme280
+      - BM_MQTT_PUBLISH_TOPIC=/easyadsb/bme280/json
+      - BM_I2C_PORT=1
+      - BM_I2C_ADDRESS=0x76
+
   mqtt:
     container_name: mqtt
     image: eclipse-mosquitto

@@ -1,0 +1,27 @@
+FROM arm32v7/python:3.11-alpine
+
+LABEL org.opencontainers.image.source = "https://github.com/gravity981/easyadsb"
+
+# general
+# =======
+ENV BM_LOG_LEVEL INFO
+
+# i2c
+# ======
+ENV BM_I2C_PORT 1
+ENV BM_I2C_ADDRESS 0x76
+
+# MQTT
+# ====
+ENV BM_MQTT_HOST localhost
+ENV BM_MQTT_PORT 1883
+ENV BM_MQTT_CLIENT_NAME ""
+ENV BM_MQTT_PUBLISH_TOPIC /easyadsb/bme280/json
+
+WORKDIR /home
+COPY bme280/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+copy common/ ./app
+COPY bme280/app ./app
+
+CMD ["python", "/home/app/main.py"]
