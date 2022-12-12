@@ -367,7 +367,7 @@ class TrafficModel(QAbstractListModel):
     @pyqtSlot(QVariant)
     def addTrafficEntry(self, entry):
         logger.info("add traffic entry")
-        self.beginInserRows(QModelIndex(), self.rowCount(), self.rowCount())
+        self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._trafficEntries.append(entry)
         self.endInsertRows()
 
