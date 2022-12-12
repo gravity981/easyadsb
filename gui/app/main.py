@@ -82,7 +82,7 @@ def updateTraffic(msg):
         ids = [t["id"] for t in entries]
         for oldId in oldEntryIds:
             if oldId not in ids:
-                QMetaObject.invokeMethod(trafficModel, "removeTrafficEntry", Qt.QueuedConnection, Q_ARG(int, id))
+                QMetaObject.invokeMethod(trafficModel, "removeTrafficEntry", Qt.QueuedConnection, Q_ARG(int, oldId))
     except Exception as ex:
         logger.error("could not parse traffic message, {}".format(str(ex)))
 
