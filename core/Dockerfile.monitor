@@ -16,6 +16,7 @@ ENV MO_MQTT_BME280_TOPIC /easyadsb/bme280/json
 ENV MO_GDL90_NETWORK_INTERFACE wlan0
 ENV MO_GDL90_PORT 4000
 
+RUN apk add wireless-tools
 WORKDIR /home
 COPY monitor/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

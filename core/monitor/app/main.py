@@ -11,6 +11,7 @@ import gdl90
 from datetime import datetime
 import threading
 import json
+import sysinfo
 
 try:
     import common.mqtt as mqtt
@@ -214,6 +215,10 @@ class MessageConverter:
             return 10
 
 
+def getWifiInfo():
+    return sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(gdl90_network_interface))
+
+
 class JsonSender:
     """
     used to periodically send traffic and position messages to mqtt topic
@@ -230,12 +235,29 @@ class JsonSender:
         try:
             self._timer = threading.Timer(self._intervalSeconds, self._sendMessages)
             self._timer.start()
+            """
+            - x wifi state (ap associated)
+            - x wifi name
+            - x wifi signal strength
+            - x gdl 90 status "GDL90Port.isActive"
+            - x ip addr + mask + port + broadcast + nic --> from GDL90Port
+            - gps alive
+            - bme280 alive
+            - cpu temperature --> cat /sys/class/thermal/thermal_zone0/temp (access?)
+            - memory usage --> cat /proc/meminfo
+            - cpu usage (5 min average) --> cat /proc/stat + calc over time
+            """
+            system = dict()
+            system["wifi"] = getWifiInfo()
+            system = json.dumps(system)
+
             satellites = json.dumps(list(self._navMonitor.satellites.values()))
             traffic = json.dumps(list(self._trafficMonitor.traffic.values()))
             position = json.dumps(self._navMonitor.posInfo)
             self._mqttClient.publish("/easyadsb/json/satellites", satellites)
             self._mqttClient.publish("/easyadsb/json/traffic", traffic)
             self._mqttClient.publish("/easyadsb/json/position", position)
+            self._mqttClient.publish("/easyadsb/json/system", system)
 
         except Exception as ex:
             logger.error("error sending json messages, {}".format(str(ex)))

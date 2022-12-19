@@ -232,6 +232,9 @@ class GDL90Port:
         self._socket = None
         self._nic = nic
         self._port = port
+        self._ip = None
+        self._netMask = None
+        self._broadcastIp = None
         self._sendThread = None
         self._recvThread = None
         self._initThread = None
@@ -246,6 +249,44 @@ class GDL90Port:
         Returns whether the GDL90 port is actively sending messages or not
         """
         return self._state == GDL90Port.STATE_ACTIVE
+
+    @property
+    def nic(self):
+        """
+        Returns the name of the network interface in use
+        """
+        return self._nic
+
+    @property
+    def port(self) -> int:
+        """
+        Returns the port to which gdl90 messages are sent to.
+        """
+        return self._port
+
+    @property
+    def ip(self) -> str:
+        """
+        Returns the nic's ip address. can be none
+        """
+        if self.isActive:
+            return self._ip
+
+    @property
+    def netMask(self) -> str:
+        """
+        Returns the nic's net mask. can be none
+        """
+        if self.isActive:
+            return self._netMask
+
+    @property
+    def broadcastIp(self) -> str:
+        """
+        Returns the broadcast ip to which gdl90 messages are sent to. can be none
+        """
+        if self.isActive:
+            return self._broadcastIp
 
     def putMessage(self, msg):
         """
@@ -297,17 +338,17 @@ class GDL90Port:
         while True:
             try:
                 logger.info("interface to use {}".format(self._nic))
-                ip, mask = self._getIpAddress(self._nic)
-                addrObj = ip + "/" + mask
+                self._ip, self._netMask = self._getIpAddress(self._nic)
+                addrObj = self._ip + "/" + self._netMask
                 logger.info("interface network address: {}".format(addrObj))
-                net = ipaddress.IPv4Network(ip + "/" + mask, False)
-                broadcast_ip = str(net.broadcast_address)
-                logger.info("send messages to {}".format(broadcast_ip))
+                net = ipaddress.IPv4Network(self._ip + "/" + self._netMask, False)
+                self._broadcastIp = str(net.broadcast_address)
+                logger.info("send messages to {}".format(self._broadcastIp))
                 self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 self._socket.settimeout(2)
                 # bind the socket to readback broadcast packages for health check purposes
-                self._socket.bind((broadcast_ip, self._port))
+                self._socket.bind((self._broadcastIp, self._port))
                 self._eventQueue.put(GDL90Port.EVENT_INIT_COMPLETE)
                 break
             except OSError as ex:
