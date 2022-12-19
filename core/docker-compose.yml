@@ -94,13 +94,3 @@ services:
     ports:
       - 1883:1883
     restart: unless-stopped
-
-  accesspoint:
-    container_name: accesspoint
-    image: accesspoint
-    build:
-      context: AccessPoint
-    network_mode: host
-    cap_add:
-      - NET_ADMIN
-    restart: unless-stopped
