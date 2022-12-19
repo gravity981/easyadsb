@@ -256,7 +256,7 @@ if __name__ == "__main__":
     ubx_ctrl_topic = str(os.getenv("MO_MQTT_UBX_CTRL_TOPIC"))
     sbs_topic = str(os.getenv("MO_MQTT_SBS_TOPIC"))
     bme_topic = str(os.getenv("MO_MQTT_BME280_TOPIC"))
-    gdl90_broadcast_ip = str(os.getenv("MO_GDL90_BROADCAST_IP"))
+    gdl90_network_interface = str(os.getenv("MO_GDL90_NETWORK_INTERFACE"))
     gdl90_port = int(os.getenv("MO_GDL90_PORT"))
 
     logconf.setup_logging(log_level)
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     mqttClient.subscribe(ubx_topic)
     mqttClient.subscribe(sbs_topic)
     mqttClient.subscribe(bme_topic)
-    gdl90Port = gdl90.GDL90Port(gdl90_broadcast_ip, gdl90_port)
+    gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)  # this raises an exception if the address is not available
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)
     jsonSender = JsonSender(gpsMonitor, trafficMonitor, mqttClient)

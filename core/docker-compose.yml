@@ -64,7 +64,7 @@ services:
       - MO_MQTT_UBX_CTRL_TOPIC=/easyadsb/ublox/ubx/ctrl
       - MO_MQTT_SBS_TOPIC=/easyadsb/dump1090/sbs
       - MO_MQTT_BME280_TOPIC=/easyadsb/bme280/json
-      - MO_GDL90_BROADCAST_IP=192.168.77.255
+      - MO_GDL90_NETWORK_INTERFACE=wlan0
       - MO_GDL90_PORT=4000
     network_mode: host
 

@@ -4,6 +4,9 @@ import math
 import queue
 import threading
 import socket
+import ipaddress
+import fcntl
+import struct
 
 """
 GDL90 protocol implementation based on:
@@ -218,9 +221,9 @@ class GDL90Port:
     Performs socket health check.
     """
 
-    def __init__(self, ip: str, port: int, queueSize: int = 1000):
+    def __init__(self, nic: str, port: int, queueSize: int = 1000):
         self._socket = None
-        self._ip = ip
+        self._nic = nic
         self._port = port
         self._lock = threading.Lock()
         self._sendThread = threading.Thread(target=self._send, name="GDL90Sender")
@@ -236,12 +239,27 @@ class GDL90Port:
         except queue.Full:
             logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._queue.maxsize))
 
+    def _getIpAddress(self, ifname):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        ifAddr = 0x8915  # SIOCGIFADDR
+        ifNetask = 0x891B  # SIOCGIFNETMASK
+        ip = socket.inet_ntoa(fcntl.ioctl(s.fileno(), ifAddr, struct.pack("256s", ifname.encode("UTF-8")))[20:24])
+        mask = socket.inet_ntoa(fcntl.ioctl(s.fileno(), ifNetask, struct.pack("256s", ifname.encode("UTF-8")))[20:24])
+        return (ip, mask)
+
     def _initSocket(self):
+        logger.info("interface to use {}".format(self._nic))
+        ip, mask = self._getIpAddress(self._nic)
+        addrObj = ip + "/" + mask
+        logger.info("interface network address: {}".format(addrObj))
+        net = ipaddress.IPv4Network(ip + "/" + mask, False)
+        broadcast_ip = str(net.broadcast_address)
+        logger.info("send messages to {}".format(broadcast_ip))
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self._socket.settimeout(2)
         # bind the socket to readback broadcast packages for health check purposes
-        self._socket.bind((self._ip, self._port))
+        self._socket.bind((broadcast_ip, self._port))
 
     def _send(self):
         """
@@ -262,7 +280,7 @@ class GDL90Port:
                     bytes = encodeOwnshipAltitudeMessage(msg)
                 else:
                     raise TypeError("msg has unexpected type {}".format(type(msg)))
-                self._socket.sendto(bytes, (self._ip, self._port))
+                self._socket.sendto(bytes, self._socket.getsockname())
             except Exception as e:
                 logger.error("error sending gdl90 message, {}".format(str(e)))
             finally:
@@ -281,7 +299,7 @@ class GDL90Port:
                 data = self._socket.recv(1000)
                 if len(data) <= 0:
                     raise ValueError('received unexpected "{}" number of bytes'.format(len(data)))
-            except (TimeoutError, ValueError) as e:
+            except (TimeoutError, ValueError, AttributeError) as e:
                 logger.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
                 with self._lock:
                     self._initSocket()
