@@ -219,7 +219,7 @@ class GDL90Port:
     """
     Used to manage UDP broadcast socket for GDL90 messages.
     Can enqueue messages for sending.
-    Performs socket health check.
+    Performs socket health check and recreates socket automatically on network failure
     """
 
     EVENT_INIT_COMPLETE = 0
@@ -240,13 +240,26 @@ class GDL90Port:
         self._state = GDL90Port.STATE_INACTIVE
         self._stopFlag = threading.Event()
 
+    @property
+    def isActive(self) -> bool:
+        """
+        Returns whether the GDL90 port is actively sending messages or not
+        """
+        return self._state == GDL90Port.STATE_ACTIVE
+
     def putMessage(self, msg):
+        """
+        put a message to send on the queue. this will throw away the message if the queue is full
+        """
         try:
             self._msgQueue.put(msg, block=False)
         except queue.Full:
             logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._msgQueue.maxsize))
 
     def exec(self):
+        """
+        executes the gdl90 port, blocking function
+        """
         self._initThread = threading.Thread(target=self._initSocket, name="GDL90SocketInitializer")
         self._initThread.start()
         while True:
@@ -270,6 +283,7 @@ class GDL90Port:
                     self._recvThread.join()
                     self._initThread = threading.Thread(target=self._initSocket, name="GDL90SocketInitializer")
                     self._initThread.start()
+            self._eventQueue.task_done()
 
     def _getIpAddress(self, ifname):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
