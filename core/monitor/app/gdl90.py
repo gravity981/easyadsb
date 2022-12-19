@@ -7,6 +7,7 @@ import socket
 import ipaddress
 import fcntl
 import struct
+import time
 
 """
 GDL90 protocol implementation based on:
@@ -221,23 +222,54 @@ class GDL90Port:
     Performs socket health check.
     """
 
+    EVENT_INIT_COMPLETE = 0
+    EVENT_RECEIVE_FAILURE = 1
+
+    STATE_INACTIVE = 0
+    STATE_ACTIVE = 1
+
     def __init__(self, nic: str, port: int, queueSize: int = 1000):
         self._socket = None
         self._nic = nic
         self._port = port
-        self._lock = threading.Lock()
-        self._sendThread = threading.Thread(target=self._send, name="GDL90Sender")
-        self._recvThread = threading.Thread(target=self._recv, name="GDL90Receiver")
-        self._queue = queue.Queue(maxsize=queueSize)
-        self._initSocket()
-        self._sendThread.start()
-        self._recvThread.start()
+        self._sendThread = None
+        self._recvThread = None
+        self._initThread = None
+        self._msgQueue = queue.Queue(maxsize=queueSize)
+        self._eventQueue = queue.Queue(maxsize=3)
+        self._state = GDL90Port.STATE_INACTIVE
+        self._stopFlag = threading.Event()
 
     def putMessage(self, msg):
         try:
-            self._queue.put(msg, block=False)
+            self._msgQueue.put(msg, block=False)
         except queue.Full:
-            logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._queue.maxsize))
+            logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._msgQueue.maxsize))
+
+    def exec(self):
+        self._initThread = threading.Thread(target=self._initSocket, name="GDL90SocketInitializer")
+        self._initThread.start()
+        while True:
+            event = self._eventQueue.get()
+            if self._state == GDL90Port.STATE_INACTIVE:
+                if event == GDL90Port.EVENT_INIT_COMPLETE:
+                    self._state = GDL90Port.STATE_ACTIVE
+                    logger.info("entered active state")
+                    self._stopFlag.clear()
+                    self._initThread.join()
+                    self._sendThread = threading.Thread(target=self._send, name="GDL90Sender")
+                    self._recvThread = threading.Thread(target=self._recv, name="GDL90Receiver")
+                    self._sendThread.start()
+                    self._recvThread.start()
+            elif self._state == GDL90Port.STATE_ACTIVE:
+                if event == GDL90Port.EVENT_RECEIVE_FAILURE:
+                    self._state = GDL90Port.STATE_INACTIVE
+                    logger.info("entered inactive state")
+                    self._stopFlag.set()
+                    self._sendThread.join()
+                    self._recvThread.join()
+                    self._initThread = threading.Thread(target=self._initSocket, name="GDL90SocketInitializer")
+                    self._initThread.start()
 
     def _getIpAddress(self, ifname):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -248,18 +280,25 @@ class GDL90Port:
         return (ip, mask)
 
     def _initSocket(self):
-        logger.info("interface to use {}".format(self._nic))
-        ip, mask = self._getIpAddress(self._nic)
-        addrObj = ip + "/" + mask
-        logger.info("interface network address: {}".format(addrObj))
-        net = ipaddress.IPv4Network(ip + "/" + mask, False)
-        broadcast_ip = str(net.broadcast_address)
-        logger.info("send messages to {}".format(broadcast_ip))
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self._socket.settimeout(2)
-        # bind the socket to readback broadcast packages for health check purposes
-        self._socket.bind((broadcast_ip, self._port))
+        while True:
+            try:
+                logger.info("interface to use {}".format(self._nic))
+                ip, mask = self._getIpAddress(self._nic)
+                addrObj = ip + "/" + mask
+                logger.info("interface network address: {}".format(addrObj))
+                net = ipaddress.IPv4Network(ip + "/" + mask, False)
+                broadcast_ip = str(net.broadcast_address)
+                logger.info("send messages to {}".format(broadcast_ip))
+                self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                self._socket.settimeout(2)
+                # bind the socket to readback broadcast packages for health check purposes
+                self._socket.bind((broadcast_ip, self._port))
+                self._eventQueue.put(GDL90Port.EVENT_INIT_COMPLETE)
+                break
+            except OSError as ex:
+                logger.error(str(ex))
+                time.sleep(5)
 
     def _send(self):
         """
@@ -268,8 +307,7 @@ class GDL90Port:
         """
         while True:
             try:
-                self._lock.acquire()
-                msg = self._queue.get()
+                msg = self._msgQueue.get()
                 if type(msg) == GDL90HeartBeatMessage:
                     bytes = encodeHeartbeatMessage(msg)
                 elif type(msg) == GDL90TrafficMessage:
@@ -284,8 +322,9 @@ class GDL90Port:
             except Exception as e:
                 logger.error("error sending gdl90 message, {}".format(str(e)))
             finally:
-                self._queue.task_done()
-                self._lock.release()
+                self._msgQueue.task_done()
+                if self._stopFlag.isSet():
+                    break
 
     def _recv(self):
         """
@@ -301,8 +340,8 @@ class GDL90Port:
                     raise ValueError('received unexpected "{}" number of bytes'.format(len(data)))
             except (TimeoutError, ValueError, AttributeError) as e:
                 logger.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
-                with self._lock:
-                    self._initSocket()
+                self._eventQueue.put(GDL90Port.EVENT_RECEIVE_FAILURE)
+                break
 
 
 def encodeHeartbeatMessage(msg: GDL90HeartBeatMessage) -> bytes:

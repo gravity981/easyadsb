@@ -282,9 +282,10 @@ if __name__ == "__main__":
     mqttClient.subscribe(ubx_topic)
     mqttClient.subscribe(sbs_topic)
     mqttClient.subscribe(bme_topic)
-    gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)  # this raises an exception if the address is not available
+    gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)
     jsonSender = JsonSender(gpsMonitor, trafficMonitor, mqttClient)
     trafficMonitor.register(msgConverter)
     gpsMonitor.register(msgConverter)
+    gdl90Port.exec()
