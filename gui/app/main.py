@@ -26,6 +26,8 @@ def on_message(client, userdata, msg):
         updatePosition(msg)
     elif msg.topic == "/easyadsb/json/traffic":
         updateTraffic(msg)
+    elif msg.topic == "/easyadsb/json/system":
+        updateSystem(msg)
 
 
 def updateSatellites(msg):
@@ -85,6 +87,19 @@ def updateTraffic(msg):
                 QMetaObject.invokeMethod(trafficModel, "removeTrafficEntry", Qt.QueuedConnection, Q_ARG(int, oldId))
     except Exception as ex:
         logger.error("could not parse traffic message, {}".format(str(ex)))
+
+
+def updateSystem(msg):
+    try:
+        system = json.loads(msg.payload.decode("utf-8").strip())
+        QMetaObject.invokeMethod(
+            systemModel,
+            "updateSystem",
+            Qt.QueuedConnection,
+            Q_ARG(QVariant, system),
+        )
+    except Exception as ex:
+        logger.error("could not parse system message, {}".format(str(ex)))
 
 
 class SatellitesModel(QAbstractListModel):
@@ -482,14 +497,45 @@ class TrafficModel(QAbstractListModel):
         raise ValueError("no traffic entry for id {}".format(id))
 
 
+class SystemModel(QObject):
+    systemChanged = pyqtSignal()
+
+    def __init__(self, parent=None):
+        QObject.__init__(self, parent)
+        self._wifi = dict()
+        self._gdl90 = dict()
+        self._resources = dict()
+
+    @pyqtProperty(QVariant, notify=systemChanged)
+    def wifi(self):
+        return self._wifi
+
+    @pyqtProperty(QVariant, notify=systemChanged)
+    def gdl90(self):
+        return self._gdl90
+
+    @pyqtProperty(QVariant, notify=systemChanged)
+    def resources(self):
+        return self._resources
+
+    @pyqtSlot(QVariant)
+    def updateSystem(self, system):
+        self._wifi = system["wifi"]
+        self._gdl90 = system["gdl90"]
+        self._resources = system["resources"]
+        self.systemChanged.emit()
+
+
 app = QGuiApplication(sys.argv)
 satellitesModel = SatellitesModel()
 positionModel = PositionModel()
 trafficModel = TrafficModel()
+systemModel = SystemModel()
 engine = QQmlApplicationEngine()
 engine.rootContext().setContextProperty("satellitesModel", satellitesModel)
 engine.rootContext().setContextProperty("positionModel", positionModel)
 engine.rootContext().setContextProperty("trafficModel", trafficModel)
+engine.rootContext().setContextProperty("systemModel", systemModel)
 engine.quit.connect(app.quit)
 engine.load("main.qml")
 mqttClient = mqtt.launch("easyadsb-gui", "localhost", 1883)
@@ -497,5 +543,6 @@ mqttClient.on_message = on_message
 mqttClient.subscribe("/easyadsb/json/satellites")
 mqttClient.subscribe("/easyadsb/json/traffic")
 mqttClient.subscribe("/easyadsb/json/position")
+mqttClient.subscribe("/easyadsb/json/system")
 
 sys.exit(app.exec())
