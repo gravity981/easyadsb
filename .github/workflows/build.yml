@@ -19,9 +19,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - context: core/AccessPoint
-            name: ghcr.io/gravity981/easyadsb/accesspoint
-            file: core/AccessPoint/Dockerfile
+          - context: core
+            name: ghcr.io/gravity981/easyadsb/bme280
+            file: core/Dockerfile.bme280
           - context: core
             name: ghcr.io/gravity981/easyadsb/dump1090
             file: core/Dockerfile.dump1090
