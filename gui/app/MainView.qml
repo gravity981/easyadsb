@@ -60,7 +60,7 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentItem: Text {
-                text: "GPS"
+                text: "POS"
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 font.pointSize: 9
