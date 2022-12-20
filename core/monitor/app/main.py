@@ -99,14 +99,16 @@ class GDL90Sender:
         self._sendHeartbeatMsg()
 
     def send(self, msg):
-        self._gdl90Port.putMessage(msg)
+        if self._gdl90Port.isActive:
+            self._gdl90Port.putMessage(msg)
 
     def _sendHeartbeatMsg(self):
         try:
             self._timer = threading.Timer(self._heartbeatIntervalSeconds, self._sendHeartbeatMsg)
             self._timer.start()
             heartbeat = MessageConverter.toGDL90HeartbeatMsg(gpsMonitor.posInfo)
-            self._gdl90Port.putMessage(heartbeat)
+            if self._gdl90Port.isActive:
+                self._gdl90Port.putMessage(heartbeat)
         except Exception as ex:
             logger.error("error sending gdl90 heartbeat message, {}".format(str(ex)))
 
