@@ -125,25 +125,25 @@ Page {
                 text: "Temp. °C"
             }
             Text {
-                text: positionModel.temperature
+                text: positionModel.temperature ?? "n/a"
             }
             Text {
                 text: "Humidity %H"
             }
             Text {
-                text: positionModel.humidity
+                text: positionModel.humidity ?? "n/a"
             }
             Text {
                 text: "Pressure hPa"
             }
             Text {
-                text: positionModel.pressure
+                text: positionModel.pressure ?? "n/a"
             }
             Text {
                 text: "Pressure Alt. m"
             }
             Text {
-                text: positionModel.pressureAltitude
+                text: positionModel.pressureAltitude ?? "n/a"
             }
         }
     }

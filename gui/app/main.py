@@ -10,6 +10,14 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("logger")
 
+current_role_index = 0
+
+
+def getNextRoleId():
+    global current_role_index
+    current_role_index += 1
+    return Qt.UserRole + current_role_index
+
 
 def on_message(client, userdata, msg):
     if msg.topic == "/easyadsb/json/satellites":
@@ -31,22 +39,14 @@ def updateSatellites(msg):
                     satellitesModel,
                     "updateSatellite",
                     Qt.QueuedConnection,
-                    Q_ARG(int, sat["svid"]),
-                    Q_ARG(QVariant, sat["cno"]),
-                    Q_ARG(bool, sat["used"]),
-                    Q_ARG(QVariant, sat["elevation"]),
-                    Q_ARG(QVariant, sat["azimuth"]),
+                    Q_ARG(QVariant, sat),
                 )
             else:
                 QMetaObject.invokeMethod(
                     satellitesModel,
                     "addSatellite",
                     Qt.QueuedConnection,
-                    Q_ARG(int, sat["svid"]),
-                    Q_ARG(QVariant, sat["cno"]),
-                    Q_ARG(bool, sat["used"]),
-                    Q_ARG(QVariant, sat["elevation"]),
-                    Q_ARG(QVariant, sat["azimuth"]),
+                    Q_ARG(QVariant, sat),
                 )
         svids = [s["svid"] for s in satellites]
         for oldSvId in oldSvIds:
@@ -90,11 +90,12 @@ def updateTraffic(msg):
 class SatellitesModel(QAbstractListModel):
     countChanged = pyqtSignal()
 
-    SvIdRole = Qt.UserRole + 1
-    CnoRole = Qt.UserRole + 2
-    IsUsedRole = Qt.UserRole + 3
-    ElevationRole = Qt.UserRole + 4
-    AzimuthRole = Qt.UserRole + 5
+    SvIdRole = getNextRoleId()
+    CnoRole = getNextRoleId()
+    IsUsedRole = getNextRoleId()
+    ElevationRole = getNextRoleId()
+    AzimuthRole = getNextRoleId()
+    PrnRole = getNextRoleId()
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
@@ -107,11 +108,13 @@ class SatellitesModel(QAbstractListModel):
         if role == SatellitesModel.CnoRole:
             return self._satellites[row]["cno"]
         if role == SatellitesModel.IsUsedRole:
-            return self._satellites[row]["isUsed"]
+            return self._satellites[row]["used"]
         if role == SatellitesModel.ElevationRole:
-            return self._satellites[row]["elv"]
+            return self._satellites[row]["elevation"]
         if role == SatellitesModel.AzimuthRole:
-            return self._satellites[row]["az"]
+            return self._satellites[row]["azimuth"]
+        if role == SatellitesModel.PrnRole:
+            return self._satellites[row]["prn"]
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._satellites)
@@ -123,52 +126,56 @@ class SatellitesModel(QAbstractListModel):
             SatellitesModel.IsUsedRole: b"isUsed",
             SatellitesModel.ElevationRole: b"elv",
             SatellitesModel.AzimuthRole: b"az",
+            SatellitesModel.PrnRole: b"prn",
         }
 
     @pyqtProperty(int, notify=countChanged)
     def usedCount(self):
-        return sum(map(lambda sat: sat["isUsed"], self._satellites))
+        return sum(map(lambda sat: sat["used"], self._satellites))
 
     @pyqtProperty(int, notify=countChanged)
     def knownPosCount(self):
-        return sum(map(lambda sat: sat["elv"] is not None and sat["az"] is not None, self._satellites))
+        return sum(map(lambda sat: sat["elevation"] is not None and sat["azimuth"] is not None, self._satellites))
 
-    @pyqtSlot(int, QVariant, bool, QVariant, QVariant)
-    def addSatellite(self, svid, cno, isUsed, elv, az):
-        logger.info("add: svid={}, cno={}, used={}, elv={}, az={}".format(svid, cno, isUsed, elv, az))
+    @pyqtSlot(QVariant)
+    def addSatellite(self, sat):
+        logger.info("add satellite {}".format(sat["svid"]))
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
-        self._satellites.append({"svid": svid, "elv": elv, "az": az, "cno": cno, "isUsed": isUsed})
+        self._satellites.append(sat)
         self.endInsertRows()
 
-    @pyqtSlot(int, QVariant, bool, QVariant, QVariant)
-    def updateSatellite(self, svid, cno, isUsed, elv, az):
-        row = self._rowFromSvId(svid)
+    @pyqtSlot(QVariant)
+    def updateSatellite(self, sat):
+        row = self._rowFromSvId(sat["svid"])
         ix = self.index(row, 0)
         changedRoles = []
-        if self._satellites[row]["svid"] != svid:
-            self._satellites[row]["svid"] = svid
+        if self._satellites[row]["svid"] != sat["svid"]:
+            self._satellites[row]["svid"] = sat["svid"]
             changedRoles.append(SatellitesModel.SvIdRole)
-        if self._satellites[row]["elv"] != elv:
-            self._satellites[row]["elv"] = elv
+        if self._satellites[row]["elevation"] != sat["elevation"]:
+            self._satellites[row]["elevation"] = sat["elevation"]
             changedRoles.append(SatellitesModel.ElevationRole)
-        if self._satellites[row]["az"] != az:
-            self._satellites[row]["az"] = az
+        if self._satellites[row]["azimuth"] != sat["azimuth"]:
+            self._satellites[row]["azimuth"] = sat["azimuth"]
             changedRoles.append(SatellitesModel.AzimuthRole)
-        if self._satellites[row]["cno"] != cno:
-            self._satellites[row]["cno"] = cno
+        if self._satellites[row]["cno"] != sat["cno"]:
+            self._satellites[row]["cno"] = sat["cno"]
             changedRoles.append(SatellitesModel.CnoRole)
-        if self._satellites[row]["isUsed"] != isUsed:
-            self._satellites[row]["isUsed"] = isUsed
+        if self._satellites[row]["used"] != sat["used"]:
+            self._satellites[row]["used"] = sat["used"]
             changedRoles.append(SatellitesModel.IsUsedRole)
+        if self._satellites[row]["prn"] != sat["prn"]:
+            self._satellites[row]["prn"] = sat["prn"]
+            changedRoles.append(SatellitesModel.PrnRole)
 
         if len(changedRoles) > 0:
-            logger.info("update: svid={}, cno={}, used={}, elv={}, az={}".format(svid, cno, isUsed, elv, az))
+            logger.info("update satellite {}".format(sat["svid"]))
         self.dataChanged.emit(ix, ix, changedRoles)
         self.countChanged.emit()
 
     @pyqtSlot(int)
     def removeSatellite(self, svid):
-        logger.info("remove " + str(svid))
+        logger.info("remove satellite {}".format(svid))
         row = self._rowFromSvId(svid)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._satellites[row]
@@ -305,23 +312,23 @@ class PositionModel(QObject):
 
 
 class TrafficModel(QAbstractListModel):
-    IdRole = Qt.UserRole + 6
-    CallsignRole = Qt.UserRole + 7
-    ModelRole = Qt.UserRole + 8
-    CategoryRole = Qt.UserRole + 9
-    LatitudeRole = Qt.UserRole + 10
-    LongitudeRole = Qt.UserRole + 11
-    AltitudeRole = Qt.UserRole + 12
-    TrackRole = Qt.UserRole + 13
-    GroundSpeedRole = Qt.UserRole + 14
-    VerticalSpeedRole = Qt.UserRole + 15
-    SquawkRole = Qt.UserRole + 16
-    AlertRole = Qt.UserRole + 17
-    EmergencyRole = Qt.UserRole + 18
-    SpiRole = Qt.UserRole + 19
-    IsOnGroundRole = Qt.UserRole + 20
-    LastSeenRole = Qt.UserRole + 21
-    MsgCountRole = Qt.UserRole + 22
+    IdRole = getNextRoleId()
+    CallsignRole = getNextRoleId()
+    ModelRole = getNextRoleId()
+    CategoryRole = getNextRoleId()
+    LatitudeRole = getNextRoleId()
+    LongitudeRole = getNextRoleId()
+    AltitudeRole = getNextRoleId()
+    TrackRole = getNextRoleId()
+    GroundSpeedRole = getNextRoleId()
+    VerticalSpeedRole = getNextRoleId()
+    SquawkRole = getNextRoleId()
+    AlertRole = getNextRoleId()
+    EmergencyRole = getNextRoleId()
+    SpiRole = getNextRoleId()
+    IsOnGroundRole = getNextRoleId()
+    LastSeenRole = getNextRoleId()
+    MsgCountRole = getNextRoleId()
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
