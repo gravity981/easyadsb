@@ -215,18 +215,15 @@ class MessageConverter:
             return 10
 
 
-def getWifiInfo():
-    return sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(gdl90_network_interface))
-
-
 class JsonSender:
     """
     used to periodically send traffic and position messages to mqtt topic
     """
 
-    def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, mqttClient):
+    def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, gdl90Port: gdl90.GDL90Port, mqttClient):
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
+        self._gdl90Port = gdl90Port
         self._mqttClient = mqttClient
         self._intervalSeconds = 5
         self._sendMessages()
@@ -235,22 +232,20 @@ class JsonSender:
         try:
             self._timer = threading.Timer(self._intervalSeconds, self._sendMessages)
             self._timer.start()
-            """
-            - x wifi state (ap associated)
-            - x wifi name
-            - x wifi signal strength
-            - x gdl 90 status "GDL90Port.isActive"
-            - x ip addr + mask + port + broadcast + nic --> from GDL90Port
-            - gps alive
-            - bme280 alive
-            - cpu temperature --> cat /sys/class/thermal/thermal_zone0/temp (access?)
-            - memory usage --> cat /proc/meminfo
-            - cpu usage (5 min average) --> cat /proc/stat + calc over time
-            """
             system = dict()
-            system["wifi"] = getWifiInfo()
+            system["wifi"] = sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(gdl90_network_interface))
+            system["gdl90"] = {
+                "isActive": self._gdl90Port.isActive,
+                "ip": self._gdl90Port.ip,
+                "netMask": self._gdl90Port.netMask,
+                "broadcastIp": self._gdl90Port.broadcastIp,
+                "nic": self._gdl90Port.nic,
+                "port": self._gdl90Port.port,
+            }
+            system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
+            system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
+            system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
             system = json.dumps(system)
-
             satellites = json.dumps(list(self._navMonitor.satellites.values()))
             traffic = json.dumps(list(self._trafficMonitor.traffic.values()))
             position = json.dumps(self._navMonitor.posInfo)
@@ -307,7 +302,7 @@ if __name__ == "__main__":
     gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)
-    jsonSender = JsonSender(gpsMonitor, trafficMonitor, mqttClient)
+    jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient)
     trafficMonitor.register(msgConverter)
     gpsMonitor.register(msgConverter)
     gdl90Port.exec()
