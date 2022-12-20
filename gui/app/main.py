@@ -224,7 +224,7 @@ class PositionModel(QObject):
         self._latitude = None
         self._longitude = None
         self._altitudeMeter = None
-        self._separationMeter = None
+        self._geoAltitude = None
         self._utcTime = None
         self._temperature = None
         self._humidity = None
@@ -280,8 +280,8 @@ class PositionModel(QObject):
         return self._altitudeMeter
 
     @pyqtProperty(QVariant, notify=positionChanged)
-    def separationMeter(self):
-        return self._separationMeter
+    def geoAltitude(self):
+        return self._geoAltitude
 
     @pyqtProperty(str, notify=positionChanged)
     def utcTime(self):
@@ -317,7 +317,10 @@ class PositionModel(QObject):
         self._latitude = position["latitude"]
         self._longitude = position["longitude"]
         self._altitudeMeter = position["altitudeMeter"]
-        self._separationMeter = position["separationMeter"]
+        if position["separationMeter"] is not None and position["altitudeMeter"] is not None:
+            self._geoAltitude = position["separationMeter"] + position["altitudeMeter"]
+        else:
+            self._geoAltitude = None
         self._utcTime = position["utcTime"]
         self._temperature = position["temperature"]
         self._humidity = position["humidity"]

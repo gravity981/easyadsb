@@ -16,13 +16,14 @@ Page {
             width: root.width
             columns: 2
             rowSpacing: 0
-            
             Text {
                 text: "NavMode"
+                font.pointSize: 8
             }
             Text {
                 id: navModeText
                 text: "No Fix"
+                font.pointSize: 8
                 color: "red"
                 states: [
                     State {
@@ -44,106 +45,140 @@ Page {
                 ]
             }
             Text {
-                text: "OpMode"
-            }
-            Text {
-                text: positionModel.opMode
-            }
-            Text {
-                text: "pdop"
-            }
-            Text {
-                text: positionModel.pdop ?? "n/a"
-            }
-            Text {
-                text: "hdop"
-            }
-            Text {
-                text: positionModel.hdop ?? "n/a"
-            }
-            Text {
-                text: "vdop"
-            }
-            Text {
-                text: positionModel.vdop ?? "n/a"
-            }
-            Text {
-                text: "True Track"
-            }
-            Text {
-                text: positionModel.trueTrack ?? "n/a"
-            }
-            Text {
-                text: "Mag. Track"
-            }
-            Text {
-                text: positionModel.magneticTrack ?? "n/a"
-            }
-            Text {
-                text: "GS kt"
-            }
-            Text {
-                text: positionModel.groundSpeedKnots ?? "n/a"
-            }
-            Text {
-                text: "GS km/h"
-            }
-            Text {
-                text: positionModel.groundSpeedKph ?? "n/a"
-            }
-            Text {
-                text: "Latitude"
-            }
-            Text {
-                text: positionModel.latitude ?? "n/a"
-            }
-            Text {
-                text: "Longitude"
-            }
-            Text {
-                text: positionModel.longitude ?? "n/a"
-            }
-            Text {
-                text: "Alt. m"
-            }
-            Text {
-                text: positionModel.altitudeMeter ?? "n/a"
-            }
-            Text {
-                text: "Sep. m"
-            }
-            Text {
-                text: positionModel.separationMeter ?? "n/a"
-            }
-            Text {
                 text: "UTC Time"
+                font.pointSize: 8
             }
             Text {
                 text: positionModel.utcTime
+                font.pointSize: 8
             }
             Text {
-                text: "Temp. °C"
+                text: "True Track"
+                font.pointSize: 8
             }
             Text {
-                text: positionModel.temperature ?? "n/a"
+                text: positionModel.trueTrack ? (positionModel.trueTrack + " °") : "n/a"
+                font.pointSize: 8
             }
             Text {
-                text: "Humidity %H"
+                text: "Mag. Track"
+                font.pointSize: 8
             }
             Text {
-                text: positionModel.humidity ?? "n/a"
+                text: positionModel.magneticTrack ? (positionModel.magneticTrack + " °") : "n/a"
+                font.pointSize: 8
             }
             Text {
-                text: "Pressure hPa"
+                text: "Ground Speed"
+                font.pointSize: 8
             }
             Text {
-                text: positionModel.pressure ?? "n/a"
+                text: positionModel.groundSpeedKnots ? (positionModel.groundSpeedKnots + " kt") : "n/a"
+                font.pointSize: 8
             }
             Text {
-                text: "Pressure Alt. m"
+                text: "Ground Speed"
+                font.pointSize: 8
             }
             Text {
-                text: positionModel.pressureAltitude ?? "n/a"
+                text: positionModel.groundSpeedKph ? (positionModel.groundSpeedKph + " km/h") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "Latitude"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.latitude ?? "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "Longitude"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.longitude ?? "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "GPS AMSL Alt."
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.altitudeMeter ? (positionModel.altitudeMeter + " m") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "Pressure Alt."
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.pressureAltitude ? (positionModel.pressureAltitude + " m") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "Geoid Alt."
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.geoAltitude ? ((Math.round(positionModel.geoAltitude*100)/100) + " m") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "OAT"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.temperature ? (positionModel.temperature + " °C") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "Humidity"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.humidity ? (positionModel.humidity + " %H") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "Pressure"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.pressure ? (positionModel.pressure + " hPa") : "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "pdop"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.pdop ?? "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "hdop"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.hdop ?? "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "vdop"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.vdop ?? "n/a"
+                font.pointSize: 8
+            }
+            Text {
+                text: "OpMode"
+                font.pointSize: 8
+            }
+            Text {
+                text: positionModel.opMode
+                font.pointSize: 8
             }
         }
     }
