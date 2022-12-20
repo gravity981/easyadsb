@@ -34,18 +34,40 @@ class OperationMode(str, Enum):
     Manual = "M"
 
 
+class GNSS(Enum):
+    """
+    Global navigation satellite systems
+    - GPS = "gps",          USA
+    - SBAS = "sbas",        Satellite Based Augmentation System
+    - GLONASS = "glonass",  Russia
+    - IMES = "imes",        Indor Messaging System
+    - QZSS = "qzss",        Japan
+    - Galileo = "galileo",  Europe
+    - BeiDou = "beidou",    China
+    """
+
+    GPS = "gps"
+    SBAS = "sbas"
+    GLONASS = "glonass"
+    IMES = "imes"
+    QZSS = "qzss"
+    Galileo = "galileo"
+    BeiDou = "beidou"
+
+
 class SatInfo(dict):
     """
     Represents information about a Nav Satellite. Used within :class:`NavMonitor`
     """
 
-    def __init__(self, svid: int = 0, prn: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
+    def __init__(self, svid: int = 0, prn: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False, talker: str = None):
         self["svid"] = svid
         self["prn"] = prn
         self["elevation"] = elevation
         self["azimuth"] = azimuth
         self["cno"] = cno
         self["used"] = used
+        self._talker = talker
 
     @property
     def id(self) -> int:
@@ -248,18 +270,17 @@ class PosInfo(dict):
 
 class NavMonitor:
     """
-    Monitor for satellite navigation. uses :class:`NMeaMessage` to update its state
+    Monitor for satellite navigation. uses :class:`NMEAMessage` to update its state
     """
 
     def __init__(self):
-        self._gsvMsgNum = 1
         self._satellites = dict()
         self._posInfo = PosInfo()
         self._lock = threading.Lock()
         self._observers = list()
 
         # fields for update cylce
-        self._gsvDone = False
+        self._gsv = dict()
         self._gsaDone = False
         self._vtgDone = False
         self._ggaDone = False
@@ -322,15 +343,23 @@ class NavMonitor:
                 self._notify()
 
     def _updateGSV(self, msg):
+        if msg.talker not in self._gsv:
+            logger.info("registered new talker for GSV: {}".format(msg.talker))
+            self._gsv[msg.talker] = dict()
+            self._gsv[msg.talker]["msgNum"] = 1
+            self._gsv[msg.talker]["remainingSvCount"] = msg.numSV
+            self._gsv[msg.talker]["intermediateSatInfos"] = dict()
+            self._gsv[msg.talker]["done"] = False
+
         # in sync
-        if msg.msgNum == self._gsvMsgNum:
+        if msg.msgNum == self._gsv[msg.talker]["msgNum"]:
             # on first message
             if msg.msgNum == 1:
-                self._gsvRemaningSVCount = msg.numSV
-                self._intermediateSVs = dict()
+                self._gsv[msg.talker]["remainingSvCount"] = msg.numSV
+                self._gsv[msg.talker]["intermediateSatInfos"] = dict()
 
             # on each message
-            max = self._gsvRemaningSVCount if self._gsvRemaningSVCount < 4 else 4
+            max = self._gsv[msg.talker]["remainingSvCount"] if self._gsv[msg.talker]["remainingSvCount"] < 4 else 4
             for i in range(1, max + 1):
                 sv_id = int(getattr(msg, "svid_0{}".format(i)))
                 sv_elv = getattr(msg, "elv_0{}".format(i))
@@ -340,28 +369,28 @@ class NavMonitor:
                 sv_cno = getattr(msg, "cno_0{}".format(i))
                 sv_cno = sv_cno if sv_cno else None
                 sv_prn = NavMonitor._prnFromSvId(sv_id)
-                self._intermediateSVs[sv_id] = SatInfo(sv_id, sv_prn, sv_elv, sv_az, sv_cno)
-            self._gsvRemaningSVCount -= max
-            self._gsvMsgNum += 1
+                self._gsv[msg.talker]["intermediateSatInfos"][sv_id] = SatInfo(sv_id, sv_prn, sv_elv, sv_az, sv_cno, False, msg.talker)
+            self._gsv[msg.talker]["remainingSvCount"] -= max
+            self._gsv[msg.talker]["msgNum"] += 1
 
             # on last message
             if msg.msgNum == msg.numMsg:
-                for sat in self._intermediateSVs.values():
+                for sat in self._gsv[msg.talker]["intermediateSatInfos"].values():
                     if sat.id in self._satellites.keys():
                         NavMonitor._updateSatInfo(self._satellites[sat.id], sat)
                     else:
                         self._satellites[sat.id] = sat
                 for k in list(self._satellites.keys()):
-                    if k not in self._intermediateSVs.keys():
+                    if k not in self._gsv[msg.talker]["intermediateSatInfos"].keys() and self._satellites[k]._talker == msg.talker:
                         del self._satellites[k]
                 if len(self._satellites) != msg.numSV:
                     logger.error("number of satellites does not match numSV from message")
-                self._gsvDone = True
-                self._gsvMsgNum = 1
+                self._gsv[msg.talker]["done"] = True
+                self._gsv[msg.talker]["msgNum"] = 1
         else:
             logger.warning("abort update satellites, message number out of sync")
-            self._gsvMsgNum = 1
-            self._gsvRemaningSVCount = 0
+            self._gsv[msg.talker]["msgNum"] = 1
+            self._gsv[msg.talker]["remainingSvCount"] = 0
 
     def _updateSatInfo(existing: SatInfo, new: SatInfo):
         existing["azimuth"] = new.azimuth
@@ -369,14 +398,18 @@ class NavMonitor:
         existing["cno"] = new.cno
 
     def _gnssFromSvId(svid: int):
+        """
+        from https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
+        Appendix - Satellite Numbering
+        """
         gnssRanges = {
-            "gps": range(1, 33),
-            "sbas": range(33, 65),
-            "glonass": range(65, 97),
-            "imes": range(173, 183),
-            "qzss": range(193, 203),
-            "galileo": range(301, 337),
-            "beidou": range(401, 438),
+            GNSS.GPS: range(1, 33),
+            GNSS.SBAS: range(33, 65),
+            GNSS.GLONASS: range(65, 97),
+            GNSS.IMES: range(173, 183),
+            GNSS.QZSS: range(193, 203),
+            GNSS.Galileo: range(301, 337),
+            GNSS.BeiDou: range(401, 438),
         }
         for gnss, r in gnssRanges.items():
             if svid in r:
@@ -384,19 +417,19 @@ class NavMonitor:
 
     def _prnFromSvId(svid: int) -> str:
         gnss = NavMonitor._gnssFromSvId(svid)
-        if gnss == "gps":
+        if gnss == GNSS.GPS:
             return "G{}".format(svid)
-        elif gnss == "sbas":
+        elif gnss == GNSS.SBAS:
             return "S{}".format(svid + 87)
-        elif gnss == "glonass":
+        elif gnss == GNSS.GLONASS:
             return "R{}".format(svid - 64)
-        elif gnss == "imes":
+        elif gnss == GNSS.IMES:
             return "I{}".format(svid - 172)
-        elif gnss == "qzss":
+        elif gnss == GNSS.QZSS:
             return "Q{}".format(svid - 192)
-        elif gnss == "galileo":
+        elif gnss == GNSS.Galileo:
             return "E{}".format(svid - 300)
-        elif gnss == "beidou":
+        elif gnss == GNSS.BeiDou:
             return "B{}".format(svid - 400)
 
     def _updateGSA(self, msg):
@@ -480,10 +513,11 @@ class NavMonitor:
         self._ggaDone = True
 
     def _updateCylceDone(self):
-        return self._gsvDone and self._gsaDone and self._vtgDone and self._ggaDone
+        return len(self._gsv) > 0 and all(v["done"] for v in self._gsv.values()) and self._gsaDone and self._vtgDone and self._ggaDone
 
     def _resetUpdateCycle(self):
-        self._gsvDone = False
+        for talker in self._gsv.keys():
+            self._gsv[talker]["done"] = False
         self._gsaDone = False
         self._vtgDone = False
         self._ggaDone = False
