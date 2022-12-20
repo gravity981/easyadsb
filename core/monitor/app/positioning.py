@@ -285,8 +285,9 @@ class NavMonitor:
         # self._gsv[msg.talker]["remainingSvCount"]: int
         # self._gsv[msg.talker]["intermediateSatInfos"]: dict
         # self._gsv[msg.talker]["done"]: bool
-        self._gsaDone = dict()
-        # self._gsaDone[msg.talker]: bool
+        self._gsa = dict()
+        self._gsa["talkers"] = list()
+        # self._gsa["done"]: bool
         self._vtgDone = False
         self._ggaDone = False
 
@@ -355,7 +356,7 @@ class NavMonitor:
             self._gsv[msg.talker]["remainingSvCount"] = msg.numSV
             self._gsv[msg.talker]["intermediateSatInfos"] = dict()
             self._gsv[msg.talker]["done"] = False
-            self._gsaDone[msg.talker] = False  # register gsa talker together with gsv talker
+            self._gsa["talkers"].append(msg.talker)  # register gsa talker together with gsv talker
 
         # in sync
         if msg.msgNum == self._gsv[msg.talker]["msgNum"]:
@@ -481,23 +482,23 @@ class NavMonitor:
             talker = NavMonitor._talkerFromGnss(NavMonitor._gnssFromSvId(usedSatIds[0]))
         else:
             # guess talker if there are no used satellites in this GSA message
-            it = iter(self._gsaDone)
+            it = iter(self._gsa["talkers"])
             for key in it:
                 if key == self._gsaPreviousTalker:
-                    talker = next(it, list(self._gsaDone.keys())[0])
-            logger.info("guessed talker is {}".format(talker))
+                    talker = next(it, self._gsa["talkers"][0])
+            logger.info("no used satellites in gsa message, guessed talker is {}".format(talker))
 
         logger.debug("talker: {}, usedSatIds: {}".format(talker, str(usedSatIds)))
 
         # update used satellites depending on talker and usedSatIds
-        if talker in self._gsaDone:
+        if talker in self._gsa["talkers"]:
             for satId, sat in self._satellites.items():
                 if sat._talker == talker:
                     sat["used"] = satId in usedSatIds
-            self._gsaDone[talker] = True
             self._gsaPreviousTalker = talker
         else:
             logger.warning("could not update used satellites, unkown talker {}".format(talker))
+        self._gsa["done"] = True
 
     def _updateVTG(self, msg):
         self._updateCourse(msg)
@@ -558,20 +559,12 @@ class NavMonitor:
         self._ggaDone = True
 
     def _updateCylceDone(self):
-        return (
-            len(self._gsv) > 0
-            and all(v["done"] for v in self._gsv.values())
-            and len(self._gsaDone) > 0
-            and all(d is True for d in self._gsaDone.values())
-            and self._vtgDone
-            and self._ggaDone
-        )
+        return len(self._gsv) > 0 and all(v["done"] for v in self._gsv.values()) and self._gsa["done"] and self._vtgDone and self._ggaDone
 
     def _resetUpdateCycle(self):
         for talker in self._gsv.keys():
             self._gsv[talker]["done"] = False
-        for talker in self._gsaDone.keys():
-            self._gsaDone[talker] = False
+        self._gsa["talker"] = False
         self._vtgDone = False
         self._ggaDone = False
 
