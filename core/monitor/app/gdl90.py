@@ -242,6 +242,7 @@ class GDL90Port:
         self._eventQueue = queue.Queue(maxsize=3)
         self._state = GDL90Port.STATE_INACTIVE
         self._stopFlag = threading.Event()
+        self._initFailureReported = False
 
     @property
     def isActive(self) -> bool:
@@ -337,22 +338,23 @@ class GDL90Port:
     def _initSocket(self):
         while True:
             try:
-                logger.info("interface to use {}".format(self._nic))
                 self._ip, self._netMask = self._getIpAddress(self._nic)
                 addrObj = self._ip + "/" + self._netMask
-                logger.info("interface network address: {}".format(addrObj))
                 net = ipaddress.IPv4Network(self._ip + "/" + self._netMask, False)
                 self._broadcastIp = str(net.broadcast_address)
-                logger.info("send messages to {}".format(self._broadcastIp))
                 self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 self._socket.settimeout(2)
                 # bind the socket to readback broadcast packages for health check purposes
                 self._socket.bind((self._broadcastIp, self._port))
                 self._eventQueue.put(GDL90Port.EVENT_INIT_COMPLETE)
+                logger.info("send gdl90 messages to {} (iface: {}, ip: {}".format(self._broadcastIp, self._nic, addrObj))
+                self._initFailureReported = False
                 break
             except OSError as ex:
-                logger.error(str(ex))
+                if not self._initFailureReported:
+                    logger.error("gdl90 udp socket init failure, {}".format(str(ex)))
+                    self._initFailureReported = True
                 time.sleep(5)
 
     def _send(self):
