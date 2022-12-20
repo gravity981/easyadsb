@@ -281,7 +281,12 @@ class NavMonitor:
 
         # fields for update cylce
         self._gsv = dict()
-        self._gsaDone = False
+        # self._gsv[msg.talker]["msgNum"]: int
+        # self._gsv[msg.talker]["remainingSvCount"]: int
+        # self._gsv[msg.talker]["intermediateSatInfos"]: dict
+        # self._gsv[msg.talker]["done"]: bool
+        self._gsaDone = dict()
+        # self._gsaDone[msg.talker]: bool
         self._vtgDone = False
         self._ggaDone = False
 
@@ -350,6 +355,7 @@ class NavMonitor:
             self._gsv[msg.talker]["remainingSvCount"] = msg.numSV
             self._gsv[msg.talker]["intermediateSatInfos"] = dict()
             self._gsv[msg.talker]["done"] = False
+            self._gsaDone[msg.talker] = False  # register gsa talker together with gsv talker
 
         # in sync
         if msg.msgNum == self._gsv[msg.talker]["msgNum"]:
@@ -383,8 +389,6 @@ class NavMonitor:
                 for k in list(self._satellites.keys()):
                     if k not in self._gsv[msg.talker]["intermediateSatInfos"].keys() and self._satellites[k]._talker == msg.talker:
                         del self._satellites[k]
-                if len(self._satellites) != msg.numSV:
-                    logger.error("number of satellites does not match numSV from message")
                 self._gsv[msg.talker]["done"] = True
                 self._gsv[msg.talker]["msgNum"] = 1
         else:
@@ -416,6 +420,10 @@ class NavMonitor:
                 return gnss
 
     def _prnFromSvId(svid: int) -> str:
+        """
+        from https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
+        Appendix - Satellite Numbering
+        """
         gnss = NavMonitor._gnssFromSvId(svid)
         if gnss == GNSS.GPS:
             return "G{}".format(svid)
@@ -431,6 +439,22 @@ class NavMonitor:
             return "E{}".format(svid - 300)
         elif gnss == GNSS.BeiDou:
             return "B{}".format(svid - 400)
+
+    def _talkerFromGnss(gnss: GNSS) -> str:
+        """
+        https://content.u-blox.com/sites/default/files/products/documents/u-blox8-M8_ReceiverDescrProtSpec_UBX-13003221.pdf
+        31.1.2 - Talker ID
+        """
+        if gnss == GNSS.GPS or gnss == GNSS.SBAS or gnss == GNSS.QZSS:
+            return "GP"
+        elif gnss == GNSS.GLONASS:
+            return "GL"
+        elif gnss == GNSS.Galileo:
+            return "GA"
+        elif gnss == GNSS.BeiDou:
+            return "GB"
+        else:
+            return "GN"
 
     def _updateGSA(self, msg):
         oldNavMode = self._posInfo["navMode"]
@@ -450,9 +474,30 @@ class NavMonitor:
             usedId = int(getattr(msg, "svid_{0:02d}".format(i)) or -1)
             if usedId != -1:
                 usedSatIds.append(usedId)
-        for satId, sat in self._satellites.items():
-            sat["used"] = True if satId in usedSatIds else False
-        self._gsaDone = True
+
+        # determine proper talker manually because talker of GSA messages is always "GN".
+        if len(usedSatIds) > 0:
+            # determine talker from used sat id from this gsa message
+            talker = NavMonitor._talkerFromGnss(NavMonitor._gnssFromSvId(usedSatIds[0]))
+        else:
+            # guess talker if there are no used satellites in this GSA message
+            it = iter(self._gsaDone)
+            for key in it:
+                if key == self._gsaPreviousTalker:
+                    talker = next(it, list(self._gsaDone.keys())[0])
+            logger.info("guessed talker is {}".format(talker))
+
+        logger.debug("talker: {}, usedSatIds: {}".format(talker, str(usedSatIds)))
+
+        # update used satellites depending on talker and usedSatIds
+        if talker in self._gsaDone:
+            for satId, sat in self._satellites.items():
+                if sat._talker == talker:
+                    sat["used"] = satId in usedSatIds
+            self._gsaDone[talker] = True
+            self._gsaPreviousTalker = talker
+        else:
+            logger.warning("could not update used satellites, unkown talker {}".format(talker))
 
     def _updateVTG(self, msg):
         self._updateCourse(msg)
@@ -513,12 +558,20 @@ class NavMonitor:
         self._ggaDone = True
 
     def _updateCylceDone(self):
-        return len(self._gsv) > 0 and all(v["done"] for v in self._gsv.values()) and self._gsaDone and self._vtgDone and self._ggaDone
+        return (
+            len(self._gsv) > 0
+            and all(v["done"] for v in self._gsv.values())
+            and len(self._gsaDone) > 0
+            and all(d is True for d in self._gsaDone.values())
+            and self._vtgDone
+            and self._ggaDone
+        )
 
     def _resetUpdateCycle(self):
         for talker in self._gsv.keys():
             self._gsv[talker]["done"] = False
-        self._gsaDone = False
+        for talker in self._gsaDone.keys():
+            self._gsaDone[talker] = False
         self._vtgDone = False
         self._ggaDone = False
 
