@@ -2,6 +2,7 @@
 
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 
 Item {
     id: root
@@ -32,62 +33,119 @@ Item {
         width: parent.width
         z: -1
 
-        PositionPage {}
-        SatellitesPage {}
-        SatellitesPositionPage {}
-        TrafficPage {}
-        SystemPage {}
+        PositionPage {
+            id: positionPage
+        }
+        TrafficPage {
+            id: trafficPage
+        }
+        SatellitesPage {
+            id: satellitesPage
+        }
+        SatellitesPositionPage {
+            id: satellitesPositionPage
+        }
+        SystemPage {
+            id: systemPage
+        }
     }
 
-    PageIndicator {
-        id: indicator
-
-        count: view.count
-        currentIndex: view.currentIndex
-
-        anchors.bottom: view.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-    }
-
-    Item {
+    RowLayout {
         id: footer
         anchors.bottom: parent.bottom
         width: parent.width
         height: 100
-        Rectangle {
-            anchors.fill: parent
-            color: "steelblue"
-        }
+        spacing: 0
         Button {
-            id: "previousPageButton"
-            anchors.left: parent.left
-            width: height
-            height: parent.height
-            text: "<"
-            onClicked: {
-                var i = (view.currentIndex - 1)
-                if (i < 0) {
-                    i = view.count -1
-                }
-                view.setCurrentIndex(i)
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            contentItem: Text {
+                text: "GPS"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 9
             }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? "#a6a6a6" : (positionPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
+                border.color: "#26282a"
+                border.width: 1
+                radius: 4
+            }
+            onClicked: view.setCurrentIndex(positionPage.SwipeView.index)
         }
         Button {
-            id: "nextPageButton"
-            anchors.right: parent.right
-            width: height
-            height: parent.height
-            text: ">"
-            onClicked: view.setCurrentIndex((view.currentIndex + 1) % view.count)
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            contentItem: Text {
+                text: "TRF"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 9
+            }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? "#a6a6a6" : (trafficPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
+                border.color: "#26282a"
+                border.width: 1
+                radius: 4
+            }
+            onClicked: view.setCurrentIndex(trafficPage.SwipeView.index)
         }
         Button {
-            id: testButton
-            anchors.left: previousPageButton.right
-            anchors.right: nextPageButton.left
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            contentItem: Text {
+                text: "SAT"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 9
+            }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? "#a6a6a6" : (satellitesPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
+                border.color: "#26282a"
+                border.width: 1
+                radius: 4
+            }
+            onClicked: view.setCurrentIndex(satellitesPage.SwipeView.index)
+        }
+        Button {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            contentItem: Text {
+                text: "STP"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 9
+            }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? "#a6a6a6" : (satellitesPositionPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
+                border.color: "#26282a"
+                border.width: 1
+                radius: 4
+            }
+            onClicked: view.setCurrentIndex(satellitesPositionPage.SwipeView.index)
+        }
+        Button {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
             height: parent.height
-
-            text: "info"
-            onClicked: popup.open()
+            contentItem: Text {
+                text: "SYS"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 9
+            }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? "#a6a6a6" : (systemPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
+                border.color: "#26282a"
+                border.width: 1
+                radius: 4
+            }
+            onClicked: view.setCurrentIndex(systemPage.SwipeView.index)
         }
     }
 
