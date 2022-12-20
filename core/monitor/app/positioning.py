@@ -39,8 +39,9 @@ class SatInfo(dict):
     Represents information about a Nav Satellite. Used within :class:`NavMonitor`
     """
 
-    def __init__(self, svid: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
+    def __init__(self, svid: int = 0, prn: int = 0, elevation: int = 0, azimuth: int = 0, cno: int = 0, used: bool = False):
         self["svid"] = svid
+        self["prn"] = prn
         self["elevation"] = elevation
         self["azimuth"] = azimuth
         self["cno"] = cno
@@ -49,9 +50,16 @@ class SatInfo(dict):
     @property
     def id(self) -> int:
         """
-        Ubx satellite number, svId
+        nmea satellite number, svId
         """
         return self["svid"]
+
+    @property
+    def prn(self) -> int:
+        """
+        Satellite PRN number
+        """
+        return self["prn"]
 
     @property
     def elevation(self) -> int:
@@ -290,7 +298,7 @@ class NavMonitor:
 
     def update(self, msg: NMEAMessage):
         """
-        update `NavMonitor` with an NMEAMessage. The following NMEA messages are supported:
+        update `NavMonitor` with an NMEAMessage (nmea v4.0). The following NMEA messages are supported:
         - GSV, satellites
         - GSA, used satellites
         - VTG, speed and track
@@ -300,9 +308,9 @@ class NavMonitor:
         """
         with self._lock:
             if msg.msgID == "GSV":
-                self._updateGSV(msg)
+                self._updateGSV(msg)  # todo per talker "GP", "GL" & "GA"
             elif msg.msgID == "GSA":
-                self._updateGSA(msg)
+                self._updateGSA(msg)  # todo depending on sat range calculate talker
             elif msg.msgID == "VTG":
                 self._updateVTG(msg)
             elif msg.msgID == "GGA":
@@ -331,7 +339,8 @@ class NavMonitor:
                 sv_az = sv_az if sv_az else None
                 sv_cno = getattr(msg, "cno_0{}".format(i))
                 sv_cno = sv_cno if sv_cno else None
-                self._intermediateSVs[sv_id] = SatInfo(sv_id, sv_elv, sv_az, sv_cno)
+                sv_prn = NavMonitor._prnFromSvId(sv_id)
+                self._intermediateSVs[sv_id] = SatInfo(sv_id, sv_prn, sv_elv, sv_az, sv_cno)
             self._gsvRemaningSVCount -= max
             self._gsvMsgNum += 1
 
@@ -358,6 +367,37 @@ class NavMonitor:
         existing["azimuth"] = new.azimuth
         existing["elevation"] = new.elevation
         existing["cno"] = new.cno
+
+    def _gnssFromSvId(svid: int):
+        gnssRanges = {
+            "gps": range(1, 33),
+            "sbas": range(33, 65),
+            "glonass": range(65, 97),
+            "imes": range(173, 183),
+            "qzss": range(193, 203),
+            "galileo": range(301, 337),
+            "beidou": range(401, 438),
+        }
+        for gnss, r in gnssRanges.items():
+            if svid in r:
+                return gnss
+
+    def _prnFromSvId(svid: int) -> str:
+        gnss = NavMonitor._gnssFromSvId(svid)
+        if gnss == "gps":
+            return "G{}".format(svid)
+        elif gnss == "sbas":
+            return "S{}".format(svid + 87)
+        elif gnss == "glonass":
+            return "R{}".format(svid - 64)
+        elif gnss == "imes":
+            return "I{}".format(svid - 172)
+        elif gnss == "qzss":
+            return "Q{}".format(svid - 192)
+        elif gnss == "galileo":
+            return "E{}".format(svid - 300)
+        elif gnss == "beidou":
+            return "B{}".format(svid - 400)
 
     def _updateGSA(self, msg):
         oldNavMode = self._posInfo["navMode"]
