@@ -97,7 +97,7 @@ Page {
                 //onYChanged: console.log("svid: " + svid + ", evr: " + evr + ", dy: " + dy + ", y: " + y + ", cos(az): " + Math.cos(toRadians(az)))
                 Text {
                     anchors.centerIn: parent
-                    text: svid
+                    text: prn
                     font.pointSize: 6
                 }
             }
