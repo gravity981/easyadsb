@@ -56,7 +56,7 @@ if __name__ == "__main__":
         logger.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
-    mqClient = mqtt.launch(client_name, broker, port)
+    mqClient = mqtt.launch(client_name, broker, port, [], None)
 
     stream = Serial(serial_device, serial_baud, timeout=3)
     ubr = UBXReader(stream)

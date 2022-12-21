@@ -295,12 +295,7 @@ if __name__ == "__main__":
     trafficMonitor.startAutoCleanup()
     gpsMonitor = pos.NavMonitor()
     logger.debug("{client_name}, {broker}, {port}".format(client_name=client_name, broker=broker, port=port))
-    mqttClient = mqtt.launch(client_name, broker, port)
-    mqttClient.on_message = on_message
-    mqttClient.subscribe(nmea_topic)
-    mqttClient.subscribe(ubx_topic)
-    mqttClient.subscribe(sbs_topic)
-    mqttClient.subscribe(bme_topic)
+    mqttClient = mqtt.launch(client_name, broker, port, [nmea_topic, ubx_topic, sbs_topic, bme_topic], on_message)
     gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)

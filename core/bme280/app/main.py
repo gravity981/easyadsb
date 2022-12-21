@@ -64,7 +64,7 @@ if __name__ == "__main__":
         logger.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
-    mqClient = mqtt.launch(client_name, broker, port)
+    mqClient = mqtt.launch(client_name, broker, port, [], None)
 
     # BME280 sensor stuff
     bus = smbus2.SMBus(i2c_port)
