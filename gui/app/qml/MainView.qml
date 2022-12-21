@@ -24,6 +24,30 @@ Item {
             color: "white"
             elide: Text.ElideRight
         }
+
+        Row {
+            anchors.right: parent.right
+            height: parent.height
+            StatusIcon {
+                height: parent.height
+                activeSource: "../assets/icons/updates_available.png"
+                inactiveSource: ""
+                isActive: true
+                visible: false // bind to model
+            }
+            StatusIcon {
+                height: parent.height
+                activeSource: "../assets/icons/position_enabled.png"
+                inactiveSource: "../assets/icons/position_disabled.png"
+                isActive: positionModel.navMode != 1
+            }
+            StatusIcon {
+                height: parent.height
+                activeSource: "../assets/icons/wifi_enabled.png"
+                inactiveSource: "../assets/icons/wifi_disabled.png"
+                isActive: systemModel.wifi.ssid != ""
+            }
+        }
     }
     
     SwipeView {
