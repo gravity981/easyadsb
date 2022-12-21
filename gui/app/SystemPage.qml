@@ -19,7 +19,6 @@ Page {
             Text {
                 Layout.columnSpan: 2
                 text: "Wifi"
-                
             }
             Text {
                 text: "SSID"

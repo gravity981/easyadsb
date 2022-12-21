@@ -18,10 +18,10 @@ ENV MO_GDL90_PORT 4000
 
 RUN apk add wireless-tools
 WORKDIR /home
-COPY monitor/requirements.txt ./
+COPY core/monitor/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY monitor/data ./data
+COPY core/monitor/data ./data
 COPY common/ ./app
-COPY monitor/app ./app
+COPY core/monitor/app ./app
 
 CMD ["python", "/home/app/main.py"]

@@ -3,11 +3,17 @@ import sys
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG, QVariant, QTimer
-import mqtt
 import json
 import logging
-import threading
-import time
+
+
+try:
+    import common.mqtt as mqtt
+    import common.logconf as logconf
+except ImportError:
+    import mqtt
+    import logconf
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("logger")

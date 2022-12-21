@@ -19,9 +19,9 @@ ENV BM_MQTT_CLIENT_NAME ""
 ENV BM_MQTT_PUBLISH_TOPIC /easyadsb/bme280/json
 
 WORKDIR /home
-COPY bme280/requirements.txt ./
+COPY core/bme280/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 copy common/ ./app
-COPY bme280/app ./app
+COPY core/bme280/app ./app
 
 CMD ["python", "/home/app/main.py"]
