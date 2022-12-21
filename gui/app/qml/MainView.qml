@@ -55,6 +55,7 @@ Item {
         anchors.top: header.bottom
         anchors.bottom: footer.top
         width: parent.width
+        interactive: false
         z: -1
 
         PositionPage {
@@ -62,6 +63,9 @@ Item {
         }
         TrafficPage {
             id: trafficPage
+        }
+        MapPage {
+            id: mapPage
         }
         SatellitesPage {
             id: satellitesPage
@@ -115,6 +119,25 @@ Item {
                 radius: 4
             }
             onClicked: view.setCurrentIndex(trafficPage.SwipeView.index)
+        }
+        Button {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            height: parent.height
+            contentItem: Text {
+                text: "MAP"
+                verticalAlignment: Text.AlignVCenter
+                horizontalAlignment: Text.AlignHCenter
+                font.pointSize: 9
+            }
+            background: Rectangle {
+                anchors.fill: parent
+                color: parent.down ? "#a6a6a6" : (mapPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
+                border.color: "#26282a"
+                border.width: 1
+                radius: 4
+            }
+            onClicked: view.setCurrentIndex(mapPage.SwipeView.index)
         }
         Button {
             Layout.fillWidth: true
