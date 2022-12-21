@@ -14,6 +14,7 @@ class SatellitesModel(QAbstractListModel):
     ElevationRole = roles.getNextRoleId()
     AzimuthRole = roles.getNextRoleId()
     PrnRole = roles.getNextRoleId()
+    MaxCno = roles.getNextRoleId()
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
@@ -33,6 +34,8 @@ class SatellitesModel(QAbstractListModel):
             return self._satellites[row]["azimuth"]
         if role == SatellitesModel.PrnRole:
             return self._satellites[row]["prn"]
+        if role == SatellitesModel.MaxCno:
+            return self._satellites[row]["maxCno"]
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._satellites)
@@ -45,6 +48,7 @@ class SatellitesModel(QAbstractListModel):
             SatellitesModel.ElevationRole: b"elv",
             SatellitesModel.AzimuthRole: b"az",
             SatellitesModel.PrnRole: b"prn",
+            SatellitesModel.MaxCno: b"maxCno",
         }
 
     @pyqtProperty(int, notify=countChanged)
@@ -55,9 +59,20 @@ class SatellitesModel(QAbstractListModel):
     def knownPosCount(self):
         return sum(map(lambda sat: sat["elevation"] is not None and sat["azimuth"] is not None, self._satellites))
 
+    @pyqtProperty(int, notify=countChanged)
+    def maxCnoTotal(self):
+        minCnoTotal = 60
+        maxCno = None
+        if len(self._satellites) > 0:
+            maxCno = max(self._satellites, key=lambda x: (x["maxCno"] if x["maxCno"] is not None else 0))["maxCno"]
+        if maxCno is None:
+            return minCnoTotal
+        return max(maxCno, minCnoTotal)
+
     @pyqtSlot(QVariant)
     def addSatellite(self, sat):
         logger.debug("add satellite {}".format(sat["svid"]))
+        sat["maxCno"] = sat["cno"]
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._satellites.append(sat)
         self.endInsertRows()
@@ -85,6 +100,15 @@ class SatellitesModel(QAbstractListModel):
         if self._satellites[row]["prn"] != sat["prn"]:
             self._satellites[row]["prn"] = sat["prn"]
             changedRoles.append(SatellitesModel.PrnRole)
+
+        oldMaxCno = self._satellites[row]["maxCno"]
+        if sat["cno"] is not None:
+            if oldMaxCno is not None:
+                self._satellites[row]["maxCno"] = max(sat["cno"], oldMaxCno)
+            else:
+                self._satellites[row]["maxCno"] = sat["cno"]
+        if oldMaxCno != self._satellites[row]["maxCno"]:
+            changedRoles.append(SatellitesModel.MaxCno)
 
         if len(changedRoles) > 0:
             logger.debug("update satellite {}".format(sat["svid"]))
