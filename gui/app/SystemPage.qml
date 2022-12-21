@@ -34,7 +34,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.wifi.frequency + " GHz"
+                text: systemModel.wifi.frequency !== undefined ? (systemModel.wifi.frequency + " GHz") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -50,7 +50,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: (Math.round(systemModel.wifi.linkQuality * 10000)/100) + " %"
+                text: systemModel.wifi.linkQuality !== undefined ? ((Math.round(systemModel.wifi.linkQuality * 10000)/100) + " %") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -58,7 +58,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.wifi.signalLevel + " dBm"
+                text: systemModel.wifi.signalLevel !== undefined ? (systemModel.wifi.signalLevel + " dBm") : "n/a"
                 font.pointSize: 8
             }
 
@@ -125,7 +125,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.resources.memTotal + " kB"
+                text: systemModel.resources.memTotal !== undefined ? (systemModel.resources.memTotal + " kB") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -133,7 +133,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.resources.memFree + " kB"
+                text: systemModel.resources.memFree !== undefined ? (systemModel.resources.memFree + " kB") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -141,7 +141,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.resources.swapCached + " kB"
+                text: systemModel.resources.swapCached !== undefined ? (systemModel.resources.swapCached + " kB") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -149,7 +149,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.resources.cpuTemp + " °C"
+                text: systemModel.resources.cpuTemp !== undefined ? (systemModel.resources.cpuTemp + " °C") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -157,7 +157,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: systemModel.resources.cpuUsage + " %"
+                text: systemModel.resources.cpuUsage !== undefined ? (systemModel.resources.cpuUsage + " %") : "n/a"
                 font.pointSize: 8
             }
         }

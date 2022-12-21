@@ -22,6 +22,7 @@ Page {
             }
             Text {
                 id: navModeText
+                Layout.preferredWidth: 200
                 text: "No Fix"
                 font.pointSize: 8
                 color: "red"
@@ -49,7 +50,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.utcTime
+                text: positionModel.utcTime ?? "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -57,7 +58,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.trueTrack ? (positionModel.trueTrack + " °") : "n/a"
+                text: positionModel.trueTrack !== undefined ? (positionModel.trueTrack + " °") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -65,7 +66,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.magneticTrack ? (positionModel.magneticTrack + " °") : "n/a"
+                text: positionModel.magneticTrack !== undefined ? (positionModel.magneticTrack + " °") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -73,7 +74,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.groundSpeedKnots ? (positionModel.groundSpeedKnots + " kt") : "n/a"
+                text: positionModel.groundSpeedKnots !== undefined ? (positionModel.groundSpeedKnots + " kt") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -81,7 +82,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.groundSpeedKph ? (positionModel.groundSpeedKph + " km/h") : "n/a"
+                text: positionModel.groundSpeedKph !== undefined ? (positionModel.groundSpeedKph + " km/h") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -105,7 +106,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.altitudeMeter ? (positionModel.altitudeMeter + " m") : "n/a"
+                text: positionModel.altitudeMeter !== undefined ? (positionModel.altitudeMeter + " m") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -113,7 +114,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.pressureAltitude ? (positionModel.pressureAltitude + " m") : "n/a"
+                text: positionModel.pressureAltitude !== undefined ? (positionModel.pressureAltitude + " m") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -121,7 +122,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.geoAltitude ? ((Math.round(positionModel.geoAltitude*100)/100) + " m") : "n/a"
+                text: positionModel.geoAltitude !== undefined ? ((Math.round(positionModel.geoAltitude*100)/100) + " m") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -129,7 +130,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.temperature ? (positionModel.temperature + " °C") : "n/a"
+                text: positionModel.temperature !== undefined ? (positionModel.temperature + " °C") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -137,7 +138,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.humidity ? (positionModel.humidity + " %H") : "n/a"
+                text: positionModel.humidity !== undefined ? (positionModel.humidity + " %H") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -145,7 +146,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.pressure ? (positionModel.pressure + " hPa") : "n/a"
+                text: positionModel.pressure !== undefined ? (positionModel.pressure + " hPa") : "n/a"
                 font.pointSize: 8
             }
             Text {
@@ -177,7 +178,7 @@ Page {
                 font.pointSize: 8
             }
             Text {
-                text: positionModel.opMode
+                text: positionModel.opMode ?? "n/a"
                 font.pointSize: 8
             }
         }

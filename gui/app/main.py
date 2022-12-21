@@ -2,10 +2,12 @@ import sys
 
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
-from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG, QVariant
+from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG, QVariant, QTimer
 import mqtt
 import json
 import logging
+import threading
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("logger")
@@ -154,7 +156,7 @@ class SatellitesModel(QAbstractListModel):
 
     @pyqtSlot(QVariant)
     def addSatellite(self, sat):
-        logger.info("add satellite {}".format(sat["svid"]))
+        logger.debug("add satellite {}".format(sat["svid"]))
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._satellites.append(sat)
         self.endInsertRows()
@@ -184,13 +186,13 @@ class SatellitesModel(QAbstractListModel):
             changedRoles.append(SatellitesModel.PrnRole)
 
         if len(changedRoles) > 0:
-            logger.info("update satellite {}".format(sat["svid"]))
+            logger.debug("update satellite {}".format(sat["svid"]))
         self.dataChanged.emit(ix, ix, changedRoles)
         self.countChanged.emit()
 
     @pyqtSlot(int)
     def removeSatellite(self, svid):
-        logger.info("remove satellite {}".format(svid))
+        logger.debug("remove satellite {}".format(svid))
         row = self._rowFromSvId(svid)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._satellites[row]
@@ -212,8 +214,8 @@ class PositionModel(QObject):
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
-        self._navMode = 1
-        self._opMode = ""
+        self._navMode = None
+        self._opMode = None
         self._pdop = None
         self._hdop = None
         self._vdop = None
@@ -231,11 +233,11 @@ class PositionModel(QObject):
         self._pressure = None
         self._pressureAltitude = None
 
-    @pyqtProperty(int, notify=positionChanged)
+    @pyqtProperty(QVariant, notify=positionChanged)
     def navMode(self):
         return self._navMode
 
-    @pyqtProperty(str, notify=positionChanged)
+    @pyqtProperty(QVariant, notify=positionChanged)
     def opMode(self):
         return self._opMode
 
@@ -283,7 +285,7 @@ class PositionModel(QObject):
     def geoAltitude(self):
         return self._geoAltitude
 
-    @pyqtProperty(str, notify=positionChanged)
+    @pyqtProperty(QVariant, notify=positionChanged)
     def utcTime(self):
         return self._utcTime
 
@@ -415,7 +417,7 @@ class TrafficModel(QAbstractListModel):
 
     @pyqtSlot(QVariant)
     def addTrafficEntry(self, entry):
-        logger.info("add traffic entry")
+        logger.debug("add traffic entry")
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._trafficEntries.append(entry)
         self.endInsertRows()
@@ -478,12 +480,12 @@ class TrafficModel(QAbstractListModel):
             changedRoles.append(TrafficModel.MsgCountRole)
 
         if len(changedRoles) > 0:
-            logger.info("update traffic entry {}".format(entry["id"]))
+            logger.debug("update traffic entry {}".format(entry["id"]))
         self.dataChanged.emit(ix, ix, changedRoles)
 
     @pyqtSlot(int)
     def removeTrafficEntry(self, id):
-        logger.info("remove traffic entry {}".format(id))
+        logger.debug("remove traffic entry {}".format(id))
         row = self._rowFromId(id)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._trafficEntries[row]
@@ -503,11 +505,20 @@ class TrafficModel(QAbstractListModel):
 class SystemModel(QObject):
     systemChanged = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, aliveTimeout, parent=None):
         QObject.__init__(self, parent)
         self._wifi = dict()
         self._gdl90 = dict()
         self._resources = dict()
+        self._isAlive = False
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._die)
+        self._timer.setInterval(aliveTimeout)
+        self._timer.start()
+
+    def _die(self):
+        self._isAlive = False
+        self.systemChanged.emit()
 
     @pyqtProperty(QVariant, notify=systemChanged)
     def wifi(self):
@@ -521,8 +532,14 @@ class SystemModel(QObject):
     def resources(self):
         return self._resources
 
+    @pyqtProperty(QVariant, notify=systemChanged)
+    def isAlive(self):
+        return self._isAlive
+
     @pyqtSlot(QVariant)
     def updateSystem(self, system):
+        self._timer.start()
+        self._isAlive = True
         self._wifi = system["wifi"]
         self._gdl90 = system["gdl90"]
         self._resources = system["resources"]
@@ -533,7 +550,7 @@ app = QGuiApplication(sys.argv)
 satellitesModel = SatellitesModel()
 positionModel = PositionModel()
 trafficModel = TrafficModel()
-systemModel = SystemModel()
+systemModel = SystemModel(aliveTimeout=5000)
 engine = QQmlApplicationEngine()
 engine.rootContext().setContextProperty("satellitesModel", satellitesModel)
 engine.rootContext().setContextProperty("positionModel", positionModel)
@@ -541,11 +558,11 @@ engine.rootContext().setContextProperty("trafficModel", trafficModel)
 engine.rootContext().setContextProperty("systemModel", systemModel)
 engine.quit.connect(app.quit)
 engine.load("main.qml")
-mqttClient = mqtt.launch("easyadsb-gui", "localhost", 1883)
-mqttClient.on_message = on_message
-mqttClient.subscribe("/easyadsb/json/satellites")
-mqttClient.subscribe("/easyadsb/json/traffic")
-mqttClient.subscribe("/easyadsb/json/position")
-mqttClient.subscribe("/easyadsb/json/system")
-
+topics = [
+    "/easyadsb/json/satellites",
+    "/easyadsb/json/traffic",
+    "/easyadsb/json/position",
+    "/easyadsb/json/system"
+]
+mqtt.launchStart("easyadsb-gui", "localhost", 1883, topics, on_message)
 sys.exit(app.exec())

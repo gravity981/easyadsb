@@ -149,22 +149,33 @@ Item {
         }
     }
 
+    Rectangle {
+        anchors.fill: parent
+        color: "#a0a0a0"
+        opacity: 0.5
+        visible: popup.visible
+    }
+
     Popup {
         id: popup
         anchors.centerIn: root
         width: 400
         height: 200
         parent: root
-        // closePolicy: Popup.NoAutoClose
-        
+        closePolicy: Popup.NoAutoClose
+        modal: true
+        visible: !systemModel.isAlive
+        Overlay.modal: Rectangle {
+            //make overlay transparent because it is not shown correctly because of transformation (main.qml)
+            color: "#00000000"
+        }
         Text {
-            anchors.centerIn: parent
-            text: "todo"
+            anchors.fill: parent
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            text: "Waiting for System..."
+            wrapMode: Text.WordWrap
         }
-        Button {
-            anchors.bottom: parent.bottom
-            text: "close"
-            onClicked: popup.close()
-        }
+
     }
 }

@@ -222,12 +222,12 @@ class JsonSender:
     used to periodically send traffic and position messages to mqtt topic
     """
 
-    def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, gdl90Port: gdl90.GDL90Port, mqttClient):
+    def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, gdl90Port: gdl90.GDL90Port, mqttClient, sendIntervalSeconds):
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
         self._gdl90Port = gdl90Port
         self._mqttClient = mqttClient
-        self._intervalSeconds = 5
+        self._intervalSeconds = sendIntervalSeconds
         self._sendMessages()
 
     def _sendMessages(self):
@@ -304,7 +304,7 @@ if __name__ == "__main__":
     gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)
     gdl90Sender = GDL90Sender(gdl90Port)
     msgConverter = MessageConverter(gdl90Sender)
-    jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient)
+    jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
     trafficMonitor.register(msgConverter)
     gpsMonitor.register(msgConverter)
     gdl90Port.exec()

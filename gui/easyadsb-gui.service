@@ -1,6 +1,6 @@
 [Unit]
 Description=Easy ADS-B GUI Service
-After=multi-user.target
+After=easyadsb-core.service
 
 [Service]
 Type=simple
