@@ -108,4 +108,3 @@ class SatellitesModel(QAbstractListModel):
             if item["svid"] == svid:
                 return index
         raise ValueError("no satellite for svid {}".format(svid))
-
