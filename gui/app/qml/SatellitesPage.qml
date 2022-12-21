@@ -27,14 +27,38 @@ Page {
             height: 32
             Row {
                 anchors.fill: parent
-                Rectangle {
+                
+                Image {
                     id: countryFlag
-                    width: 60
                     height: parent.height
-                    color: "firebrick"
-                    border.width: 1
-                    border.color: "#080808"
+                    width: 50
+                    fillMode: Image.PreserveAspectCrop
+                    
+                    states: [
+                        State {
+                            when: prn !== undefined && prn.toString().startsWith("R")
+                            PropertyChanges {
+                                target: countryFlag
+                                source: "../assets/flags-small/Russian_Federation.png"
+                            }
+                        },
+                        State {
+                            when: prn !== undefined && prn.toString().startsWith("G")
+                            PropertyChanges {
+                                target: countryFlag
+                                source: "../assets/flags-small/United_States_of_America.png"
+                            }
+                        }
+                    ]
+
+                    Rectangle {
+                        anchors.fill:parent
+                        border.width: 1
+                        border.color: "#080808"
+                        color: "#00000000"
+                    }
                 }
+            
                 Rectangle {
                     width: 60
                     height: parent.height
