@@ -1,22 +1,22 @@
 import sys
-
+import os
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QMetaObject, Q_ARG, QVariant, QTimer
 import json
 import logging
 
-
 try:
-    import common.mqtt as mqtt
-    import common.logconf as logconf
+    try:
+        import common.mqtt as mqtt
+        import common.logconf as logconf
+    except ImportError:
+        import mqtt
+        import logconf
 except ImportError:
+    sys.path.insert(0, '../../common')
     import mqtt
     import logconf
-
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("logger")
 
 current_role_index = 0
 
@@ -551,6 +551,10 @@ class SystemModel(QObject):
         self._resources = system["resources"]
         self.systemChanged.emit()
 
+
+log_level = str(os.getenv("GUI_LOG_LEVEL"))
+logconf.setup_logging(log_level)
+logger = logging.getLogger("logger")
 
 app = QGuiApplication(sys.argv)
 satellitesModel = SatellitesModel()

@@ -11,4 +11,5 @@ export QT_QPA_EGLFS_PHYSICAL_HEIGHT=55
 export QT_QPA_EGLFS_HIDECURSOR=1
 export QT_QPA_EGLFS_KMS_CONFIG=kms.config
 export QT_QPA_EGLFS_FORCEVSYNC=1
+export GUI_LOG_LEVEL=INFO
 /usr/bin/python main.py -platform eglfs
