@@ -1,38 +1,66 @@
-from timeloop import Timeloop
 import logging
-from datetime import timedelta
+import os
+import sys
+import github
+import time
+import requests
 
-tl = Timeloop()
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] - %(message)s")
-logger = logging.getLogger("updater")
-tl.logger = logger
+try:
+    try:
+        import common.mqtt as mqtt
+        import common.logconf as logconf
+    except ImportError:
+        import mqtt
+        import logconf
+except ImportError:
+    sys.path.insert(0, '../../common')
+    import mqtt
+    import logconf
 
 
-@tl.job(interval=timedelta(seconds=3600))
-def check_for_updates():
-    # check for release tags and compare with locally installed version tag
-    logger.info("check for updates... (tbd)")
+checkIntervalSeconds = 3600
 
-    # UPDATE PROCESS:
-    # download newer release
 
-    # install easyadsb-core and easyadsb-gui to passive install dir
+def checkForUpdates():
+    while True:
+        # check for release tags and compare with locally installed version tag
+        logger.info("check for new releases...")
+        gh = github.Github()
+        try:
+            repo = gh.get_repo("gravity981/easyadsb")
+            releases = repo.get_releases()
+            if releases.totalCount > 0:
+                for r in releases:
+                    logger.info("found: {}".format(r.title))
+            else:
+                logger.warning("no releases found")
+        except requests.exceptions.ConnectionError as ex:
+            logger.error("could not get releases, {}".format(str(ex)))
 
-    # mark installation as "unverified", THEN toggle active install dir
-    # --> what if power cycle or error during "unverified" state? --> corrupt update process, requires reinstallation
-    # is there a way to rollback automatically and repair corruption?
+        # UPDATE PROCESS:
+        # download newer release
 
-    # restart services
+        # install easyadsb-core and easyadsb-gui to passive install dir
 
-    # perform integrity/health check (systemctl status)
+        # mark installation as "unverified", THEN toggle active install dir
+        # --> what if power cycle or error during "unverified" state? --> corrupt update process, requires reinstallation
+        # is there a way to rollback automatically and repair corruption?
 
-    # if not successful, rollback active install dir and restart services
+        # restart services
 
-    # set installation to "verified"
+        # perform integrity/health check (systemctl status)
+
+        # if not successful, rollback active install dir and restart services
+
+        # set installation to "verified"
+        time.sleep(checkIntervalSeconds)
 
 
 if __name__ == "__main__":
     # check if installation is "verified"
     # --> mark installation as corrupt if not "verified" at startup
     # --> is there a way to rollback automatically in this case?
-    tl.start(block=True)
+    logconf.setup_logging(str(os.getenv("UPDATER_LOG_LEVEL", "INFO")))
+    logger = logging.getLogger("update_logger")
+    mqtt.launchStart("easyadsb-updater", "localhost", 1883, [], None)
+    checkForUpdates()

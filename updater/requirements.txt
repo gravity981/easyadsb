@@ -1,1 +1,1 @@
-timeloop==1.0.2
+PyGithub==1.57
