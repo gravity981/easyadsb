@@ -124,7 +124,8 @@ while true; do
 
 # TODO install pyqt5 dependencies (QtQml)
 # sudo apt install python3-pyqt5 python3-pyqt5.qtquick
-
+# sudo apt install qml-module-qtlocation
+# sudo apt install qml-module-qtpositioning
 # TODO setup to boot into console. disable boot into desktop
 
 # TODO setup init i2c and load kernel modules
