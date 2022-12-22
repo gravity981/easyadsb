@@ -9,6 +9,7 @@ from PositionModel import PositionModel
 from SatellitesModel import SatellitesModel
 from SystemModel import SystemModel
 from TrafficModel import TrafficModel
+from KeyboardController import KeyboardController
 
 try:
     try:
@@ -115,11 +116,13 @@ satellitesModel = SatellitesModel()
 positionModel = PositionModel()
 trafficModel = TrafficModel()
 systemModel = SystemModel(aliveTimeout=5000)
+keyboardController = KeyboardController()
 engine = QQmlApplicationEngine()
 engine.rootContext().setContextProperty("satellitesModel", satellitesModel)
 engine.rootContext().setContextProperty("positionModel", positionModel)
 engine.rootContext().setContextProperty("trafficModel", trafficModel)
 engine.rootContext().setContextProperty("systemModel", systemModel)
+engine.rootContext().setContextProperty("keyboardController", keyboardController)
 engine.quit.connect(app.quit)
 engine.load("qml/main.qml")
 topics = [

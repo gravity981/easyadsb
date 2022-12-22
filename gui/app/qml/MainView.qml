@@ -48,6 +48,10 @@ Item {
                 isActive: systemModel.wifi.ssid != ""
             }
         }
+        MouseArea {
+            anchors.fill: parent
+            onClicked: keyboard.visible = !keyboard.visible
+        }
     }
     
     SwipeView {
@@ -76,6 +80,14 @@ Item {
         SystemPage {
             id: systemPage
         }
+    }
+
+    Keyboard{
+        id: keyboard
+        anchors.top: header.bottom
+        anchors.bottom: footer.top
+        width: parent.width
+        visible: false
     }
 
     RowLayout {

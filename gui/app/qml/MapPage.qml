@@ -56,7 +56,7 @@ Page {
                         
                     }
                     Text {
-                        text: callsign
+                        text: (callsign ?? "n/a")
                         font.pointSize: 8
                     }
                 }
