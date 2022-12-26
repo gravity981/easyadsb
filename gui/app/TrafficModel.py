@@ -98,6 +98,7 @@ class TrafficModel(QAbstractListModel):
     @pyqtSlot(QVariant)
     def addTrafficEntry(self, entry):
         logger.debug("add traffic entry")
+        entry["category"] = self._getCategoryName(entry["category"])
         entry["imageSourcePath"] = self._getImageSourcePath(entry["model"])
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._trafficEntries.append(entry)
@@ -108,6 +109,7 @@ class TrafficModel(QAbstractListModel):
         row = self._rowFromId(entry["id"])
         ix = self.index(row, 0)
         changedRoles = []
+        category = self._getCategoryName(entry["category"])
         if self._trafficEntries[row]["model"] != entry["model"]:
             self._trafficEntries[row]["imageSourcePath"] = self._getImageSourcePath(entry["model"])
             changedRoles.append(TrafficModel.ImageSourcePathRole)
@@ -120,8 +122,8 @@ class TrafficModel(QAbstractListModel):
         if self._trafficEntries[row]["model"] != entry["model"]:
             self._trafficEntries[row]["model"] = entry["model"]
             changedRoles.append(TrafficModel.ModelRole)
-        if self._trafficEntries[row]["category"] != entry["category"]:
-            self._trafficEntries[row]["category"] = entry["category"]
+        if self._trafficEntries[row]["category"] != category:
+            self._trafficEntries[row]["category"] = category
             changedRoles.append(TrafficModel.CategoryRole)
         if self._trafficEntries[row]["latitude"] != entry["latitude"]:
             self._trafficEntries[row]["latitude"] = entry["latitude"]
@@ -187,5 +189,49 @@ class TrafficModel(QAbstractListModel):
 
     def _getImageSourcePath(self, model):
         path = os.path.join(self._aircraftImagesPath, "Aircraft {}".format(model))
-        first_file = next((os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))), "default value here")
+        try:
+            first_file = next((os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))), "default value here")
+        except FileNotFoundError as ex:
+            logger.warning(str(ex))
+            first_file = ""
         return os.path.join(path, first_file)
+
+    def _getCategoryName(self, category):
+        """
+        todo
+        - surface_vehicle_emergency = 17
+        - surface_vehicle_service = 18
+        - point_obstacle = 19
+        - cluster_obstacle = 20
+        - line_obstacle = 21
+        """
+        if category == 0:
+            return "No info"
+        elif category == 1:
+            return "Light"
+        elif category == 2:
+            return "Small"
+        elif category == 3:
+            return "Large"
+        elif category == 4:
+            return "High Vortex"
+        elif category == 5:
+            return "Heavy"
+        elif category == 6:
+            return "Highly Maneuverable"
+        elif category == 7:
+            return "Rotorcraft"
+        elif category == 9:  # there is no 8
+            return "Glider"
+        elif category == 10:
+            return "Lighter than air"
+        elif category == 11:
+            return "Sky Diver"
+        elif category == 12:
+            return "Paraglider"
+        elif category == 14:  # there is no 13
+            return "Unmanned"
+        elif category == 15:
+            return "Spaceship"
+        else:
+            return "Unknown category"
