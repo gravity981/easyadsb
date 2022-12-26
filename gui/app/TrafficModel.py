@@ -8,7 +8,7 @@ logger = logging.getLogger("logger")
 class TrafficModel(QAbstractListModel):
     IdRole = roles.getNextRoleId()
     CallsignRole = roles.getNextRoleId()
-    ModelRole = roles.getNextRoleId()
+    TypeRole = roles.getNextRoleId()
     CategoryRole = roles.getNextRoleId()
     LatitudeRole = roles.getNextRoleId()
     LongitudeRole = roles.getNextRoleId()
@@ -34,7 +34,7 @@ class TrafficModel(QAbstractListModel):
             return self._trafficEntries[row]["id"]
         if role == TrafficModel.CallsignRole:
             return self._trafficEntries[row]["callsign"]
-        if role == TrafficModel.ModelRole:
+        if role == TrafficModel.TypeRole:
             return self._trafficEntries[row]["model"]
         if role == TrafficModel.CategoryRole:
             return self._trafficEntries[row]["category"]
@@ -72,7 +72,7 @@ class TrafficModel(QAbstractListModel):
         return {
             TrafficModel.IdRole: b"id",
             TrafficModel.CallsignRole: b"callsign",
-            TrafficModel.ModelRole: b"model",
+            TrafficModel.TypeRole: b"type",
             TrafficModel.CategoryRole: b"category",
             TrafficModel.LatitudeRole: b"latitude",
             TrafficModel.LongitudeRole: b"longitude",
