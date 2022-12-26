@@ -19,21 +19,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - context: core
+          - context: .
             name: ghcr.io/gravity981/easyadsb/bme280
-            file: core/Dockerfile.bme280
-          - context: core
+            file: Dockerfile.bme280
+          - context: .
             name: ghcr.io/gravity981/easyadsb/dump1090
-            file: core/Dockerfile.dump1090
-          - context: core
+            file: Dockerfile.dump1090
+          - context: .
             name: ghcr.io/gravity981/easyadsb/dump1090mqtt
-            file: core/Dockerfile.dump1090mqtt
-          - context: core
+            file: Dockerfile.dump1090mqtt
+          - context: .
             name: ghcr.io/gravity981/easyadsb/monitor
-            file: core/Dockerfile.monitor
-          - context: core
+            file: Dockerfile.monitor
+          - context: .
             name: ghcr.io/gravity981/easyadsb/ublox
-            file: core/Dockerfile.ublox
+            file: Dockerfile.ublox
     steps:
       - uses: actions/checkout@v3
       - name: Prepare
