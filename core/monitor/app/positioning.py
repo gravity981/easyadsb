@@ -369,15 +369,19 @@ class NavMonitor:
             # on each message
             max = self._gsv[msg.talker]["remainingSvCount"] if self._gsv[msg.talker]["remainingSvCount"] < 4 else 4
             for i in range(1, max + 1):
-                sv_id = int(getattr(msg, "svid_0{}".format(i)))
-                sv_elv = getattr(msg, "elv_0{}".format(i))
-                sv_elv = sv_elv if sv_elv else None
-                sv_az = getattr(msg, "az_0{}".format(i))
-                sv_az = sv_az if sv_az else None
-                sv_cno = getattr(msg, "cno_0{}".format(i))
-                sv_cno = sv_cno if sv_cno else None
-                sv_prn = NavMonitor._prnFromSvId(sv_id)
-                self._gsv[msg.talker]["intermediateSatInfos"][sv_id] = SatInfo(sv_id, sv_prn, sv_elv, sv_az, sv_cno, False, msg.talker)
+                sv_id = getattr(msg, "svid_0{}".format(i))
+                if sv_id:
+                    sv_id = int(sv_id)
+                    sv_elv = getattr(msg, "elv_0{}".format(i))
+                    sv_elv = sv_elv if sv_elv else None
+                    sv_az = getattr(msg, "az_0{}".format(i))
+                    sv_az = sv_az if sv_az else None
+                    sv_cno = getattr(msg, "cno_0{}".format(i))
+                    sv_cno = sv_cno if sv_cno else None
+                    sv_prn = NavMonitor._prnFromSvId(sv_id)
+                    self._gsv[msg.talker]["intermediateSatInfos"][sv_id] = SatInfo(sv_id, sv_prn, sv_elv, sv_az, sv_cno, False, msg.talker)
+                else:
+                    logger.debug("empty svid, skip satellite {}".format(i))
             self._gsv[msg.talker]["remainingSvCount"] -= max
             self._gsv[msg.talker]["msgNum"] += 1
 
