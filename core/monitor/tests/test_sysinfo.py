@@ -26,11 +26,11 @@ def test_parseIwConfigDisconnected():
           Power Management:on"""
     tokens = sysinfo.Wifi.parseIwConfig(iwconfigStr)
     assert 5 == len(tokens)
-    assert "" == tokens["ssid"]
-    assert "" == tokens["frequency"]
-    assert "Not-Associated" == tokens["accesspoint"]
-    assert "" == tokens["linkQuality"]
-    assert "" == tokens["signalLevel"]
+    assert tokens["ssid"] is None
+    assert tokens["frequency"] is None
+    assert tokens["accesspoint"] == "Not-Associated"
+    assert tokens["linkQuality"] is None
+    assert tokens["signalLevel"] is None
 
 
 def test_parseIwConfigMalformed():
@@ -44,11 +44,11 @@ def test_parseIwConfigMalformed():
           Tx excessive retries:289  Invalid misc:0   Missed beacon:0"""
     tokens = sysinfo.Wifi.parseIwConfig(iwconfigStr)
     assert 5 == len(tokens)
-    assert "" == tokens["ssid"]
-    assert "" == tokens["frequency"]
-    assert "06:63:D3:77:91:F0" == tokens["accesspoint"]
-    assert "" == tokens["linkQuality"]
-    assert "" == tokens["signalLevel"]
+    assert tokens["ssid"] is None
+    assert tokens["frequency"] is None
+    assert tokens["accesspoint"] == "06:63:D3:77:91:F0"
+    assert tokens["linkQuality"] is None
+    assert tokens["signalLevel"] is None
 
 
 def test_parseMemInfoWellformed():

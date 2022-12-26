@@ -39,13 +39,13 @@ Item {
                 height: parent.height
                 activeSource: "../assets/icons/position_enabled.png"
                 inactiveSource: "../assets/icons/position_disabled.png"
-                isActive: positionModel.navMode != 1
+                isActive: positionModel.navMode !== undefined && positionModel.navMode != 1
             }
             StatusIcon {
                 height: parent.height
                 activeSource: "../assets/icons/wifi_enabled.png"
                 inactiveSource: "../assets/icons/wifi_disabled.png"
-                isActive: systemModel.wifi.ssid != ""
+                isActive: systemModel.wifi.ssid !== undefined
             }
         }
         MouseArea {

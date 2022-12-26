@@ -27,7 +27,7 @@ class Wifi:
         if ssid and '"' in ssid:
             ssid = ssid.strip('"')
         else:
-            ssid = ""
+            ssid = None
         iwconfig["ssid"] = ssid
 
         skey = "Frequency:"
@@ -37,9 +37,9 @@ class Wifi:
             try:
                 frequency = float(frequency)
             except ValueError:
-                frequency = ""
+                frequency = None
         else:
-            frequency = ""
+            frequency = None
         iwconfig["frequency"] = frequency
 
         skey = "Access Point:"
@@ -48,7 +48,7 @@ class Wifi:
         if ap:
             ap = ap.strip()
         else:
-            ap = ""
+            ap = None
         iwconfig["accesspoint"] = ap
 
         skey = "Link Quality="
@@ -60,11 +60,11 @@ class Wifi:
                 try:
                     linkQuality = round(float(linkQuality[0]) / float(linkQuality[1]), 3)
                 except ValueError:
-                    linkQuality = ""
+                    linkQuality = None
             else:
-                linkQuality = ""
+                linkQuality = None
         else:
-            linkQuality = ""
+            linkQuality = None
         iwconfig["linkQuality"] = linkQuality
 
         skey = "Signal level="
@@ -74,9 +74,9 @@ class Wifi:
             try:
                 signalLevel = float(signalLevel)
             except ValueError:
-                signalLevel = ""
+                signalLevel = None
         else:
-            signalLevel = ""
+            signalLevel = None
         iwconfig["signalLevel"] = signalLevel
 
         return iwconfig
