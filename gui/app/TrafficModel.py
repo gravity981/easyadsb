@@ -1,6 +1,7 @@
 import roles
 from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtSlot, QVariant
 import logging
+import os
 
 logger = logging.getLogger("logger")
 
@@ -23,10 +24,12 @@ class TrafficModel(QAbstractListModel):
     IsOnGroundRole = roles.getNextRoleId()
     LastSeenRole = roles.getNextRoleId()
     MsgCountRole = roles.getNextRoleId()
+    ImageSourcePathRole = roles.getNextRoleId()
 
-    def __init__(self, parent=None):
+    def __init__(self, aircraftImagesPath, parent=None):
         QObject.__init__(self, parent)
         self._trafficEntries = []
+        self._aircraftImagesPath = aircraftImagesPath
 
     def data(self, index, role=Qt.DisplayRole):
         row = index.row()
@@ -64,6 +67,8 @@ class TrafficModel(QAbstractListModel):
             return self._trafficEntries[row]["lastSeen"]
         if role == TrafficModel.MsgCountRole:
             return self._trafficEntries[row]["msgCount"]
+        if role == TrafficModel.ImageSourcePathRole:
+            return self._trafficEntries[row]["imageSourcePath"]
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._trafficEntries)
@@ -87,11 +92,13 @@ class TrafficModel(QAbstractListModel):
             TrafficModel.IsOnGroundRole: b"isOnGround",
             TrafficModel.LastSeenRole: b"lastSeen",
             TrafficModel.MsgCountRole: b"msgCount",
+            TrafficModel.ImageSourcePathRole: b"imageSourcePath",
         }
 
     @pyqtSlot(QVariant)
     def addTrafficEntry(self, entry):
         logger.debug("add traffic entry")
+        entry["imageSourcePath"] = self._getImageSourcePath(entry["model"])
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._trafficEntries.append(entry)
         self.endInsertRows()
@@ -101,6 +108,9 @@ class TrafficModel(QAbstractListModel):
         row = self._rowFromId(entry["id"])
         ix = self.index(row, 0)
         changedRoles = []
+        if self._trafficEntries[row]["model"] != entry["model"]:
+            self._trafficEntries[row]["imageSourcePath"] = self._getImageSourcePath(entry["model"])
+            changedRoles.append(TrafficModel.ImageSourcePathRole)
         if self._trafficEntries[row]["id"] != entry["id"]:
             self._trafficEntries[row]["id"] = entry["id"]
             changedRoles.append(TrafficModel.IdRole)
@@ -174,3 +184,8 @@ class TrafficModel(QAbstractListModel):
             if item["id"] == id:
                 return index
         raise ValueError("no traffic entry for id {}".format(id))
+
+    def _getImageSourcePath(self, model):
+        path = os.path.join(self._aircraftImagesPath, "Aircraft {}".format(model))
+        first_file = next((os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))), "default value here")
+        return os.path.join(path, first_file)

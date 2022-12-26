@@ -46,9 +46,17 @@ Page {
                     border.color: "#000000"
                     Image {
                         anchors.fill: parent
-                        anchors.margins: 1
+                        anchors.margins: 0
                         fillMode: Image.PreserveAspectFit
                         source: Constants.flagImageSourceFromCallsign(callsign)
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: parent.paintedWidth
+                            height: parent.paintedHeight
+                            color: "#00000000"
+                            border.width: 1
+                            border.color: "#000000"
+                        }
                     }
                 }
                 Rectangle {
@@ -133,11 +141,11 @@ Page {
             MouseArea {
                 id: mouseArea
                 anchors.fill: parent
-                onClicked: detailsLoader.setSource("TrafficDetails.qml", model);
+                onClicked: detailsLoader.setSource("TrafficDetails.qml", model)
             }
         }
     }
-
+    
     Loader {
         id: detailsLoader
         anchors.fill: parent

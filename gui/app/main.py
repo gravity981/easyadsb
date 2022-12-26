@@ -108,13 +108,14 @@ def updateSystem(msg):
 
 
 log_level = str(os.getenv("GUI_LOG_LEVEL"))
+aircraftImagesPath = str(os.getenv("GUI_AIRCRAFT_IMAGES_PATH"))
 logconf.setup_logging(log_level)
 logger = logging.getLogger("logger")
 
 app = QGuiApplication(sys.argv)
 satellitesModel = SatellitesModel()
 positionModel = PositionModel()
-trafficModel = TrafficModel()
+trafficModel = TrafficModel(aircraftImagesPath)
 systemModel = SystemModel(aliveTimeout=5000)
 keyboardController = KeyboardController()
 engine = QQmlApplicationEngine()

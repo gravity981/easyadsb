@@ -76,6 +76,10 @@ Page {
                         visible: latitude !== undefined && longitude !== undefined
                         height: 70
                         rotation: (track ?? 0) - 45
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: detailsLoader.setSource("TrafficDetails.qml", model)
+                        }
                     }
                     Text {
                         text: (callsign ?? "n/a")
@@ -122,5 +126,10 @@ Page {
                 map.center = QtPositioning.coordinate(positionModel.latitude, positionModel.longitude)
             }
         }
+    }
+
+    Loader {
+        id: detailsLoader
+        anchors.fill: parent
     }
 }

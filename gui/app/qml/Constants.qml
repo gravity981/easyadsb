@@ -50,6 +50,16 @@ QtObject {
                 return flagsPath + "Hungary.png"
             case "YV":
                 return flagsPath + "Venezuela.png"
+            case "G":
+                return flagsPath + "United_Kingdom.png"
+            case "V8":
+                return flagsPath + "Brunei.png"
+            case "9H":
+                return flagsPath + "Malta.png"
+            case "OO":
+                return flagsPath + "Belgium.png"
+            case "PH":
+                return flagsPath + "Netherlands.png"
             default:
                 return ""
         }
