@@ -286,6 +286,7 @@ class NavMonitor:
         # self._gsv[msg.talker]["intermediateSatInfos"]: dict
         # self._gsv[msg.talker]["done"]: bool
         self._gsa = dict()
+        self._gsaPreviousTalker = None
         self._gsa["talkers"] = list()
         # self._gsa["done"]: bool
         self._vtgDone = False
@@ -477,6 +478,7 @@ class NavMonitor:
                 usedSatIds.append(usedId)
 
         # determine proper talker manually because talker of GSA messages is always "GN".
+        talker = None
         if len(usedSatIds) > 0:
             # determine talker from used sat id from this gsa message
             talker = NavMonitor._talkerFromGnss(NavMonitor._gnssFromSvId(usedSatIds[0]))
@@ -486,7 +488,11 @@ class NavMonitor:
             for key in it:
                 if key == self._gsaPreviousTalker:
                     talker = next(it, self._gsa["talkers"][0])
-            logger.info("no used satellites in gsa message, guessed talker is {}".format(talker))
+                    break
+            if talker is not None:
+                logger.info("no used satellites in gsa message, guessed talker is {}".format(talker))
+            else:
+                logger.debug("could not determine gsa message talker")
 
         logger.debug("talker: {}, usedSatIds: {}".format(talker, str(usedSatIds)))
 
@@ -497,7 +503,7 @@ class NavMonitor:
                     sat["used"] = satId in usedSatIds
             self._gsaPreviousTalker = talker
         else:
-            logger.warning("could not update used satellites, unkown talker {}".format(talker))
+            logger.debug("could not update used satellites, unkown talker {}".format(talker))
         self._gsa["done"] = True
 
     def _updateVTG(self, msg):
