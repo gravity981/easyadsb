@@ -348,7 +348,7 @@ class GDL90Port:
                 # bind the socket to readback broadcast packages for health check purposes
                 self._socket.bind((self._broadcastIp, self._port))
                 self._eventQueue.put(GDL90Port.EVENT_INIT_COMPLETE)
-                logger.info("send gdl90 messages to {} (iface: {}, ip: {}".format(self._broadcastIp, self._nic, addrObj))
+                logger.info("send gdl90 messages to {} (iface: {}, ip: {})".format(self._broadcastIp, self._nic, addrObj))
                 self._initFailureReported = False
                 break
             except OSError as ex:
@@ -364,7 +364,7 @@ class GDL90Port:
         """
         while True:
             try:
-                msg = self._msgQueue.get()
+                msg = self._msgQueue.get(timeout=3)
                 if type(msg) == GDL90HeartBeatMessage:
                     bytes = encodeHeartbeatMessage(msg)
                 elif type(msg) == GDL90TrafficMessage:
@@ -376,10 +376,12 @@ class GDL90Port:
                 else:
                     raise TypeError("msg has unexpected type {}".format(type(msg)))
                 self._socket.sendto(bytes, self._socket.getsockname())
+                self._msgQueue.task_done()
+            except queue.Empty:
+                pass
             except Exception as e:
                 logger.error("error sending gdl90 message, {}".format(str(e)))
             finally:
-                self._msgQueue.task_done()
                 if self._stopFlag.isSet():
                     break
 
