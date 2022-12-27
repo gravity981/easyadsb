@@ -17,6 +17,8 @@ ENV MO_GDL90_NETWORK_INTERFACE wlan0
 ENV MO_GDL90_PORT 4000
 
 RUN apk add wireless-tools
+RUN adduser -D monitor
+USER monitor
 WORKDIR /home
 COPY core/monitor/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

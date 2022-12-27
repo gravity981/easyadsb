@@ -18,6 +18,8 @@ ENV DU_MQTT_PORT 1883
 ENV DU_MQTT_CLIENT_NAME ""
 ENV DU_MQTT_PUBLISH_TOPIC /easyadsb/dump1090/sbs
 
+RUN adduser -D dump1090mqtt
+USER dump1090mqtt
 WORKDIR /home
 COPY core/dump1090mqtt/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt

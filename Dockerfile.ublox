@@ -19,10 +19,12 @@ ENV UB_MQTT_CLIENT_NAME ""
 ENV UB_MQTT_UBX_PUBLISH_TOPIC /easyadsb/ublox/ubx
 ENV UB_MQTT_NMEA_PUBLISH_TOPIC /easyadsb/ublox/nmea
 
+RUN adduser -D ublox
+USER ublox
 WORKDIR /home
 COPY core/ublox/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-copy common/ ./app
+COPY common/ ./app
 COPY core/ublox/app ./app
 
 CMD ["python", "/home/app/main.py"]

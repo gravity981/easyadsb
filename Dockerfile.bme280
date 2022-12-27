@@ -18,6 +18,8 @@ ENV BM_MQTT_PORT 1883
 ENV BM_MQTT_CLIENT_NAME ""
 ENV BM_MQTT_PUBLISH_TOPIC /easyadsb/bme280/json
 
+RUN adduser -D bme280
+USER bme280
 WORKDIR /home
 COPY core/bme280/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
