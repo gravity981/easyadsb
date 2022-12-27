@@ -83,7 +83,7 @@ if __name__ == "__main__":
         logger.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
-    client = mqtt.launch(client_name, broker, port)
+    client = mqtt.launch(client_name, broker, port, [], None)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     logger.debug('connect to "{host}:{port}"'.format(host=tcp_host, port=tcp_port))
