@@ -18,12 +18,15 @@ ENV BM_MQTT_PORT 1883
 ENV BM_MQTT_CLIENT_NAME ""
 ENV BM_MQTT_PUBLISH_TOPIC /easyadsb/bme280/json
 
-RUN adduser -D bme280
-USER bme280
+# use root because of "PermissionError: [Errno 13] Permission denied: '/dev/i2c-1'"
+#RUN adduser -D bme280
+#RUN groupadd bme280 root <-- does not work because /dev/i2c-1 group is i2c which is unknown inside docker
+#USER bme280
+
 WORKDIR /home
 COPY core/bme280/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-copy common/ ./app
+COPY common/ ./app
 COPY core/bme280/app ./app
 
 CMD ["python", "/home/app/main.py"]
