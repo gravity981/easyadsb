@@ -2,7 +2,6 @@ from enum import IntEnum
 from datetime import datetime
 import threading
 import logging
-import json
 from copy import deepcopy
 
 try:
@@ -74,7 +73,10 @@ class TrafficEntry(dict):
         self,
         id: str,
         callsign: str,
-        model: str,
+        type: str,
+        name: str,
+        descr: str,
+        wtc: str,
         category: TrafficCategory,
         latitude: float,
         longitude: float,
@@ -93,7 +95,10 @@ class TrafficEntry(dict):
         """
         self["id"] = int(id, 16)
         self["callsign"] = callsign
-        self["model"] = model
+        self["type"] = type
+        self["name"] = name
+        self["descr"] = descr
+        self["wtc"] = wtc
         self["category"] = category
         self["latitude"] = latitude
         self["longitude"] = longitude
@@ -125,11 +130,32 @@ class TrafficEntry(dict):
         return self["callsign"]
 
     @property
-    def model(self) -> str:
+    def type(self) -> str:
         """
         ICAO Type designator, can be None
         """
-        return self["model"]
+        return self["type"]
+
+    @property
+    def name(self) -> str:
+        """
+        Aircraft Name
+        """
+        return self["name"]
+
+    @property
+    def descr(self) -> str:
+        """
+        ICAO Aircraft Description
+        """
+        return self["descr"]
+
+    @property
+    def wtc(self) -> str:
+        """
+        ICAO Wake Turbulence Category
+        """
+        return self["wtc"]
 
     @property
     def category(self) -> TrafficCategory:
@@ -233,8 +259,6 @@ class TrafficEntry(dict):
         """
         return self["msgCount"]
 
-    # TODO stop updating with SBSMessage, provide generic update method
-    # this is to make this module independent of SBS and allow other sources to update traffic
     def update(self, msg: SBSMessage):
         """
         Update :class:`TrafficEntry` from :class:`SBSMessage`.
@@ -291,7 +315,7 @@ class TrafficEntry(dict):
         ).format(
             self["id"],
             self["callsign"],
-            self["model"],
+            self["type"],
             self["category"],
             self["latitude"],
             self["longitude"],
@@ -315,10 +339,12 @@ class TrafficMonitor:
     Monitors Flight Traffic. Can be updated with :class:`SBSMessage`
     """
 
-    def __init__(self, aircraftsDB: json = None, modelsDB: json = None):
+    def __init__(self, aircraftsDb: dict = None, typesDb: dict = None, dbversion: dict = None, typesExtensionDb: dict = None):
         self._traffic = dict()
-        self._aircraftsDB = aircraftsDB
-        self._modelsDB = modelsDB
+        self._aircraftsDb = aircraftsDb
+        self._typesDb = typesDb
+        self._dbversion = dbversion["version"]
+        self._typesExtensionDb = typesExtensionDb
         self._lock = threading.Lock()
         self._timer = None
         self._observers = list()
@@ -361,14 +387,18 @@ class TrafficMonitor:
                 entry = self._traffic[msg.hexIdent]
                 entry.update(msg)
             else:
-                callsign, model = self._aircraftLookUp(msg)
+                callsign, type = self._aircraftLookUp(msg)
                 if callsign is None:
                     callsign = msg.callsign
-                category = self._modelLookUp(model)
+                name, descr, wtc = self._typeLookUp(type)
+                category = self._typesExtensionLookup(type)
                 entry = TrafficEntry(
                     msg.hexIdent,
                     callsign,
-                    model,
+                    type,
+                    name,
+                    descr,
+                    wtc,
                     category,
                     msg.latitude,
                     msg.longitude,
@@ -383,7 +413,7 @@ class TrafficMonitor:
                     msg.isOnGround,
                 )
                 self._traffic[msg.hexIdent] = entry
-                logger.info("add new {:X}, {}, {}, {} (count {})".format(entry.id, entry.callsign, entry.model, entry.category.name, len(self._traffic)))
+                logger.info("add new {:X}, {}, {}, {} (count {})".format(entry.id, entry.callsign, entry.type, entry.category.name, len(self._traffic)))
             self._notify(entry)
 
     def _notify(self, trafficEntry):
@@ -400,21 +430,28 @@ class TrafficMonitor:
                 if entry.lastSeen > maxLastSeenSeconds:
                     logger.info(
                         "remove {:X}, {}, {}, {} (unseen for >{} seconds)".format(
-                            entry.id, entry.callsign, entry.model, entry.category.name, maxLastSeenSeconds
+                            entry.id, entry.callsign, entry.type, entry.category.name, maxLastSeenSeconds
                         )
                     )
                     del self._traffic[k]
 
     def _aircraftLookUp(self, msg: SBSMessage) -> tuple[str, str]:
-        if self._aircraftsDB is not None:
-            callsign, model, *_ = self._aircraftsDB[msg.hexIdent] if msg.hexIdent in self._aircraftsDB.keys() else [None, None]
-            return (callsign, model)
+        if self._aircraftsDb is not None:
+            callsign, type, *_ = self._aircraftsDb[msg.hexIdent] if msg.hexIdent in self._aircraftsDb.keys() else [None, None]
+            return (callsign, type)
         else:
             return (None, None)
 
-    def _modelLookUp(self, model: str) -> TrafficCategory:
-        if self._modelsDB is not None:
-            cat, *_ = self._modelsDB[model] if model in self._modelsDB.keys() else [0]
+    def _typeLookUp(self, type: str) -> tuple[str, str, str]:
+        if self._typesDb is not None:
+            name, descr, wtc, *_ = self._typesDb[type] if type in self._typesDb.keys() else [None, None, None]
+            return (name, descr, wtc)
+        else:
+            return (None, None, None)
+
+    def _typesExtensionLookup(self, type: str) -> TrafficCategory:
+        if self._typesExtensionDb is not None:
+            cat, *_ = self._typesExtensionDb[type] if type in self._typesExtensionDb.keys() else [0]
             return TrafficCategory(cat)
         else:
             return TrafficCategory.no_info

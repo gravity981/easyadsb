@@ -282,16 +282,20 @@ if __name__ == "__main__":
     logger = logging.getLogger(logger_name)
     atexit.register(on_exit)
 
-    with open("/home/data/aircrafts.json") as json_file:
+    with open("/home/data/mictronics/aircrafts.json") as json_file:
         aircrafts = json.load(json_file)
-    with open("/home/data/models.json") as json_file:
-        models = json.load(json_file)
+    with open("/home/data/mictronics/types.json") as json_file:
+        types = json.load(json_file)
+    with open("/home/data/mictronics/dbversion.json") as json_file:
+        dbversion = json.load(json_file)
+    with open("/home/data/typesExtension.json") as json_file:
+        typesExtension = json.load(json_file)
 
     if client_name == "":
         logger.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
-    trafficMonitor = traffic.TrafficMonitor(aircrafts, models)
+    trafficMonitor = traffic.TrafficMonitor(aircrafts, types, dbversion, typesExtension)
     trafficMonitor.startAutoCleanup()
     gpsMonitor = pos.NavMonitor()
     logger.debug("{client_name}, {broker}, {port}".format(client_name=client_name, broker=broker, port=port))

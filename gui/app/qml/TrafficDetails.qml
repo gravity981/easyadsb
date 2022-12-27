@@ -56,11 +56,9 @@ Item {
                 }
             }
             Text {
-                text: "Type"
-                font.pointSize: 9
-            }
-            Text {
-                text: model.type ?? "n/a"
+                Layout.columnSpan: 2
+                Layout.alignment: Qt.AlignHCenter
+                text: model.name ?? "n/a"
                 font.pointSize: 9
             }
             Image {
@@ -81,7 +79,31 @@ Item {
                 }
             }
             Text {
-                text: "Category"
+                text: "Type"
+                font.pointSize: 9
+            }
+            Text {
+                text: model.type ?? "n/a"
+                font.pointSize: 9
+            }
+            Text {
+                text: "Description"
+                font.pointSize: 9
+            }
+            Text {
+                text: model.descr ?? "n/a"
+                font.pointSize: 9
+            }
+            Text {
+                text: "WTC"
+                font.pointSize: 9
+            }
+            Text {
+                text: model.wtc ?? "n/a"
+                font.pointSize: 9
+            }
+            Text {
+                text: "GDL90 Cat."
                 font.pointSize: 9
             }
             Text {

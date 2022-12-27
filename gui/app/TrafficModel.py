@@ -10,6 +10,9 @@ class TrafficModel(QAbstractListModel):
     IdRole = roles.getNextRoleId()
     CallsignRole = roles.getNextRoleId()
     TypeRole = roles.getNextRoleId()
+    NameRole = roles.getNextRoleId()
+    DescrRole = roles.getNextRoleId()
+    WtcRole = roles.getNextRoleId()
     CategoryRole = roles.getNextRoleId()
     LatitudeRole = roles.getNextRoleId()
     LongitudeRole = roles.getNextRoleId()
@@ -38,7 +41,13 @@ class TrafficModel(QAbstractListModel):
         if role == TrafficModel.CallsignRole:
             return self._trafficEntries[row]["callsign"]
         if role == TrafficModel.TypeRole:
-            return self._trafficEntries[row]["model"]
+            return self._trafficEntries[row]["type"]
+        if role == TrafficModel.NameRole:
+            return self._trafficEntries[row]["name"]
+        if role == TrafficModel.DescrRole:
+            return self._trafficEntries[row]["descr"]
+        if role == TrafficModel.WtcRole:
+            return self._trafficEntries[row]["wtc"]
         if role == TrafficModel.CategoryRole:
             return self._trafficEntries[row]["category"]
         if role == TrafficModel.LatitudeRole:
@@ -78,6 +87,9 @@ class TrafficModel(QAbstractListModel):
             TrafficModel.IdRole: b"id",
             TrafficModel.CallsignRole: b"callsign",
             TrafficModel.TypeRole: b"type",
+            TrafficModel.NameRole: b"name",
+            TrafficModel.DescrRole: b"descr",
+            TrafficModel.WtcRole: b"wtc",
             TrafficModel.CategoryRole: b"category",
             TrafficModel.LatitudeRole: b"latitude",
             TrafficModel.LongitudeRole: b"longitude",
@@ -99,7 +111,7 @@ class TrafficModel(QAbstractListModel):
     def addTrafficEntry(self, entry):
         logger.debug("add traffic entry")
         entry["category"] = self._getCategoryName(entry["category"])
-        entry["imageSourcePath"] = self._getImageSourcePath(entry["model"])
+        entry["imageSourcePath"] = self._getImageSourcePath(entry["type"])
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._trafficEntries.append(entry)
         self.endInsertRows()
@@ -110,8 +122,8 @@ class TrafficModel(QAbstractListModel):
         ix = self.index(row, 0)
         changedRoles = []
         category = self._getCategoryName(entry["category"])
-        if self._trafficEntries[row]["model"] != entry["model"]:
-            self._trafficEntries[row]["imageSourcePath"] = self._getImageSourcePath(entry["model"])
+        if self._trafficEntries[row]["type"] != entry["type"]:
+            self._trafficEntries[row]["imageSourcePath"] = self._getImageSourcePath(entry["type"])
             changedRoles.append(TrafficModel.ImageSourcePathRole)
         if self._trafficEntries[row]["id"] != entry["id"]:
             self._trafficEntries[row]["id"] = entry["id"]
@@ -119,9 +131,18 @@ class TrafficModel(QAbstractListModel):
         if self._trafficEntries[row]["callsign"] != entry["callsign"]:
             self._trafficEntries[row]["callsign"] = entry["callsign"]
             changedRoles.append(TrafficModel.CallsignRole)
-        if self._trafficEntries[row]["model"] != entry["model"]:
-            self._trafficEntries[row]["model"] = entry["model"]
-            changedRoles.append(TrafficModel.ModelRole)
+        if self._trafficEntries[row]["type"] != entry["type"]:
+            self._trafficEntries[row]["type"] = entry["type"]
+            changedRoles.append(TrafficModel.TypeRole)
+        if self._trafficEntries[row]["name"] != entry["name"]:
+            self._trafficEntries[row]["name"] = entry["name"]
+            changedRoles.append(TrafficModel.NameRole)
+        if self._trafficEntries[row]["descr"] != entry["descr"]:
+            self._trafficEntries[row]["descr"] = entry["descr"]
+            changedRoles.append(TrafficModel.DescrRole)
+        if self._trafficEntries[row]["wtc"] != entry["wtc"]:
+            self._trafficEntries[row]["wtc"] = entry["wtc"]
+            changedRoles.append(TrafficModel.WtcRole)
         if self._trafficEntries[row]["category"] != category:
             self._trafficEntries[row]["category"] = category
             changedRoles.append(TrafficModel.CategoryRole)
