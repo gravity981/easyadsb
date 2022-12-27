@@ -25,13 +25,13 @@ except ImportError:
 
 
 def on_message(client, userdata, msg):
-    if msg.topic == "/easyadsb/json/satellites":
+    if "satellites" in msg.topic:
         updateSatellites(msg)
-    elif msg.topic == "/easyadsb/json/position":
+    elif "position" in msg.topic:
         updatePosition(msg)
-    elif msg.topic == "/easyadsb/json/traffic":
+    elif "traffic" in msg.topic:
         updateTraffic(msg)
-    elif msg.topic == "/easyadsb/json/system":
+    elif "system" in msg.topic:
         updateSystem(msg)
 
 
@@ -127,8 +127,5 @@ engine.rootContext().setContextProperty("systemModel", systemModel)
 engine.rootContext().setContextProperty("keyboardController", keyboardController)
 engine.quit.connect(app.quit)
 engine.load("qml/main.qml")
-topics = [
-    
-]
 mqtt.launchStart("easyadsb-gui", "localhost", 1883, mqttTopics, on_message)
 sys.exit(app.exec())
