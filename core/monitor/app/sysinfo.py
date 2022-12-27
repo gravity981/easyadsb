@@ -93,10 +93,6 @@ class Wifi:
 
 
 class Resources:
-    """
-    - memory usage --> cat /proc/meminfo
-
-    """
 
     def getCpuTempFromSysfs():
         with open("/sys/class/thermal/thermal_zone0/temp") as f:

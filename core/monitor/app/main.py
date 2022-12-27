@@ -251,10 +251,10 @@ class JsonSender:
             satellites = json.dumps(list(self._navMonitor.satellites.values()))
             traffic = json.dumps(list(self._trafficMonitor.traffic.values()))
             position = json.dumps(self._navMonitor.posInfo)
-            self._mqttClient.publish("/easyadsb/json/satellites", satellites)
-            self._mqttClient.publish("/easyadsb/json/traffic", traffic)
-            self._mqttClient.publish("/easyadsb/json/position", position)
-            self._mqttClient.publish("/easyadsb/json/system", system)
+            self._mqttClient.publish("/easyadsb/monitor/satellites", satellites)
+            self._mqttClient.publish("/easyadsb/monitor/traffic", traffic)
+            self._mqttClient.publish("/easyadsb/monitor/position", position)
+            self._mqttClient.publish("/easyadsb/monitor/system", system)
 
         except Exception as ex:
             logger.error("error sending json messages, {}".format(str(ex)))

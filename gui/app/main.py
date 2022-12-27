@@ -108,6 +108,7 @@ def updateSystem(msg):
 
 
 log_level = str(os.getenv("GUI_LOG_LEVEL"))
+mqttTopics = str(os.getenv("GUI_MQTT_TOPICS")).split(",")
 aircraftImagesPath = str(os.getenv("GUI_AIRCRAFT_IMAGES_PATH"))
 logconf.setup_logging(log_level)
 logger = logging.getLogger("logger")
@@ -127,10 +128,7 @@ engine.rootContext().setContextProperty("keyboardController", keyboardController
 engine.quit.connect(app.quit)
 engine.load("qml/main.qml")
 topics = [
-    "/easyadsb/json/satellites",
-    "/easyadsb/json/traffic",
-    "/easyadsb/json/position",
-    "/easyadsb/json/system"
+    
 ]
-mqtt.launchStart("easyadsb-gui", "localhost", 1883, topics, on_message)
+mqtt.launchStart("easyadsb-gui", "localhost", 1883, mqttTopics, on_message)
 sys.exit(app.exec())
