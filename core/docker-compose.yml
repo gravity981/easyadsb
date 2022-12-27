@@ -67,6 +67,7 @@ services:
       - MO_GDL90_NETWORK_INTERFACE=wlan0
       - MO_GDL90_PORT=4000
     network_mode: host
+    restart: unless-stopped
 
   bme280:
     container_name: bme280
@@ -85,6 +86,7 @@ services:
       - BM_MQTT_PUBLISH_TOPIC=/easyadsb/bme280/json
       - BM_I2C_PORT=1
       - BM_I2C_ADDRESS=0x76
+    restart: unless-stopped
 
   mqtt:
     container_name: mqtt
