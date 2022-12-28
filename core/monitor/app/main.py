@@ -23,17 +23,15 @@ except ImportError:
 
 def onExit():
     log.info("Exit application")
-    # if mqttClient is not None:
-    #    mqttClient.loop_stop()
-    #    mqttClient.disconnect()
-    # if trafficMonitor is not None:
-    #    trafficMonitor.stopAutoCleanup()
 
 
 class MessageDispatcher:
+    """
+    used to parse incoming mqtt messages and dispatch them to the correct receiver
+    """
 
-    def __init__(self, gpsMonitor, trafficMonitor):
-        self._gpsMonitor = gpsMonitor
+    def __init__(self, navMonitor, trafficMonitor):
+        self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
 
     def onMessage(self, client, userdata, msg):
@@ -52,7 +50,7 @@ class MessageDispatcher:
         try:
             nmea = NMEAReader.parse(msg.payload)
             log.debug(nmea)
-            self._gpsMonitor.update(nmea)
+            self._navMonitor.update(nmea)
         except Exception as ex:
             log.error('on nmea message error, {}, "{}"'.format(str(ex), msg.payload))
             return
@@ -82,7 +80,7 @@ class MessageDispatcher:
         try:
             bme = json.loads(msg.payload.decode("UTF-8").strip())
             log.debug(bme)
-            self._gpsMonitor.updateBme(bme)
+            self._navMonitor.updateBme(bme)
         except Exception as ex:
             log.error('on bme message error, {}, "{}"'.format(str(ex), msg.payload))
             return
@@ -94,10 +92,10 @@ class GDL90Sender:
     Manages periodic GDL90 Heartbeat.
     """
 
-    def __init__(self, gdl90Port: gdl90.GDL90Port, gpsMonitor):
+    def __init__(self, gdl90Port: gdl90.GDL90Port, navMonitor):
         self._gdl90Port = gdl90Port
         self._heartbeatIntervalSeconds = 1
-        self._gpsMonitor = gpsMonitor
+        self._navMonitor = navMonitor
         self._sendHeartbeatMsg()
 
     def notify(self, obj):
@@ -120,7 +118,7 @@ class GDL90Sender:
         try:
             self._timer = threading.Timer(self._heartbeatIntervalSeconds, self._sendHeartbeatMsg)
             self._timer.start()
-            heartbeat = MessageConverter.toGDL90HeartbeatMsg(self._gpsMonitor.posInfo)
+            heartbeat = MessageConverter.toGDL90HeartbeatMsg(self._navMonitor.posInfo)
             self._send(heartbeat)
         except Exception as ex:
             log.error("error sending gdl90 heartbeat message, {}".format(str(ex)))
@@ -129,7 +127,6 @@ class GDL90Sender:
 class MessageConverter:
     """
     static class to convert & create different types of messages.
-    Can get notified with `TrafficEntry` or `NavMonitor` objects.
     """
 
     def toGDL90OwnshipMsg(posInfo: pos.PosInfo):
@@ -217,7 +214,7 @@ class MessageConverter:
 
 class JsonSender:
     """
-    used to periodically send traffic and position messages to mqtt topic
+    used to periodically publish mqtt messages with monitored information
     """
 
     def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, gdl90Port: gdl90.GDL90Port, mqttClient, sendIntervalSeconds):
@@ -291,16 +288,16 @@ def main():
 
     trafficMonitor = traffic.TrafficMonitor(aircrafts, types, dbversion, typesExtension)
     trafficMonitor.startAutoCleanup()
-    gpsMonitor = pos.NavMonitor()
-    msgDispatcher = MessageDispatcher(gpsMonitor, trafficMonitor)
+    navMonitor = pos.NavMonitor()
+    msgDispatcher = MessageDispatcher(navMonitor, trafficMonitor)
     log.debug("{name}, {broker}, {port}".format(name=clientName, broker=broker, port=port))
     mqttClient = mqtt.launch(clientName, broker, port, [nmeaTopic, ubxTopic, sbsTopic, bmeTopic], msgDispatcher.onMessage)
     gdl90Port = gdl90.GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
-    gdl90Sender = GDL90Sender(gdl90Port, gpsMonitor)
-    jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
+    gdl90Sender = GDL90Sender(gdl90Port, navMonitor)
+    jsonSender = JsonSender(navMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
     jsonSender.start()
     trafficMonitor.register(gdl90Sender)
-    gpsMonitor.register(gdl90Sender)
+    navMonitor.register(gdl90Sender)
     gdl90Port.exec()
 
 
