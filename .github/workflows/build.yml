@@ -35,8 +35,8 @@ jobs:
             name: ghcr.io/gravity981/easyadsb/ublox
             file: Dockerfile.ublox
           - context: .
-            name: ghcr.io/gravity981/easyadsb/sys
-            file: Dockerfile.sys
+            name: ghcr.io/gravity981/easyadsb/sysmgmt
+            file: Dockerfile.sysmgmt
     steps:
       - uses: actions/checkout@v3
       - name: Prepare

@@ -42,8 +42,10 @@ class MessageDispatcher:
             self._updatePosition(msg)
         elif "traffic" in msg.topic:
             self._updateTraffic(msg)
-        elif "system" in msg.topic:
+        elif "sysmgmt" in msg.topic:
             self._updateSystem(msg)
+        elif "status" in msg.topic:
+            self._updateStatus(msg)
 
     def _updateSatellites(self, msg):
         try:
@@ -112,6 +114,18 @@ class MessageDispatcher:
             )
         except Exception as ex:
             log.error("could not parse system message, {}".format(str(ex)))
+
+    def _updateStatus(self, msg):
+        try:
+            status = json.loads(msg.payload.decode("utf-8").strip())
+            QMetaObject.invokeMethod(
+                self._systemModel,
+                "updateStatus",
+                Qt.QueuedConnection,
+                Q_ARG(QVariant, status),
+            )
+        except Exception as ex:
+            log.error("could not parse status message, {}".format(str(ex)))
 
 
 def main():

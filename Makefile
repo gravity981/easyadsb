@@ -19,8 +19,8 @@ monitor:
 bme280:
 	docker build -t $(image_base_path)/bme280 -f Dockerfile.bme280 .
 
-sys:
-	docker build -t $(image_base_path)/sys -f Dockerfile.sys .
+sysmgmt:
+	docker build -t $(image_base_path)/sysmgmt -f Dockerfile.sysmgmt .
 
 run-ublox: ublox
 	docker run --rm --network=host --device=/dev/ttyAMA0 $(image_base_path)/ublox
@@ -37,8 +37,8 @@ run-dump1090: dump1090
 run-dump1090mqtt: dump1090mqtt
 	docker run --rm --network=host $(image_base_path)/dump1090mqtt
 
-run-sys: sys
-	docker run --rm --network=host $(image_base_path)/sys
+run-sysmgmt: sysmgmt
+	docker run --rm --network=host $(image_base_path)/sysmgmt
 
 rst-updater:
 	sudo systemctl restart easyadsb-updater; journalctl -u easyadsb-updater -n 50 -f

@@ -1,19 +1,20 @@
 version: '3.9'
 
 services:
-  sys:
-    container_name: sys
-    image: ghcr.io/gravity981/easyadsb/sys
+  sysmgmt:
+    container_name: sysmgmt
+    image: ghcr.io/gravity981/easyadsb/sysmgmt
     build:
-      dockerfile: Dockerfile.sys
+      dockerfile: Dockerfile.sysmgmt
     depends_on:
       - mqtt
     environment:
       - SY_LOG_LEVEL=INFO
       - SY_MQTT_HOST=mqtt
       - SY_MQTT_PORT=1883
-      - SY_MQTT_CLIENT_NAME=sys
-      - SY_MQTT_PUBLISH_TOPIC /easyadsb/sys/json
+      - SY_MQTT_CLIENT_NAME=sysmgmt
+      - SY_MQTT_PUBLISH_TOPIC=/easyadsb/sysmgmt/json
+      - SY_WIFI_IFACE=wlan0
     restart: unless-stopped
 
   dump1090:

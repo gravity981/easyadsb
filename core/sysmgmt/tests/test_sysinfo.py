@@ -1,4 +1,4 @@
-import monitor.app.sysinfo as sysinfo
+import sysmgmt.app.sysinfo as sysinfo
 
 
 def test_parseIwConfigConnected():

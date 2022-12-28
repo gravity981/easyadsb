@@ -4,6 +4,7 @@ import logging as log
 
 class SystemModel(QObject):
     systemChanged = pyqtSignal()
+    statusChanged = pyqtSignal()
 
     def __init__(self, aliveTimeout, parent=None):
         QObject.__init__(self, parent)
@@ -18,13 +19,13 @@ class SystemModel(QObject):
 
     def _die(self):
         self._isAlive = False
-        self.systemChanged.emit()
+        self.statusChanged.emit()
 
     @pyqtProperty(QVariant, notify=systemChanged)
     def wifi(self):
         return self._wifi
 
-    @pyqtProperty(QVariant, notify=systemChanged)
+    @pyqtProperty(QVariant, notify=statusChanged)
     def gdl90(self):
         return self._gdl90
 
@@ -32,16 +33,21 @@ class SystemModel(QObject):
     def resources(self):
         return self._resources
 
-    @pyqtProperty(QVariant, notify=systemChanged)
+    @pyqtProperty(QVariant, notify=statusChanged)
     def isAlive(self):
         return self._isAlive
 
     @pyqtSlot(QVariant)
     def updateSystem(self, system):
-        self._timer.start()
-        self._isAlive = True
         self._wifi = system["wifi"]
-        self._gdl90 = system["gdl90"]
         self._resources = system["resources"]
         log.debug("update system")
         self.systemChanged.emit()
+
+    @pyqtSlot(QVariant)
+    def updateStatus(self, status):
+        self._timer.start()
+        self._isAlive = True
+        self._gdl90 = status["gdl90"]
+        log.debug("update status")
+        self.statusChanged.emit()
