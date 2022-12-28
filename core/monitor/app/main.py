@@ -100,7 +100,19 @@ class GDL90Sender:
         self._gpsMonitor = gpsMonitor
         self._sendHeartbeatMsg()
 
-    def send(self, msg):
+    def notify(self, obj):
+        if type(obj) == traffic.TrafficEntry:
+            trafficMsg = MessageConverter.toGDL90TrafficMsg(obj)
+            self._send(trafficMsg)
+        elif type(obj) == pos.PosInfo:
+            ownshipMsg = MessageConverter.toGDL90OwnshipMsg(obj)
+            ownshipAltMsg = MessageConverter.toGDL90OwnshipGeoAltMsg(obj)
+            self._send(ownshipMsg)
+            self._send(ownshipAltMsg)
+        else:
+            log.error("notified with unexpected object of type {}".format(type(obj)))
+
+    def _send(self, msg):
         if self._gdl90Port.isActive:
             self._gdl90Port.putMessage(msg)
 
@@ -109,7 +121,7 @@ class GDL90Sender:
             self._timer = threading.Timer(self._heartbeatIntervalSeconds, self._sendHeartbeatMsg)
             self._timer.start()
             heartbeat = MessageConverter.toGDL90HeartbeatMsg(self._gpsMonitor.posInfo)
-            self.send(heartbeat)
+            self._send(heartbeat)
         except Exception as ex:
             log.error("error sending gdl90 heartbeat message, {}".format(str(ex)))
 
@@ -119,22 +131,6 @@ class MessageConverter:
     static class to convert & create different types of messages.
     Can get notified with `TrafficEntry` or `NavMonitor` objects.
     """
-    # todo make this a static class
-    def __init__(self, gdl90Sender: GDL90Sender):
-        self._gdl90Sender = gdl90Sender
-
-    # todo move function to gdlsender
-    def notify(self, obj):
-        if type(obj) == traffic.TrafficEntry:
-            trafficMsg = MessageConverter.toGDL90TrafficMsg(obj)
-            self._gdl90Sender.send(trafficMsg)
-        elif type(obj) == pos.PosInfo:
-            ownshipMsg = MessageConverter.toGDL90OwnshipMsg(obj)
-            ownshipAltMsg = MessageConverter.toGDL90OwnshipGeoAltMsg(obj)
-            self._gdl90Sender.send(ownshipMsg)
-            self._gdl90Sender.send(ownshipAltMsg)
-        else:
-            log.error("notified with unexpected object of type {}".format(type(obj)))
 
     def toGDL90OwnshipMsg(posInfo: pos.PosInfo):
         return gdl90.GDL90OwnshipMessage(
@@ -301,11 +297,10 @@ def main():
     mqttClient = mqtt.launch(clientName, broker, port, [nmeaTopic, ubxTopic, sbsTopic, bmeTopic], msgDispatcher.onMessage)
     gdl90Port = gdl90.GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
     gdl90Sender = GDL90Sender(gdl90Port, gpsMonitor)
-    msgConverter = MessageConverter(gdl90Sender)
     jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
     jsonSender.start()
-    trafficMonitor.register(msgConverter)
-    gpsMonitor.register(msgConverter)
+    trafficMonitor.register(gdl90Sender)
+    gpsMonitor.register(gdl90Sender)
     gdl90Port.exec()
 
 
