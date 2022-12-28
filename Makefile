@@ -1,6 +1,6 @@
 image_base_path = ghcr.io/gravity981/easyadsb
 
-.PHONY: all bme280 ublox dump1090 dump1090mqtt monitor run-ublox run-monitor run-bme280 run-dump1090 run-dump1090mqtt rst-updater rst-gui
+.PHONY: all bme280 ublox dump1090 dump1090mqtt monitor run-ublox run-monitor run-bme280 run-dump1090 run-dump1090mqtt rst-updater rst-gui rst-core
 
 all: bme280 ublox dump1090 dump1090mqtt monitor
 
@@ -39,3 +39,6 @@ rst-updater:
 
 rst-gui:
 	sudo systemctl restart easyadsb-gui; journalctl -u easyadsb-gui -f
+
+rst-core:
+	sudo systemctl restart easyadsb-core; journalctl -u easyadsb-core -f
