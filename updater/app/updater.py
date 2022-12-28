@@ -56,10 +56,14 @@ def checkForUpdates():
         time.sleep(checkIntervalSeconds)
 
 
-if __name__ == "__main__":
+def main():
     # check if installation is "verified"
     # --> mark installation as corrupt if not "verified" at startup
     # --> is there a way to rollback automatically in this case?
     logconf.setupLogging(str(os.getenv("UPDATER_LOG_LEVEL", "INFO")))
     mqtt.launchStart("easyadsb-updater", "localhost", 1883, [], None)
     checkForUpdates()
+
+
+if __name__ == "__main__":
+    main()
