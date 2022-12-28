@@ -1,14 +1,14 @@
 import logging
 
 
-def setup_logging(level: str):
+def setupLogging(level: str):
     fmt = "[%(asctime)s][%(levelname)s][%(filename)s:%(lineno)d] - %(message)s"
     if level == "DEBUG":
-        log_level = logging.DEBUG
+        logLevel = logging.DEBUG
     elif level == "INFO":
-        log_level = logging.INFO
+        logLevel = logging.INFO
     elif level == "WARNING":
-        log_level = logging.WARNING
+        logLevel = logging.WARNING
     else:
-        log_level = logging.WARNING
-    logging.basicConfig(level=log_level, format=fmt)
+        logLevel = logging.WARNING
+    logging.basicConfig(level=logLevel, format=fmt)

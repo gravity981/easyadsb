@@ -40,7 +40,7 @@ def main():
     publishTopicUbx = str(os.getenv("UB_MQTT_UBX_PUBLISH_TOPIC"))
     publishTopicNmea = str(os.getenv("UB_MQTT_NMEA_PUBLISH_TOPIC"))
 
-    logconf.setup_logging(logLevel)
+    logconf.setupLogging(logLevel)
 
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")

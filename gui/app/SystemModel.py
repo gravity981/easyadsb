@@ -1,7 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot, QVariant, QTimer
-import logging
-
-logger = logging.getLogger("logger")
+import logging as log
 
 
 class SystemModel(QObject):
@@ -45,4 +43,5 @@ class SystemModel(QObject):
         self._wifi = system["wifi"]
         self._gdl90 = system["gdl90"]
         self._resources = system["resources"]
+        log.debug("update system")
         self.systemChanged.emit()

@@ -1,7 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot, QVariant
-import logging
-
-logger = logging.getLogger("logger")
+import logging as log
 
 
 class PositionModel(QObject):
@@ -123,4 +121,5 @@ class PositionModel(QObject):
         self._humidity = position["humidity"]
         self._pressure = position["pressure"]
         self._pressureAltitude = position["pressureAltitude"]
+        log.debug("update position")
         self.positionChanged.emit()

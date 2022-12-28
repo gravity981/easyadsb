@@ -65,7 +65,7 @@ def main():
     clientName = str(os.getenv("DU_MQTT_CLIENT_NAME"))
     publishTopic = str(os.getenv("DU_MQTT_PUBLISH_TOPIC"))
 
-    logconf.setup_logging(logLevel)
+    logconf.setupLogging(logLevel)
 
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")

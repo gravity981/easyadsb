@@ -1,9 +1,7 @@
 import roles
 from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtSlot, QVariant
-import logging
+import logging as log
 import os
-
-logger = logging.getLogger("logger")
 
 
 class TrafficModel(QAbstractListModel):
@@ -109,7 +107,7 @@ class TrafficModel(QAbstractListModel):
 
     @pyqtSlot(QVariant)
     def addTrafficEntry(self, entry):
-        logger.debug("add traffic entry")
+        log.debug("add traffic entry")
         entry["category"] = self._getCategoryName(entry["category"])
         entry["imageSourcePath"] = self._getImageSourcePath(entry["type"])
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
@@ -187,12 +185,12 @@ class TrafficModel(QAbstractListModel):
             changedRoles.append(TrafficModel.MsgCountRole)
 
         if len(changedRoles) > 0:
-            logger.debug("update traffic entry {}".format(entry["id"]))
+            log.debug("update traffic entry {}".format(entry["id"]))
         self.dataChanged.emit(ix, ix, changedRoles)
 
     @pyqtSlot(int)
     def removeTrafficEntry(self, id):
-        logger.debug("remove traffic entry {}".format(id))
+        log.debug("remove traffic entry {}".format(id))
         row = self._rowFromId(id)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._trafficEntries[row]
@@ -213,7 +211,7 @@ class TrafficModel(QAbstractListModel):
         try:
             first_file = next((os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))), "default value here")
         except FileNotFoundError as ex:
-            logger.warning(str(ex))
+            log.warning(str(ex))
             first_file = ""
         return os.path.join(path, first_file)
 

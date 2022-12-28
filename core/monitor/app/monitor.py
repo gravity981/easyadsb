@@ -279,7 +279,7 @@ def main():
     gdl90NetworkInterface = str(os.getenv("MO_GDL90_NETWORK_INTERFACE"))
     gdl90NetworkPort = int(os.getenv("MO_GDL90_PORT"))
 
-    logconf.setup_logging(logLevel)
+    logconf.setupLogging(logLevel)
     atexit.register(onExit)
 
     with open("/home/data/mictronics/aircrafts.json") as f:

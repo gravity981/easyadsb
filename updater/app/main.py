@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import os
 import sys
 import github
@@ -24,18 +24,18 @@ checkIntervalSeconds = 3600
 def checkForUpdates():
     while True:
         # check for release tags and compare with locally installed version tag
-        logger.info("check for new releases...")
+        log.info("check for new releases...")
         gh = github.Github()
         try:
             repo = gh.get_repo("gravity981/easyadsb")
             releases = repo.get_releases()
             if releases.totalCount > 0:
                 for r in releases:
-                    logger.info("found: {}".format(r.title))
+                    log.info("found: {}".format(r.title))
             else:
-                logger.warning("no releases found")
+                log.warning("no releases found")
         except requests.exceptions.ConnectionError as ex:
-            logger.error("could not get releases, {}".format(str(ex)))
+            log.error("could not get releases, {}".format(str(ex)))
 
         # UPDATE PROCESS:
         # download newer release
@@ -60,7 +60,6 @@ if __name__ == "__main__":
     # check if installation is "verified"
     # --> mark installation as corrupt if not "verified" at startup
     # --> is there a way to rollback automatically in this case?
-    logconf.setup_logging(str(os.getenv("UPDATER_LOG_LEVEL", "INFO")))
-    logger = logging.getLogger("update_logger")
+    logconf.setupLogging(str(os.getenv("UPDATER_LOG_LEVEL", "INFO")))
     mqtt.launchStart("easyadsb-updater", "localhost", 1883, [], None)
     checkForUpdates()

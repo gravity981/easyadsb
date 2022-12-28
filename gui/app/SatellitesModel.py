@@ -1,8 +1,6 @@
 import roles
 from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtProperty, pyqtSignal, pyqtSlot, QVariant
-import logging
-
-logger = logging.getLogger("logger")
+import logging as log
 
 
 class SatellitesModel(QAbstractListModel):
@@ -71,7 +69,7 @@ class SatellitesModel(QAbstractListModel):
 
     @pyqtSlot(QVariant)
     def addSatellite(self, sat):
-        logger.debug("add satellite {}".format(sat["svid"]))
+        log.debug("add satellite {}".format(sat["svid"]))
         sat["maxCno"] = sat["cno"]
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._satellites.append(sat)
@@ -111,13 +109,13 @@ class SatellitesModel(QAbstractListModel):
             changedRoles.append(SatellitesModel.MaxCno)
 
         if len(changedRoles) > 0:
-            logger.debug("update satellite {}".format(sat["svid"]))
+            log.debug("update satellite {}".format(sat["svid"]))
         self.dataChanged.emit(ix, ix, changedRoles)
         self.countChanged.emit()
 
     @pyqtSlot(int)
     def removeSatellite(self, svid):
-        logger.debug("remove satellite {}".format(svid))
+        log.debug("remove satellite {}".format(svid))
         row = self._rowFromSvId(svid)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._satellites[row]

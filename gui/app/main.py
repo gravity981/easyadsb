@@ -4,7 +4,7 @@ from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import Qt,  QMetaObject, Q_ARG, QVariant
 import json
-import logging
+import logging as log
 from PositionModel import PositionModel
 from SatellitesModel import SatellitesModel
 from SystemModel import SystemModel
@@ -60,7 +60,7 @@ def updateSatellites(msg):
             if oldSvId not in svids:
                 QMetaObject.invokeMethod(satellitesModel, "removeSatellite", Qt.QueuedConnection, Q_ARG(int, oldSvId))
     except Exception as ex:
-        logger.error("could not parse satellites message, {}".format(str(ex)))
+        log.error("could not parse satellites message, {}".format(str(ex)))
 
 
 def updatePosition(msg):
@@ -73,7 +73,7 @@ def updatePosition(msg):
             Q_ARG(QVariant, position),
         )
     except Exception as ex:
-        logger.error("could not parse position message, {}".format(str(ex)))
+        log.error("could not parse position message, {}".format(str(ex)))
 
 
 def updateTraffic(msg):
@@ -91,7 +91,7 @@ def updateTraffic(msg):
             if oldId not in ids:
                 QMetaObject.invokeMethod(trafficModel, "removeTrafficEntry", Qt.QueuedConnection, Q_ARG(int, oldId))
     except Exception as ex:
-        logger.error("could not parse traffic message, {}".format(str(ex)))
+        log.error("could not parse traffic message, {}".format(str(ex)))
 
 
 def updateSystem(msg):
@@ -104,14 +104,13 @@ def updateSystem(msg):
             Q_ARG(QVariant, system),
         )
     except Exception as ex:
-        logger.error("could not parse system message, {}".format(str(ex)))
+        log.error("could not parse system message, {}".format(str(ex)))
 
 
 log_level = str(os.getenv("GUI_LOG_LEVEL"))
 mqttTopics = str(os.getenv("GUI_MQTT_TOPICS")).split(",")
 aircraftImagesPath = str(os.getenv("GUI_AIRCRAFT_IMAGES_PATH"))
-logconf.setup_logging(log_level)
-logger = logging.getLogger("logger")
+logconf.setupLogging(log_level)
 
 app = QGuiApplication(sys.argv)
 satellitesModel = SatellitesModel()

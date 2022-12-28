@@ -1,9 +1,7 @@
 from PyQt5.QtCore import QObject, pyqtSlot, Qt, QVariant
 from PyQt5.QtQuick import QQuickItem
 from PyQt5.QtGui import QKeyEvent, QGuiApplication
-import logging
-
-logger = logging.getLogger("logger")
+import logging as log
 
 
 class KeyboardController(QObject):
@@ -14,21 +12,21 @@ class KeyboardController(QObject):
     @pyqtSlot(QQuickItem, QVariant)
     def onKeyPressed(self, receiver, txt):
         code, text = self._getTextAndCode(txt)
-        logger.debug("key pressed {}, {}".format(code, text))
+        log.debug("key pressed {}, {}".format(code, text))
         ev = QKeyEvent(QKeyEvent.KeyPress, code, Qt.NoModifier, text, False)
         QGuiApplication.sendEvent(receiver, ev)
 
     @pyqtSlot(QQuickItem, QVariant)
     def onKeyLongPressed(self, receiver, txt):
         code, text = self._getTextAndCode(txt)
-        logger.debug("key long pressed {}, {}".format(code, text))
+        log.debug("key long pressed {}, {}".format(code, text))
         ev = QKeyEvent(QKeyEvent.KeyPress, code, Qt.NoModifier, text, True)
         QGuiApplication.sendEvent(receiver, ev)
 
     @pyqtSlot(QQuickItem, QVariant)
     def onKeyReleased(self, receiver, txt):
         code, text = self._getTextAndCode(txt)
-        logger.debug("key released {}, {}".format(code, text))
+        log.debug("key released {}, {}".format(code, text))
         ev = QKeyEvent(QKeyEvent.KeyRelease, code, Qt.NoModifier, text, False)
         QGuiApplication.sendEvent(receiver, ev)
 
