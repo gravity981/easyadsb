@@ -1,7 +1,5 @@
 import subprocess
-import logging
-
-logger = logging.getLogger("logger")
+import logging as log
 
 
 class Wifi:
@@ -18,7 +16,7 @@ class Wifi:
         - linkQuality: float [%]
         - signalLevel: float [dBm]
         """
-        logger.debug(iwconfigStr)
+        log.debug(iwconfigStr)
         iwconfig = dict()
 
         skey = "ESSID:"
@@ -102,7 +100,7 @@ class Resources:
         """
         Returns CPU temperature in °C from milliCelsius string
         """
-        logger.debug(milliCelsius)
+        log.debug(milliCelsius)
         try:
             return float(milliCelsius) / 1000
         except ValueError:
@@ -119,7 +117,7 @@ class Resources:
         - memFree: float [kB] (free RAM, the memory which is not used for anything at all)
         - swapCached: float [kB] (recently used swap memory, which increases the speed of I/O)
         """
-        logger.debug(meminfo)
+        log.debug(meminfo)
         result = {"memTotal": None, "memFree": None, "swapCached": None}
         for i in meminfo:
             if "MemTotal" in i:
@@ -138,7 +136,7 @@ class Resources:
         """
         not available, should return an average cpu usage over the past couple minutes
         """
-        logger.debug(stat)
+        log.debug(stat)
         # todo parse stat string, (requires calculation over time)
         return 0.0
 

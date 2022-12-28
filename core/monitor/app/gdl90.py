@@ -1,5 +1,5 @@
 from enum import IntFlag
-import logging
+import logging as log
 import math
 import queue
 import threading
@@ -13,9 +13,6 @@ import time
 GDL90 protocol implementation based on:
 https://www.faa.gov/air_traffic/technology/adsb/archival/media/GDL90_Public_ICD_RevA.PDF
 """
-
-
-logger = logging.getLogger("logger")
 
 
 class GDL90Error(Exception):
@@ -296,7 +293,7 @@ class GDL90Port:
         try:
             self._msgQueue.put(msg, block=False)
         except queue.Full:
-            logger.error("gdl90 send queue full (maxsize={}), drop message".format(self._msgQueue.maxsize))
+            log.error("gdl90 send queue full (maxsize={}), drop message".format(self._msgQueue.maxsize))
 
     def exec(self):
         """
@@ -309,7 +306,7 @@ class GDL90Port:
             if self._state == GDL90Port.STATE_INACTIVE:
                 if event == GDL90Port.EVENT_INIT_COMPLETE:
                     self._state = GDL90Port.STATE_ACTIVE
-                    logger.info("entered active state")
+                    log.info("entered active state")
                     self._stopFlag.clear()
                     self._initThread.join()
                     self._sendThread = threading.Thread(target=self._send, name="GDL90Sender")
@@ -319,7 +316,7 @@ class GDL90Port:
             elif self._state == GDL90Port.STATE_ACTIVE:
                 if event == GDL90Port.EVENT_RECEIVE_FAILURE:
                     self._state = GDL90Port.STATE_INACTIVE
-                    logger.info("entered inactive state")
+                    log.info("entered inactive state")
                     self._stopFlag.set()
                     self._sendThread.join()
                     self._recvThread.join()
@@ -348,12 +345,12 @@ class GDL90Port:
                 # bind the socket to readback broadcast packages for health check purposes
                 self._socket.bind((self._broadcastIp, self._port))
                 self._eventQueue.put(GDL90Port.EVENT_INIT_COMPLETE)
-                logger.info("send gdl90 messages to {} (iface: {}, ip: {})".format(self._broadcastIp, self._nic, addrObj))
+                log.info("send gdl90 messages to {} (iface: {}, ip: {})".format(self._broadcastIp, self._nic, addrObj))
                 self._initFailureReported = False
                 break
             except OSError as ex:
                 if not self._initFailureReported:
-                    logger.error("gdl90 udp socket init failure, {}".format(str(ex)))
+                    log.error("gdl90 udp socket init failure, {}".format(str(ex)))
                     self._initFailureReported = True
                 time.sleep(5)
 
@@ -380,7 +377,7 @@ class GDL90Port:
             except queue.Empty:
                 pass
             except Exception as e:
-                logger.error("error sending gdl90 message, {}".format(str(e)))
+                log.error("error sending gdl90 message, {}".format(str(e)))
             finally:
                 if self._stopFlag.isSet():
                     break
@@ -398,7 +395,7 @@ class GDL90Port:
                 if len(data) <= 0:
                     raise ValueError('received unexpected "{}" number of bytes'.format(len(data)))
             except (TimeoutError, ValueError, AttributeError) as e:
-                logger.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
+                log.error('detected problem with socket "{}", recreate socket...'.format(str(e)))
                 self._eventQueue.put(GDL90Port.EVENT_RECEIVE_FAILURE)
                 break
 

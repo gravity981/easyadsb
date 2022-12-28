@@ -1,11 +1,9 @@
 from enum import IntEnum, Enum
 import datetime
 import threading
-import logging
+import logging as log
 from pynmeagps import NMEAMessage
 from copy import deepcopy
-
-logger = logging.getLogger("logger")
 
 
 class NavError(Exception):
@@ -345,13 +343,13 @@ class NavMonitor:
                 self._updateGGA(msg)
 
             if self._updateCylceDone():
-                logger.debug("nav monitor update cycle done")
+                log.debug("nav monitor update cycle done")
                 self._resetUpdateCycle()
                 self._notify()
 
     def _updateGSV(self, msg):
         if msg.talker not in self._gsv:
-            logger.info("registered new talker for GSV: {}".format(msg.talker))
+            log.info("registered new talker for GSV: {}".format(msg.talker))
             self._gsv[msg.talker] = dict()
             self._gsv[msg.talker]["msgNum"] = 1
             self._gsv[msg.talker]["remainingSvCount"] = msg.numSV
@@ -381,7 +379,7 @@ class NavMonitor:
                     sv_prn = NavMonitor._prnFromSvId(sv_id)
                     self._gsv[msg.talker]["intermediateSatInfos"][sv_id] = SatInfo(sv_id, sv_prn, sv_elv, sv_az, sv_cno, False, msg.talker)
                 else:
-                    logger.debug("empty svid, skip satellite {}".format(i))
+                    log.debug("empty svid, skip satellite {}".format(i))
             self._gsv[msg.talker]["remainingSvCount"] -= max
             self._gsv[msg.talker]["msgNum"] += 1
 
@@ -398,7 +396,7 @@ class NavMonitor:
                 self._gsv[msg.talker]["done"] = True
                 self._gsv[msg.talker]["msgNum"] = 1
         else:
-            logger.warning("abort update satellites, message number out of sync")
+            log.warning("abort update satellites, message number out of sync")
             self._gsv[msg.talker]["msgNum"] = 1
             self._gsv[msg.talker]["remainingSvCount"] = 0
 
@@ -471,7 +469,7 @@ class NavMonitor:
         self._posInfo["vdop"] = float(getattr(msg, "VDOP"))
 
         if oldNavMode != self._posInfo["navMode"]:
-            logger.info("NavMode changed to {}".format(self._posInfo["navMode"]))
+            log.info("NavMode changed to {}".format(self._posInfo["navMode"]))
 
         # If less than 12 SVs are used for navigation, the remaining fields are left empty.
         # If more than 12 SVs are used for navigation, only the IDs of the first 12 are output.
@@ -494,11 +492,11 @@ class NavMonitor:
                     talker = next(it, self._gsa["talkers"][0])
                     break
             if talker is not None:
-                logger.info("no used satellites in gsa message, guessed talker is {}".format(talker))
+                log.info("no used satellites in gsa message, guessed talker is {}".format(talker))
             else:
-                logger.debug("could not determine gsa message talker")
+                log.debug("could not determine gsa message talker")
 
-        logger.debug("talker: {}, usedSatIds: {}".format(talker, str(usedSatIds)))
+        log.debug("talker: {}, usedSatIds: {}".format(talker, str(usedSatIds)))
 
         # update used satellites depending on talker and usedSatIds
         if talker in self._gsa["talkers"]:
@@ -507,7 +505,7 @@ class NavMonitor:
                     sat["used"] = satId in usedSatIds
             self._gsaPreviousTalker = talker
         else:
-            logger.debug("could not update used satellites, unkown talker {}".format(talker))
+            log.debug("could not update used satellites, unkown talker {}".format(talker))
         self._gsa["done"] = True
 
     def _updateVTG(self, msg):

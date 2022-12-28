@@ -1,15 +1,13 @@
 from enum import IntEnum
 from datetime import datetime
 import threading
-import logging
+import logging as log
 from copy import deepcopy
 
 try:
     from monitor.app.sbs import SBSMessage
 except ImportError:
     from sbs import SBSMessage
-
-logger = logging.getLogger("logger")
 
 
 class TrafficError(Exception):
@@ -413,7 +411,7 @@ class TrafficMonitor:
                     msg.isOnGround,
                 )
                 self._traffic[msg.hexIdent] = entry
-                logger.info("add new {:X}, {}, {}, {} (count {})".format(entry.id, entry.callsign, entry.type, entry.category.name, len(self._traffic)))
+                log.info("add new {:X}, {}, {}, {} (count {})".format(entry.id, entry.callsign, entry.type, entry.category.name, len(self._traffic)))
             self._notify(entry)
 
     def _notify(self, trafficEntry):
@@ -428,7 +426,7 @@ class TrafficMonitor:
             for k in list(self._traffic.keys()):
                 entry = self._traffic[k]
                 if entry.lastSeen > maxLastSeenSeconds:
-                    logger.info(
+                    log.info(
                         "remove {:X}, {}, {}, {} (unseen for >{} seconds)".format(
                             entry.id, entry.callsign, entry.type, entry.category.name, maxLastSeenSeconds
                         )
