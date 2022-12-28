@@ -25,4 +25,4 @@ COPY core/monitor/data ./data
 COPY common/ ./app
 COPY core/monitor/app ./app
 
-CMD ["python", "/home/app/main.py"]
+CMD ["python", "/home/app/monitor.py"]
