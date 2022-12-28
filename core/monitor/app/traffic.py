@@ -355,6 +355,13 @@ class TrafficMonitor:
         with self._lock:
             return deepcopy(self._traffic)
 
+    @property
+    def dbversion(self) -> int:
+        """
+        dbversion used to enrich traffic information
+        """
+        return self._dbversion
+
     def startAutoCleanup(self, interval: int = 10):
         """
         Start cleanup timer, removes unseen traffic
@@ -374,8 +381,6 @@ class TrafficMonitor:
         """
         self._observers.append(obj)
 
-    # TODO stop updating with SBSMessage, provide generic update method
-    # this is to make this module independent of SBS and allow other sources to update traffic
     def update(self, msg: SBSMessage):
         """
         Update :class:`TrafficMonitor` from :class:`SBSMessage`
