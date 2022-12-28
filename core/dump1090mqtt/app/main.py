@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import atexit
 import os
 import socket
@@ -13,83 +13,73 @@ except ImportError:
     import logconf
 
 
-def on_exit():
-    global run
-    if logger is not None:
-        logger.info("exit application")
-    if client is not None:
-        client.disconnect()
-    run = False
+def onExit(mqClient):
+    log.info("exit application")
+    if mqClient is not None:
+        mqClient.disconnect()
 
 
-# works for protocols which have pakets that end on \n
-def socket_readline(skt):
-    buf_size = 4096
-    line = skt.recv(buf_size, socket.MSG_PEEK)
+# works for protocols which have frames that end on \n
+def socketReadline(skt):
+    bufSize = 4096
+    line = skt.recv(bufSize, socket.MSG_PEEK)
     if len(line) == 0:
         raise Exception("connection lost")
     elif len(line) < 5:
-        logger.warning('very short message, "{}"'.format(line))
+        log.warning('very short message, "{}"'.format(line))
     eol = line.find(b"\n")
     if eol >= 0:
         size = eol + 1
     else:
-        logger.warning("unable to find end of message")
+        log.warning("unable to find end of message")
         size = len(line)
     return skt.recv(size)
 
 
-def run_tcp_publish(sock):
-    global tcp_connected
-    while run:
+def runTcpPublish(sock, mqClient, publishTopic, tcpHost, tcpPort, tcpConnected):
+    while True:
         try:
-            line = socket_readline(sock)
-            logger.debug(line)
-            client.publish(publish_topic, line)
+            line = socketReadline(sock)
+            log.debug(line)
+            mqClient.publish(publishTopic, line)
         except Exception as ex:
-            logger.error("socket readline error, {}".format(str(ex)))
-            tcp_connected = False
+            log.error("socket readline error, {}".format(str(ex)))
+            tcpConnected = False
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            logger.info('try reconnecting to "{}:{}"'.format(tcp_host, tcp_port))
-            while not tcp_connected:
+            log.info('try reconnecting to "{}:{}"'.format(tcpHost, tcpPort))
+            while not tcpConnected:
                 try:
-                    sock.connect((tcp_host, tcp_port))
-                    tcp_connected = True
-                    logger.info("reconnected")
+                    sock.connect((tcpHost, tcpPort))
+                    tcpConnected = True
+                    log.info("reconnected")
                 except socket.error:
                     time.sleep(5)
 
 
-if __name__ == "__main__":
-    logger = None
-    client = None
-    run = True
-    tcp_connected = False
-
-    logger_name = "logger"
-    log_level = str(os.getenv("DU_LOG_LEVEL"))
-    tcp_host = str(os.getenv("DU_TCP_HOST"))
-    tcp_port = int(os.getenv("DU_TCP_PORT"))
+def main():
+    logLevel = str(os.getenv("DU_LOG_LEVEL"))
+    tcpHost = str(os.getenv("DU_TCP_HOST"))
+    tcpPort = int(os.getenv("DU_TCP_PORT"))
     broker = str(os.getenv("DU_MQTT_HOST"))
     port = int(os.getenv("DU_MQTT_PORT"))
-    client_name = str(os.getenv("DU_MQTT_CLIENT_NAME"))
-    publish_topic = str(os.getenv("DU_MQTT_PUBLISH_TOPIC"))
+    clientName = str(os.getenv("DU_MQTT_CLIENT_NAME"))
+    publishTopic = str(os.getenv("DU_MQTT_PUBLISH_TOPIC"))
 
-    logconf.setup_logging(log_level)
-    logger = logging.getLogger(logger_name)
-    atexit.register(on_exit)
+    logconf.setup_logging(logLevel)
 
-    if client_name == "":
-        logger.info("client_name is empty, assign uuid")
-        client_name = str(uuid.uuid1())
+    if clientName == "":
+        log.info("mqtt client name is empty, assign uuid")
+        clientName = str(uuid.uuid1())
 
-    client = mqtt.launch(client_name, broker, port, [], None)
+    mqClient = mqtt.launch(clientName, broker, port, [], None)
+    atexit.register(onExit, mqClient)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    logger.debug('connect to "{host}:{port}"'.format(host=tcp_host, port=tcp_port))
-    sock.connect((tcp_host, tcp_port))
-    tcp_connected = True
-    logger.info('start publishing messages from "{host}:{port}" to {topic}'.format(host=tcp_host, port=tcp_port, topic=publish_topic))
-    run_tcp_publish(sock)
+    log.debug('connect to "{host}:{port}"'.format(host=tcpHost, port=tcpPort))
+    sock.connect((tcpHost, tcpPort))
+    log.info('start publishing messages from "{host}:{port}" to {topic}'.format(host=tcpHost, port=tcpPort, topic=publishTopic))
+    runTcpPublish(sock, mqClient, publishTopic, tcpHost, tcpPort, True)
 
-    exit()
+
+if __name__ == "__main__":
+    main()

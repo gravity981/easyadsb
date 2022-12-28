@@ -29,4 +29,7 @@ run-bme280: bme280
 	docker run --rm --network=host --device=/dev/i2c-1 $(image_base_path)/bme280
 
 run-dump1090: dump1090
-	docker run --rm  --device=/dev/bus/usb $(image_base_path)/dump1090
+	docker run --rm  --device=/dev/bus/usb --network=host -p 30003:30003 $(image_base_path)/dump1090
+
+run-dump1090mqtt: dump1090mqtt
+	docker run --rm --network=host $(image_base_path)/dump1090mqtt
