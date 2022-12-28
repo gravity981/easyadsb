@@ -1,0 +1,24 @@
+FROM arm32v7/python:3.11-alpine
+
+LABEL org.opencontainers.image.source = "https://github.com/gravity981/easyadsb"
+
+# general
+# =======
+ENV SY_LOG_LEVEL INFO
+
+# MQTT
+# ====
+ENV SY_MQTT_HOST localhost
+ENV SY_MQTT_PORT 1883
+ENV SY_MQTT_CLIENT_NAME ""
+ENV SY_MQTT_PUBLISH_TOPIC /easyadsb/sys/json
+
+RUN apk add wireless-tools
+
+WORKDIR /home
+COPY core/sys/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY common/ ./app
+COPY core/sys/app ./app
+
+CMD ["python", "/home/app/sys.py"]

@@ -1,6 +1,21 @@
 version: '3.9'
 
 services:
+  sys:
+    container_name: sys
+    image: ghcr.io/gravity981/easyadsb/sys
+    build:
+      dockerfile: Dockerfile.sys
+    depends_on:
+      - mqtt
+    environment:
+      - SY_LOG_LEVEL=INFO
+      - SY_MQTT_HOST=mqtt
+      - SY_MQTT_PORT=1883
+      - SY_MQTT_CLIENT_NAME=sys
+      - SY_MQTT_PUBLISH_TOPIC /easyadsb/sys/json
+    restart: unless-stopped
+
   dump1090:
     container_name: dump1090
     image: ghcr.io/gravity981/easyadsb/dump1090
