@@ -29,4 +29,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY common/ ./app
 COPY core/bme280/app ./app
 
-CMD ["python", "/home/app/main.py"]
+CMD ["python", "/home/app/bme.py"]
