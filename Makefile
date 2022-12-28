@@ -2,7 +2,7 @@ image_base_path = ghcr.io/gravity981/easyadsb
 
 .PHONY: all bme280 ublox dump1090 dump1090mqtt monitor sys run-ublox run-monitor run-bme280 run-dump1090 run-dump1090mqtt rst-updater rst-gui rst-core
 
-all: bme280 ublox dump1090 dump1090mqtt monitor sys
+all: bme280 ublox dump1090mqtt monitor sys
 
 dump1090:
 	docker build -t $(image_base_path)/dump1090 -f Dockerfile.dump1090 .
