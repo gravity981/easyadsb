@@ -132,3 +132,51 @@ def test_parseCpuTempWellformed():
 def test_parseCpuTempMalformed():
     temperature = sysinfo.Resources.parseCpuTemperature("banana")
     assert temperature is None
+
+
+def test_parseIwlistWelformed():
+    iwlistStr = """-           Cell 01 - Address: 96:AE:10:E1:03:CC
+                    Frequency:2.437 GHz (Channel 6)
+                    Quality=57/70  Signal level=-53 dBm
+                    Encryption key:on
+                    ESSID:"PanicAtTheDisco"
+          Cell 02 - Address: 8C:19:B5:B1:63:99
+                    Frequency:2.437 GHz (Channel 6)
+                    Quality=49/70  Signal level=-61 dBm
+                    Encryption key:on
+                    ESSID:"Salt_2GHz_B16397"
+          Cell 03 - Address: 96:AE:10:E1:03:CC
+                    Frequency:2.437 GHz (Channel 6)
+                    Quality=60/70  Signal level=-50 dBm
+                    Encryption key:on
+                    ESSID:"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+          Cell 04 - Address: 74:DA:38:45:37:0A
+                    Frequency:2.417 GHz (Channel 2)
+                    Quality=42/70  Signal level=-68 dBm
+                    Encryption key:on
+                    ESSID:"edimax_2.4G_45370A"
+          Cell 05 - Address: 8C:19:B5:B1:63:98
+                    Frequency:5.26 GHz (Channel 52)
+                    Quality=27/70  Signal level=-83 dBm
+                    Encryption key:on
+                    ESSID:"Salt_5GHz_B16397"
+          Cell 06 - Address: 72:19:B5:B1:63:9A
+                    Frequency:5.26 GHz (Channel 52)
+                    Quality=27/70  Signal level=-83 dBm
+                    Encryption key:on
+                    ESSID:"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+          Cell 07 - Address: 62:19:B5:B1:63:9B
+                    Frequency:2.437 GHz (Channel 6)
+                    Quality=48/70  Signal level=-62 dBm
+                    Encryption key:on
+                    ESSID:"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        """
+    wifilist = sysinfo.Wifi.parseIwList(iwlistStr)
+    assert len(wifilist) == 7
+    first = wifilist[0]
+    assert first["ssid"] == "PanicAtTheDisco"
+    assert first["frequency"] == 2.437
+    assert first["accesspoint"] == "96:AE:10:E1:03:CC"
+    assert first["linkQuality"] == 0.814
+    assert first["signalLevel"] == -53.0
+    assert first["encrypted"] is True

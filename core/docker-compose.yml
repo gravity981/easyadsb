@@ -16,6 +16,7 @@ services:
       - SY_MQTT_PUBLISH_TOPIC=/easyadsb/sysmgmt/json
       - SY_WIFI_IFACE=wlan0
     restart: unless-stopped
+    privileged: true
 
   dump1090:
     container_name: dump1090

@@ -5,6 +5,8 @@ import uuid
 import time
 import json
 import sysinfo
+import threading
+from copy import deepcopy
 
 try:
     import common.mqtt as mqtt
@@ -19,18 +21,46 @@ def onExit(mqClient):
     if mqClient is not None:
         mqClient.disconnect()
 
-
-def runPeriodicPublish(mqClient, publishTopic, wifiIface):
+def runPeriodicPublish(mqClient, publishTopic, iface, wifiscanner):
     intervalSeconds = 1
     while True:
         system = dict()
-        system["wifi"] = sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(wifiIface))
+        system["wifi"] = sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(iface))
+        system["wifilist"] = wifiscanner.wifilist
         system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
         system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
         system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
         system = json.dumps(system)
         mqClient.publish("/easyadsb/sysmgmt/json", system)
         time.sleep(intervalSeconds)
+
+
+class WifiScanner:
+
+    def __init__(self, iface):
+        self._iface = iface
+        self._wifilist = []
+        self._lock = threading.Lock()
+        self._timer = threading.Timer(0, self._scanWifi)
+
+    @property
+    def wifilist(self):
+        with self._lock:
+            return deepcopy(self._wifilist)
+
+    def start(self):
+        with self._lock:
+            self._timer.start()
+
+    def stop(self):
+        with self._lock:
+            self._timer.stop()
+
+    def _scanWifi(self):
+        with self._lock:
+            self._timer = threading.Timer(10, self._scanWifi)
+            self._timer.start()
+            self._wifilist = sysinfo.Wifi.parseIwList(sysinfo.Wifi.getIwList(self._iface))
 
 
 def main():
@@ -50,7 +80,10 @@ def main():
     mqClient = mqtt.launch(clientName, broker, port, [], None)
     atexit.register(onExit, mqClient)
 
-    runPeriodicPublish(mqClient, publishTopic, wifiIface)
+    wifiscanner = WifiScanner(wifiIface)
+    wifiscanner.start()
+
+    runPeriodicPublish(mqClient, publishTopic, wifiIface, wifiscanner)
 
 
 if __name__ == "__main__":

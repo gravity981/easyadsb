@@ -1,5 +1,6 @@
 import subprocess
 import logging as log
+import shlex
 
 
 class Wifi:
@@ -22,15 +23,110 @@ class Wifi:
         skey = "ESSID:"
         ekey = " "
         ssid = Wifi._extractString(skey, ekey, iwconfigStr)
-        if ssid and '"' in ssid:
-            ssid = ssid.strip('"')
-        else:
-            ssid = None
-        iwconfig["ssid"] = ssid
+        iwconfig["ssid"] = Wifi._parseSsid(ssid)
 
         skey = "Frequency:"
         ekey = " GHz"
         frequency = Wifi._extractString(skey, ekey, iwconfigStr)
+        iwconfig["frequency"] = Wifi._parseFrequency(frequency)
+
+        skey = "Access Point:"
+        ekey = "  "
+        ap = Wifi._extractString(skey, ekey, iwconfigStr)
+        iwconfig["accesspoint"] = Wifi._parseAccesspoint(ap)
+
+        skey = "Link Quality="
+        ekey = " "
+        linkQuality = Wifi._extractString(skey, ekey, iwconfigStr)
+        iwconfig["linkQuality"] = Wifi._parseLinkQuality(linkQuality)
+
+        skey = "Signal level="
+        ekey = " dBm"
+        signalLevel = Wifi._extractString(skey, ekey, iwconfigStr)
+        iwconfig["signalLevel"] = Wifi._parseSignalLevel(signalLevel)
+
+        return iwconfig
+
+    def getIwList(iface):
+        cmd = "awk '/ESSID/ || /Frequency/ || /Cell/ || /Quality/ || /Address/ || /Encryption/'"
+        pAwk = subprocess.Popen(shlex.split(cmd), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        cmd = "iwlist {} scan".format(iface)
+        pIwlist = subprocess.Popen(shlex.split(cmd), stdout=pAwk.stdin)
+        out, err = pAwk.communicate()
+        pIwlist.wait()
+        return out.decode("utf-8")
+
+    def parseIwList(iwlistStr):
+        """
+        returns a list of dicts with following entries
+        - SSID: str
+        - frequency: float [GHz]
+        - accesspoint: str [MAC addr]
+        - linkQuality: float [%]
+        - signalLevel: float [dBm]
+        - encrypted: bool
+        """
+        wifilist = []
+        cells = iwlistStr.replace("\n", " ").split("Cell")
+        if len(cells) > 1:
+            del cells[0]
+        for cell in cells:
+            info = dict()
+
+            skey = "ESSID:"
+            ekey = " "
+            val = Wifi._extractString(skey, ekey, cell)
+            info["ssid"] = Wifi._parseSsid(val)
+
+            skey = "Address: "
+            ekey = " "
+            val = Wifi._extractString(skey, ekey, cell)
+            info["accesspoint"] = Wifi._parseAccesspoint(val)
+
+            skey = "Frequency:"
+            ekey = " "
+            val = Wifi._extractString(skey, ekey, cell)
+            info["frequency"] = Wifi._parseFrequency(val)
+
+            skey = "Quality="
+            ekey = " "
+            val = Wifi._extractString(skey, ekey, cell)
+            info["linkQuality"] = Wifi._parseLinkQuality(val)
+
+            skey = "Signal level="
+            ekey = " "
+            val = Wifi._extractString(skey, ekey, cell)
+            info["signalLevel"] = Wifi._parseSignalLevel(val)
+
+            skey = "Encryption key:"
+            ekey = " "
+            val = Wifi._extractString(skey, ekey, cell)
+            info["encrypted"] = Wifi._parseEncrypted(val)
+
+            wifilist.append(info)
+        return wifilist
+
+    def _extractString(skey, ekey, raw):
+        """
+        returns the substring from raw between skey and ekey
+        """
+        start = raw.find(skey)
+        if start < 0:
+            return
+        start += len(skey)
+        end = raw.find(ekey, start)
+        if end < 0:
+            return
+        return raw[start:end]
+
+    def _parseSsid(ssid):
+        if ssid and '"' in ssid:
+            ssid = ssid.strip('"')
+        else:
+            ssid = None
+        return ssid
+
+    def _parseFrequency(frequency):
         if frequency:
             try:
                 frequency = float(frequency)
@@ -38,20 +134,16 @@ class Wifi:
                 frequency = None
         else:
             frequency = None
-        iwconfig["frequency"] = frequency
+        return frequency
 
-        skey = "Access Point:"
-        ekey = "  "
-        ap = Wifi._extractString(skey, ekey, iwconfigStr)
+    def _parseAccesspoint(ap):
         if ap:
             ap = ap.strip()
         else:
             ap = None
-        iwconfig["accesspoint"] = ap
+        return ap
 
-        skey = "Link Quality="
-        ekey = " "
-        linkQuality = Wifi._extractString(skey, ekey, iwconfigStr)
+    def _parseLinkQuality(linkQuality):
         if linkQuality:
             linkQuality = linkQuality.split("/")
             if len(linkQuality) == 2:
@@ -63,11 +155,9 @@ class Wifi:
                 linkQuality = None
         else:
             linkQuality = None
-        iwconfig["linkQuality"] = linkQuality
+        return linkQuality
 
-        skey = "Signal level="
-        ekey = " dBm"
-        signalLevel = Wifi._extractString(skey, ekey, iwconfigStr)
+    def _parseSignalLevel(signalLevel):
         if signalLevel:
             try:
                 signalLevel = float(signalLevel)
@@ -75,19 +165,14 @@ class Wifi:
                 signalLevel = None
         else:
             signalLevel = None
-        iwconfig["signalLevel"] = signalLevel
+        return signalLevel
 
-        return iwconfig
-
-    def _extractString(skey, ekey, raw):
-        start = raw.find(skey)
-        if start < 0:
-            return
-        start += len(skey)
-        end = raw.find(ekey, start)
-        if end < 0:
-            return
-        return raw[start:end]
+    def _parseEncrypted(encrypted):
+        if encrypted:
+            encrypted = encrypted.strip()
+        else:
+            encrypted = None
+        return encrypted == "on"
 
 
 class Resources:
