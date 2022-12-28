@@ -28,8 +28,12 @@ def calculatePressureAltitude(pressure, temperature) -> float:
 
 
 def runPeriodicPublish(mqClient, bus, address, calibrationParams, publishTopic):
+    intervalSeconds = 1
     while True:
-        data = bme280.sample(bus, address, calibrationParams)
+        start = time.perf_counter()
+        # x8 oversampling, 115ms, ~8.7Hz
+        # x16 oversampling, 225ms, ~4 Hz
+        data = bme280.sample(bus, address, calibrationParams, bme280.oversampling.x16)
         obj = dict()
         obj["humidity"] = round(data.humidity, 3)  # %H
         obj["pressure"] = round(data.pressure, 3)  # hPa
@@ -38,7 +42,13 @@ def runPeriodicPublish(mqClient, bus, address, calibrationParams, publishTopic):
         js = json.dumps(obj)
         log.debug(js)
         mqClient.publish(publishTopic, js)
-        time.sleep(1)
+        end = time.perf_counter()
+        usedSeconds = (end-start)
+        sleepSeconds = intervalSeconds - usedSeconds
+        if sleepSeconds < 0:
+            log.warning("periodic function takes longer than requested interval of {} seconds".format(intervalSeconds))
+            sleepSeconds = 0
+        time.sleep(sleepSeconds)
 
 
 def main():
