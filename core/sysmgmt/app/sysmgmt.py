@@ -21,6 +21,7 @@ def onExit(mqClient):
     if mqClient is not None:
         mqClient.disconnect()
 
+
 def runPeriodicPublish(mqClient, publishTopic, iface, wifiscanner):
     intervalSeconds = 1
     while True:
