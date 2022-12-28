@@ -13,4 +13,4 @@ export GUI_LOG_LEVEL=INFO
 export GUI_AIRCRAFT_IMAGES_PATH=/home/pi/aircraft_images
 export GUI_MQTT_TOPICS=/easyadsb/monitor/satellites,/easyadsb/monitor/traffic,/easyadsb/monitor/position,/easyadsb/monitor/system
 cd app
-/usr/bin/python main.py -platform eglfs
+/usr/bin/python gui.py -platform eglfs
