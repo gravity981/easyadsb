@@ -27,9 +27,9 @@ def calculatePressureAltitude(pressure, temperature) -> float:
     return (((referencePressure / pressure) ** (1 / 5.257) - 1) * (temperature + 273.15)) / 0.0065
 
 
-def run_periodic_publish(mqClient, bus, address, calibration_params, publish_topic):
+def runPeriodicPublish(mqClient, bus, address, calibrationParams, publishTopic):
     while True:
-        data = bme280.sample(bus, address, calibration_params)
+        data = bme280.sample(bus, address, calibrationParams)
         obj = dict()
         obj["humidity"] = round(data.humidity, 3)  # %H
         obj["pressure"] = round(data.pressure, 3)  # hPa
@@ -37,35 +37,33 @@ def run_periodic_publish(mqClient, bus, address, calibration_params, publish_top
         obj["pressureAltitude"] = round(calculatePressureAltitude(data.pressure, data.temperature), 3)  # m
         js = json.dumps(obj)
         log.debug(js)
-        mqClient.publish(publish_topic, js)
+        mqClient.publish(publishTopic, js)
         time.sleep(1)
 
 
 def main():
-    mqClient = None
-
-    i2c_port = int(os.getenv("BM_I2C_PORT"))
-    i2c_address = int(os.getenv("BM_I2C_ADDRESS"), 16)
-    log_level = str(os.getenv("BM_LOG_LEVEL"))
+    i2cPort = int(os.getenv("BM_I2C_PORT"))
+    i2cAddress = int(os.getenv("BM_I2C_ADDRESS"), 16)
+    logLevel = str(os.getenv("BM_LOG_LEVEL"))
     broker = str(os.getenv("BM_MQTT_HOST"))
     port = int(os.getenv("BM_MQTT_PORT"))
-    client_name = str(os.getenv("BM_MQTT_CLIENT_NAME"))
-    publish_topic = str(os.getenv("BM_MQTT_PUBLISH_TOPIC"))
+    clientName = str(os.getenv("BM_MQTT_CLIENT_NAME"))
+    publishTopic = str(os.getenv("BM_MQTT_PUBLISH_TOPIC"))
 
-    logconf.setup_logging(log_level)
+    logconf.setup_logging(logLevel)
 
-    if client_name == "":
-        log.info("client_name is empty, assign uuid")
-        client_name = str(uuid.uuid1())
+    if clientName == "":
+        log.info("mqtt client name is empty, assign uuid")
+        clientName = str(uuid.uuid1())
 
-    mqClient = mqtt.launch(client_name, broker, port, [], None)
+    mqClient = mqtt.launch(clientName, broker, port, [], None)
     atexit.register(onExit, mqClient)
 
     # BME280 sensor stuff
-    bus = smbus2.SMBus(i2c_port)
-    calibration_params = bme280.load_calibration_params(bus, i2c_address)
-    log.info("start publishing i2c messages to {topic}".format(topic=publish_topic))
-    run_periodic_publish(mqClient, bus, i2c_address, calibration_params, publish_topic)
+    bus = smbus2.SMBus(i2cPort)
+    calibration_params = bme280.load_calibration_params(bus, i2cAddress)
+    log.info("start publishing i2c messages to {topic}".format(topic=publishTopic))
+    runPeriodicPublish(mqClient, bus, i2cAddress, calibration_params, publishTopic)
 
 
 if __name__ == "__main__":
