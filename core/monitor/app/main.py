@@ -21,7 +21,7 @@ except ImportError:
     import logconf
 
 
-def on_exit():
+def onExit():
     log.info("Exit application")
     # if mqttClient is not None:
     #    mqttClient.loop_stop()
@@ -266,40 +266,40 @@ class JsonSender:
 
 def main():
     mqttClient = None
-    log_level = str(os.getenv("MO_LOG_LEVEL"))
+    logLevel = str(os.getenv("MO_LOG_LEVEL"))
     broker = str(os.getenv("MO_MQTT_HOST"))
     port = int(os.getenv("MO_MQTT_PORT"))
-    client_name = str(os.getenv("MO_MQTT_CLIENT_NAME"))
-    nmea_topic = str(os.getenv("MO_MQTT_NMEA_TOPIC"))
-    ubx_topic = str(os.getenv("MO_MQTT_UBX_TOPIC"))
-    sbs_topic = str(os.getenv("MO_MQTT_SBS_TOPIC"))
-    bme_topic = str(os.getenv("MO_MQTT_BME280_TOPIC"))
-    gdl90_network_interface = str(os.getenv("MO_GDL90_NETWORK_INTERFACE"))
-    gdl90_port = int(os.getenv("MO_GDL90_PORT"))
+    clientName = str(os.getenv("MO_MQTT_CLIENT_NAME"))
+    nmeaTopic = str(os.getenv("MO_MQTT_NMEA_TOPIC"))
+    ubxTopic = str(os.getenv("MO_MQTT_UBX_TOPIC"))
+    sbsTopic = str(os.getenv("MO_MQTT_SBS_TOPIC"))
+    bmeTopic = str(os.getenv("MO_MQTT_BME280_TOPIC"))
+    gdl90NetworkInterface = str(os.getenv("MO_GDL90_NETWORK_INTERFACE"))
+    gdl90NetworkPort = int(os.getenv("MO_GDL90_PORT"))
 
-    logconf.setup_logging(log_level)
-    atexit.register(on_exit)
+    logconf.setup_logging(logLevel)
+    atexit.register(onExit)
 
-    with open("/home/data/mictronics/aircrafts.json") as json_file:
-        aircrafts = json.load(json_file)
-    with open("/home/data/mictronics/types.json") as json_file:
-        types = json.load(json_file)
-    with open("/home/data/mictronics/dbversion.json") as json_file:
-        dbversion = json.load(json_file)
-    with open("/home/data/typesExtension.json") as json_file:
-        typesExtension = json.load(json_file)
+    with open("/home/data/mictronics/aircrafts.json") as f:
+        aircrafts = json.load(f)
+    with open("/home/data/mictronics/types.json") as f:
+        types = json.load(f)
+    with open("/home/data/mictronics/dbversion.json") as f:
+        dbversion = json.load(f)
+    with open("/home/data/typesExtension.json") as f:
+        typesExtension = json.load(f)
 
-    if client_name == "":
-        log.info("client_name is empty, assign uuid")
-        client_name = str(uuid.uuid1())
+    if clientName == "":
+        log.info("mqtt client name is empty, assign uuid")
+        clientName = str(uuid.uuid1())
 
     trafficMonitor = traffic.TrafficMonitor(aircrafts, types, dbversion, typesExtension)
     trafficMonitor.startAutoCleanup()
     gpsMonitor = pos.NavMonitor()
     msgDispatcher = MessageDispatcher(gpsMonitor, trafficMonitor)
-    log.debug("{client_name}, {broker}, {port}".format(client_name=client_name, broker=broker, port=port))
-    mqttClient = mqtt.launch(client_name, broker, port, [nmea_topic, ubx_topic, sbs_topic, bme_topic], msgDispatcher.onMessage)
-    gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)
+    log.debug("{name}, {broker}, {port}".format(name=clientName, broker=broker, port=port))
+    mqttClient = mqtt.launch(clientName, broker, port, [nmeaTopic, ubxTopic, sbsTopic, bmeTopic], msgDispatcher.onMessage)
+    gdl90Port = gdl90.GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
     gdl90Sender = GDL90Sender(gdl90Port, gpsMonitor)
     msgConverter = MessageConverter(gdl90Sender)
     jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
