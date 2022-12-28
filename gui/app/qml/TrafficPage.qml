@@ -131,9 +131,10 @@ Page {
                     height: parent.height
                     border.width: 1
                     border.color: "#000000"
+                    color: Constants.lastSeenColor(lastSeenSeconds)
                     Text {
                         anchors.centerIn: parent
-                        text: lastSeen
+                        text: lastSeenSeconds
                         font.pointSize: 8
                     }
                 }

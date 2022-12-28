@@ -64,4 +64,22 @@ QtObject {
                 return ""
         }
     }
+
+    function lastSeenColor(deltaSeconds) {
+        let val = interpolate(deltaSeconds, 0, 1.0, 30, 0.0)
+        if (val < 0) {
+            val = 0
+        }
+        else if (val > 1) {
+            val = 1
+        }
+        return Qt.hsva(0.3333, val, 0.75)
+    }
+
+    function interpolate(x, x0, y0, x1, y1) {
+        // x0 and y0, start values
+        // x1 and y1, end values
+        // returns linear interpolated y for x
+        return y0 + (x - x0)*(y1 - y0)/(x1 - x0)
+    }
 }
