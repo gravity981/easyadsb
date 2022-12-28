@@ -337,11 +337,11 @@ class TrafficMonitor:
     Monitors Flight Traffic. Can be updated with :class:`SBSMessage`
     """
 
-    def __init__(self, aircraftsDb: dict = None, typesDb: dict = None, dbversion: dict = None, typesExtensionDb: dict = None):
+    def __init__(self, aircraftsDb: dict = None, typesDb: dict = None, dbversion: int = None, typesExtensionDb: dict = None):
         self._traffic = dict()
         self._aircraftsDb = aircraftsDb
         self._typesDb = typesDb
-        self._dbversion = dbversion["version"]
+        self._dbversion = dbversion
         self._typesExtensionDb = typesExtensionDb
         self._lock = threading.Lock()
         self._timer = None

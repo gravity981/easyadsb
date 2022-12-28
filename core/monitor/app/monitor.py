@@ -295,7 +295,7 @@ def main():
         log.info("mqtt client name is empty, assign uuid")
         clientName = str(uuid.uuid1())
 
-    trafficMonitor = TrafficMonitor(aircrafts, types, dbversion, typesExtension)
+    trafficMonitor = TrafficMonitor(aircrafts, types, dbversion["version"], typesExtension)
     trafficMonitor.startAutoCleanup()
     navMonitor = NavMonitor()
     msgDispatcher = MessageDispatcher(navMonitor, trafficMonitor)
