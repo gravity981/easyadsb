@@ -1,7 +1,7 @@
 from serial import Serial
 from pyubx2 import UBXReader, UBXMessage
 from pynmeagps import NMEAMessage
-import logging
+import logging as log
 import atexit
 import os
 import uuid
@@ -14,54 +14,47 @@ except ImportError:
     import logconf
 
 
-def on_exit():
-    global run
-    if logger is not None:
-        logger.info("Exit application")
+def onExit(mqClient):
+    log.info("Exit application")
     if mqClient is not None:
         mqClient.disconnect()
-    run = False
 
 
-def run_serial_publish(mqClient, ubr: UBXReader):
-    while run:
-        (raw_data, parsed_data) = ubr.read()
-        logger.debug(parsed_data)
-        if type(parsed_data) == UBXMessage:
-            mqClient.publish(publish_topic_ubx, raw_data)
-        if type(parsed_data) == NMEAMessage:
-            mqClient.publish(publish_topic_nmea, raw_data)
+def runSerialPublish(mqClient, ubr: UBXReader, publishTopicUbx, publishTopicNmea):
+    while True:
+        (rawData, parsedData) = ubr.read()
+        log.debug(parsedData)
+        if type(parsedData) == UBXMessage:
+            mqClient.publish(publishTopicUbx, rawData)
+        if type(parsedData) == NMEAMessage:
+            mqClient.publish(publishTopicNmea, rawData)
+
+
+def main():
+    logLevel = str(os.getenv("UB_LOG_LEVEL"))
+    serialDevice = str(os.getenv("UB_SERIAL_DEVICE"))
+    serialBaud = int(os.getenv("UB_SERIAL_BAUD"))
+    broker = str(os.getenv("UB_MQTT_HOST"))
+    port = int(os.getenv("UB_MQTT_PORT"))
+    clientName = str(os.getenv("UB_MQTT_CLIENT_NAME"))
+    publishTopicUbx = str(os.getenv("UB_MQTT_UBX_PUBLISH_TOPIC"))
+    publishTopicNmea = str(os.getenv("UB_MQTT_NMEA_PUBLISH_TOPIC"))
+
+    logconf.setup_logging(logLevel)
+
+    if clientName == "":
+        log.info("mqtt client name is empty, assign uuid")
+        clientName = str(uuid.uuid1())
+
+    mqClient = mqtt.launch(clientName, broker, port, [], None)
+    atexit.register(onExit, mqClient)
+
+    stream = Serial(serialDevice, serialBaud, timeout=3)
+    ubr = UBXReader(stream)
+    log.info('start publishing UBX messages from "{device}" to {topic}'.format(device=serialDevice, topic=publishTopicUbx))
+    log.info('start publishing NMEA messages from "{device}" to {topic}'.format(device=serialDevice, topic=publishTopicNmea))
+    runSerialPublish(mqClient, ubr, publishTopicUbx, publishTopicNmea)
 
 
 if __name__ == "__main__":
-    logger = None
-    mqClient = None
-    run = True
-
-    logger_name = "logger"
-    log_level = str(os.getenv("UB_LOG_LEVEL"))
-    serial_device = str(os.getenv("UB_SERIAL_DEVICE"))
-    serial_baud = int(os.getenv("UB_SERIAL_BAUD"))
-    broker = str(os.getenv("UB_MQTT_HOST"))
-    port = int(os.getenv("UB_MQTT_PORT"))
-    client_name = str(os.getenv("UB_MQTT_CLIENT_NAME"))
-    publish_topic_ubx = str(os.getenv("UB_MQTT_UBX_PUBLISH_TOPIC"))
-    publish_topic_nmea = str(os.getenv("UB_MQTT_NMEA_PUBLISH_TOPIC"))
-
-    logconf.setup_logging(log_level)
-    logger = logging.getLogger(logger_name)
-    atexit.register(on_exit)
-
-    if client_name == "":
-        logger.info("client_name is empty, assign uuid")
-        client_name = str(uuid.uuid1())
-
-    mqClient = mqtt.launch(client_name, broker, port, [], None)
-
-    stream = Serial(serial_device, serial_baud, timeout=3)
-    ubr = UBXReader(stream)
-    logger.info('start publishing UBX messages from "{device}" to {topic}'.format(device=serial_device, topic=publish_topic_ubx))
-    logger.info('start publishing NMEA messages from "{device}" to {topic}'.format(device=serial_device, topic=publish_topic_nmea))
-    run_serial_publish(mqClient, ubr)
-
-    exit()
+    main()
