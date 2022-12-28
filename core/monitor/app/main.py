@@ -5,9 +5,18 @@ import os
 from pyubx2 import UBXReader
 from pynmeagps import NMEAReader
 from sbs import SBSReader
-import positioning as pos
-import traffic as traffic
-import gdl90
+from positioning import NavMonitor, PosInfo, NavMode
+from traffic import TrafficMonitor, TrafficEntry
+from gdl90 import (
+    GDL90Port,
+    GDL90EmitterCategory,
+    GDL90MiscellaneousIndicatorTrack,
+    GDL90MiscellaneousIndicatorAirborne,
+    GDL90OwnshipMessage,
+    GDL90OwnshipGeoAltitudeMessage,
+    GDL90HeartBeatMessage,
+    GDL90TrafficMessage
+)
 from datetime import datetime
 import threading
 import json
@@ -92,17 +101,17 @@ class GDL90Sender:
     Manages periodic GDL90 Heartbeat.
     """
 
-    def __init__(self, gdl90Port: gdl90.GDL90Port, navMonitor):
+    def __init__(self, gdl90Port: GDL90Port, navMonitor):
         self._gdl90Port = gdl90Port
         self._heartbeatIntervalSeconds = 1
         self._navMonitor = navMonitor
         self._sendHeartbeatMsg()
 
     def notify(self, obj):
-        if type(obj) == traffic.TrafficEntry:
+        if type(obj) == TrafficEntry:
             trafficMsg = MessageConverter.toGDL90TrafficMsg(obj)
             self._send(trafficMsg)
-        elif type(obj) == pos.PosInfo:
+        elif type(obj) == PosInfo:
             ownshipMsg = MessageConverter.toGDL90OwnshipMsg(obj)
             ownshipAltMsg = MessageConverter.toGDL90OwnshipGeoAltMsg(obj)
             self._send(ownshipMsg)
@@ -129,8 +138,8 @@ class MessageConverter:
     static class to convert & create different types of messages.
     """
 
-    def toGDL90OwnshipMsg(posInfo: pos.PosInfo):
-        return gdl90.GDL90OwnshipMessage(
+    def toGDL90OwnshipMsg(posInfo: PosInfo):
+        return GDL90OwnshipMessage(
             latitude=posInfo.latitude if posInfo.latitude is not None else 0,
             longitude=posInfo.longitude if posInfo.longitude is not None else 0,
             altitude=posInfo.altitudeMeter * 3.28084 if posInfo.altitudeMeter is not None else 0,
@@ -139,27 +148,27 @@ class MessageConverter:
             trackHeading=posInfo.trueTrack if posInfo.trueTrack is not None else 0,
             navIntegrityCat=MessageConverter._getOwnshipNavScore(posInfo.navMode),
             navAccuracyCat=MessageConverter._getOwnshipNavScore(posInfo.navMode),
-            emitterCat=gdl90.GDL90EmitterCategory.light,
-            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
-            airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
+            emitterCat=GDL90EmitterCategory.light,
+            trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+            airborneIndicator=GDL90MiscellaneousIndicatorAirborne.airborne,
         )
 
-    def toGDL90OwnshipGeoAltMsg(posInfo: pos.PosInfo):
-        return gdl90.GDL90OwnshipGeoAltitudeMessage(
+    def toGDL90OwnshipGeoAltMsg(posInfo: PosInfo):
+        return GDL90OwnshipGeoAltitudeMessage(
             altitude=posInfo.altitudeMeter * 3.28084 if posInfo.altitudeMeter is not None else 0, merit=50, isWarning=False
         )
 
-    def toGDL90HeartbeatMsg(posInfo: pos.PosInfo):
+    def toGDL90HeartbeatMsg(posInfo: PosInfo):
         seconds = MessageConverter._secondsSinceMidnightUTC(posInfo.utcTime)
-        return gdl90.GDL90HeartBeatMessage(
+        return GDL90HeartBeatMessage(
             isInitialized=seconds is not None,
             isLowBattery=False,
             time=seconds if seconds is not None else 0,
-            posValid=posInfo.navMode != pos.NavMode.NoFix,
+            posValid=posInfo.navMode != NavMode.NoFix,
         )
 
-    def toGDL90TrafficMsg(trafficEntry: traffic.TrafficEntry):
-        return gdl90.GDL90TrafficMessage(
+    def toGDL90TrafficMsg(trafficEntry: TrafficEntry):
+        return GDL90TrafficMessage(
             latitude=trafficEntry.latitude if trafficEntry.latitude is not None else 0,
             longitude=trafficEntry.longitude if trafficEntry.longitude is not None else 0,
             altitude=trafficEntry.altitude if trafficEntry.altitude is not None else 0,
@@ -170,8 +179,8 @@ class MessageConverter:
             callsign=trafficEntry.callsign if trafficEntry.callsign is not None else "",
             navIntegrityCat=MessageConverter._getTrafficNavScore(trafficEntry),
             navAccuracyCat=MessageConverter._getTrafficNavScore(trafficEntry),
-            emitterCat=gdl90.GDL90EmitterCategory(trafficEntry.category) if trafficEntry.category is not None else gdl90.GDL90EmitterCategory.no_info,
-            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+            emitterCat=GDL90EmitterCategory(trafficEntry.category) if trafficEntry.category is not None else GDL90EmitterCategory.no_info,
+            trackIndicator=GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
             airborneIndicator=MessageConverter._getAirborneIndicator(trafficEntry.isOnGround),
         )
 
@@ -180,24 +189,24 @@ class MessageConverter:
             return None
         return (datetime.hour * 3600) + (datetime.minute * 60) + datetime.second
 
-    def _getOwnshipNavScore(navMode: pos.NavMode):
+    def _getOwnshipNavScore(navMode: NavMode):
         # score to use for GDL90 nav integrity and accuracy
-        if navMode == pos.NavMode.Fix2D:
+        if navMode == NavMode.Fix2D:
             return 5
-        elif navMode == pos.NavMode.Fix3D:
+        elif navMode == NavMode.Fix3D:
             return 9
         else:
             return 0
 
-    def _getAirborneIndicator(onGround: bool) -> gdl90.GDL90MiscellaneousIndicatorAirborne:
+    def _getAirborneIndicator(onGround: bool) -> GDL90MiscellaneousIndicatorAirborne:
         if onGround is None:
-            return gdl90.GDL90MiscellaneousIndicatorAirborne.airborne
+            return GDL90MiscellaneousIndicatorAirborne.airborne
         elif onGround:
-            return gdl90.GDL90MiscellaneousIndicatorAirborne.on_ground
+            return GDL90MiscellaneousIndicatorAirborne.on_ground
         else:
-            return gdl90.GDL90MiscellaneousIndicatorAirborne.airborne
+            return GDL90MiscellaneousIndicatorAirborne.airborne
 
-    def _getTrafficNavScore(entry: traffic.TrafficEntry):
+    def _getTrafficNavScore(entry: TrafficEntry):
         if entry.latitude is None:
             return 0
         if entry.longitude is None:
@@ -217,7 +226,7 @@ class JsonSender:
     used to periodically publish mqtt messages with monitored information
     """
 
-    def __init__(self, navMonitor: pos.NavMonitor, trafficMonitor: traffic.TrafficMonitor, gdl90Port: gdl90.GDL90Port, mqttClient, sendIntervalSeconds):
+    def __init__(self, navMonitor: NavMonitor, trafficMonitor: TrafficMonitor, gdl90Port: GDL90Port, mqttClient, sendIntervalSeconds):
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
         self._gdl90Port = gdl90Port
@@ -286,13 +295,13 @@ def main():
         log.info("mqtt client name is empty, assign uuid")
         clientName = str(uuid.uuid1())
 
-    trafficMonitor = traffic.TrafficMonitor(aircrafts, types, dbversion, typesExtension)
+    trafficMonitor = TrafficMonitor(aircrafts, types, dbversion, typesExtension)
     trafficMonitor.startAutoCleanup()
-    navMonitor = pos.NavMonitor()
+    navMonitor = NavMonitor()
     msgDispatcher = MessageDispatcher(navMonitor, trafficMonitor)
     log.debug("{name}, {broker}, {port}".format(name=clientName, broker=broker, port=port))
     mqttClient = mqtt.launch(clientName, broker, port, [nmeaTopic, ubxTopic, sbsTopic, bmeTopic], msgDispatcher.onMessage)
-    gdl90Port = gdl90.GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
+    gdl90Port = GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
     gdl90Sender = GDL90Sender(gdl90Port, navMonitor)
     jsonSender = JsonSender(navMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
     jsonSender.start()
