@@ -10,7 +10,6 @@ ENV MO_MQTT_PORT 1883
 ENV MO_MQTT_CLIENT_NAME ""
 ENV MO_MQTT_NMEA_TOPIC /easyadsb/ublox/nmea
 ENV MO_MQTT_UBX_TOPIC /easyadsb/ublox/ubx
-ENV MO_MQTT_UBX_CTRL_TOPIC /easyadsb/ublox/ubx/ctrl
 ENV MO_MQTT_SBS_TOPIC /easyadsb/dump1090/sbs
 ENV MO_MQTT_BME280_TOPIC /easyadsb/bme280/json
 ENV MO_GDL90_NETWORK_INTERFACE wlan0

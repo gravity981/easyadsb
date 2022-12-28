@@ -1,4 +1,4 @@
-import logging
+import logging as log
 import uuid
 import atexit
 import os
@@ -22,69 +22,70 @@ except ImportError:
 
 
 def on_exit():
-    if logger is not None:
-        logger.info("Exit application")
-    if mqttClient is not None:
-        mqttClient.loop_stop()
-        mqttClient.disconnect()
-    if trafficMonitor is not None:
-        trafficMonitor.stopAutoCleanup()
+    log.info("Exit application")
+    # if mqttClient is not None:
+    #    mqttClient.loop_stop()
+    #    mqttClient.disconnect()
+    # if trafficMonitor is not None:
+    #    trafficMonitor.stopAutoCleanup()
 
 
-def on_nmea_message(msg):
-    try:
-        nmea = NMEAReader.parse(msg.payload)
-        logger.debug(nmea)
-        gpsMonitor.update(nmea)
-    except Exception as ex:
-        logger.error('on nmea message error, {}, "{}"'.format(str(ex), msg.payload))
-        return
+class MessageDispatcher:
 
+    def __init__(self, gpsMonitor, trafficMonitor):
+        self._gpsMonitor = gpsMonitor
+        self._trafficMonitor = trafficMonitor
 
-def on_ubx_message(msg):
-    try:
-        ubx = UBXReader.parse(msg.payload)
-        logger.debug(ubx)
-    except Exception as ex:
-        logger.error('on ubx message error, {}, "{}"'.format(str(ex), msg.payload))
-        return
+    def onMessage(self, client, userdata, msg):
+        if "nmea" in msg.topic:
+            self._onNmeaMessage(msg)
+        elif "ubx" in msg.topic:
+            self._onUbxMessage(msg)
+        elif "sbs" in msg.topic:
+            self._onSbsMessage(msg)
+        elif "bme" in msg.topic:
+            self._onBmeMessage(msg)
+        else:
+            log.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
 
+    def _onNmeaMessage(self, msg):
+        try:
+            nmea = NMEAReader.parse(msg.payload)
+            log.debug(nmea)
+            self._gpsMonitor.update(nmea)
+        except Exception as ex:
+            log.error('on nmea message error, {}, "{}"'.format(str(ex), msg.payload))
+            return
 
-def on_sbs_message(msg):
-    try:
-        dec = msg.payload.decode("UTF-8").strip()
-        sbs = SBSReader.parse(dec)
-        logger.debug(sbs)
-        trafficMonitor.update(sbs)
-    except UnicodeDecodeError:
-        logger.error('on sbs message payload decode error, "{}"'.format(msg.payload))
-        return
-    except Exception as ex:
-        logger.error('on sbs message error, {}, "{}"'.format(str(ex), msg.payload))
-        return
+    def _onUbxMessage(self, msg):
+        try:
+            ubx = UBXReader.parse(msg.payload)
+            log.debug(ubx)
+        except Exception as ex:
+            log.error('on ubx message error, {}, "{}"'.format(str(ex), msg.payload))
+            return
 
+    def _onSbsMessage(self, msg):
+        try:
+            dec = msg.payload.decode("UTF-8").strip()
+            sbs = SBSReader.parse(dec)
+            log.debug(sbs)
+            self._trafficMonitor.update(sbs)
+        except UnicodeDecodeError:
+            log.error('on sbs message payload decode error, "{}"'.format(msg.payload))
+            return
+        except Exception as ex:
+            log.error('on sbs message error, {}, "{}"'.format(str(ex), msg.payload))
+            return
 
-def on_bme_message(msg):
-    try:
-        bme = json.loads(msg.payload.decode("UTF-8").strip())
-        logger.debug(bme)
-        gpsMonitor.updateBme(bme)
-    except Exception as ex:
-        logger.error('on bme message error, {}, "{}"'.format(str(ex), msg.payload))
-        return
-
-
-def on_message(client, userdata, msg):
-    if msg.topic == nmea_topic:
-        on_nmea_message(msg)
-    elif msg.topic == ubx_topic:
-        on_ubx_message(msg)
-    elif msg.topic == sbs_topic:
-        on_sbs_message(msg)
-    elif msg.topic == bme_topic:
-        on_bme_message(msg)
-    else:
-        logger.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
+    def _onBmeMessage(self, msg):
+        try:
+            bme = json.loads(msg.payload.decode("UTF-8").strip())
+            log.debug(bme)
+            self._gpsMonitor.updateBme(bme)
+        except Exception as ex:
+            log.error('on bme message error, {}, "{}"'.format(str(ex), msg.payload))
+            return
 
 
 class GDL90Sender:
@@ -93,9 +94,10 @@ class GDL90Sender:
     Manages periodic GDL90 Heartbeat.
     """
 
-    def __init__(self, gdl90Port: gdl90.GDL90Port):
+    def __init__(self, gdl90Port: gdl90.GDL90Port, gpsMonitor):
         self._gdl90Port = gdl90Port
         self._heartbeatIntervalSeconds = 1
+        self._gpsMonitor = gpsMonitor
         self._sendHeartbeatMsg()
 
     def send(self, msg):
@@ -106,11 +108,10 @@ class GDL90Sender:
         try:
             self._timer = threading.Timer(self._heartbeatIntervalSeconds, self._sendHeartbeatMsg)
             self._timer.start()
-            heartbeat = MessageConverter.toGDL90HeartbeatMsg(gpsMonitor.posInfo)
-            if self._gdl90Port.isActive:
-                self._gdl90Port.putMessage(heartbeat)
+            heartbeat = MessageConverter.toGDL90HeartbeatMsg(self._gpsMonitor.posInfo)
+            self.send(heartbeat)
         except Exception as ex:
-            logger.error("error sending gdl90 heartbeat message, {}".format(str(ex)))
+            log.error("error sending gdl90 heartbeat message, {}".format(str(ex)))
 
 
 class MessageConverter:
@@ -118,10 +119,11 @@ class MessageConverter:
     static class to convert & create different types of messages.
     Can get notified with `TrafficEntry` or `NavMonitor` objects.
     """
-
+    # todo make this a static class
     def __init__(self, gdl90Sender: GDL90Sender):
         self._gdl90Sender = gdl90Sender
 
+    # todo move function to gdlsender
     def notify(self, obj):
         if type(obj) == traffic.TrafficEntry:
             trafficMsg = MessageConverter.toGDL90TrafficMsg(obj)
@@ -132,7 +134,7 @@ class MessageConverter:
             self._gdl90Sender.send(ownshipMsg)
             self._gdl90Sender.send(ownshipAltMsg)
         else:
-            logger.error("notified with unexpected object of type {}".format(type(obj)))
+            log.error("notified with unexpected object of type {}".format(type(obj)))
 
     def toGDL90OwnshipMsg(posInfo: pos.PosInfo):
         return gdl90.GDL90OwnshipMessage(
@@ -144,9 +146,9 @@ class MessageConverter:
             trackHeading=posInfo.trueTrack if posInfo.trueTrack is not None else 0,
             navIntegrityCat=MessageConverter._getOwnshipNavScore(posInfo.navMode),
             navAccuracyCat=MessageConverter._getOwnshipNavScore(posInfo.navMode),
-            emitterCat=gdl90.GDL90EmitterCategory.light,  # make configurable
-            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,  # derive from infromation from gps
-            airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,  # derive from speed
+            emitterCat=gdl90.GDL90EmitterCategory.light,
+            trackIndicator=gdl90.GDL90MiscellaneousIndicatorTrack.tt_true_track_angle,
+            airborneIndicator=gdl90.GDL90MiscellaneousIndicatorAirborne.airborne,
         )
 
     def toGDL90OwnshipGeoAltMsg(posInfo: pos.PosInfo):
@@ -228,6 +230,8 @@ class JsonSender:
         self._gdl90Port = gdl90Port
         self._mqttClient = mqttClient
         self._intervalSeconds = sendIntervalSeconds
+
+    def start(self):
         self._sendMessages()
 
     def _sendMessages(self):
@@ -235,7 +239,7 @@ class JsonSender:
             self._timer = threading.Timer(self._intervalSeconds, self._sendMessages)
             self._timer.start()
             system = dict()
-            system["wifi"] = sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(gdl90_network_interface))
+            system["wifi"] = sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(self._gdl90Port.nic))
             system["gdl90"] = {
                 "isActive": self._gdl90Port.isActive,
                 "ip": self._gdl90Port.ip,
@@ -257,29 +261,23 @@ class JsonSender:
             self._mqttClient.publish("/easyadsb/monitor/system", system)
 
         except Exception as ex:
-            logger.error("error sending json messages, {}".format(str(ex)))
+            log.error("error sending json messages, {}".format(str(ex)))
 
 
-if __name__ == "__main__":
-    logger = None
+def main():
     mqttClient = None
-
-    logger_name = "logger"
     log_level = str(os.getenv("MO_LOG_LEVEL"))
-
     broker = str(os.getenv("MO_MQTT_HOST"))
     port = int(os.getenv("MO_MQTT_PORT"))
     client_name = str(os.getenv("MO_MQTT_CLIENT_NAME"))
     nmea_topic = str(os.getenv("MO_MQTT_NMEA_TOPIC"))
     ubx_topic = str(os.getenv("MO_MQTT_UBX_TOPIC"))
-    ubx_ctrl_topic = str(os.getenv("MO_MQTT_UBX_CTRL_TOPIC"))
     sbs_topic = str(os.getenv("MO_MQTT_SBS_TOPIC"))
     bme_topic = str(os.getenv("MO_MQTT_BME280_TOPIC"))
     gdl90_network_interface = str(os.getenv("MO_GDL90_NETWORK_INTERFACE"))
     gdl90_port = int(os.getenv("MO_GDL90_PORT"))
 
     logconf.setup_logging(log_level)
-    logger = logging.getLogger(logger_name)
     atexit.register(on_exit)
 
     with open("/home/data/mictronics/aircrafts.json") as json_file:
@@ -292,18 +290,24 @@ if __name__ == "__main__":
         typesExtension = json.load(json_file)
 
     if client_name == "":
-        logger.info("client_name is empty, assign uuid")
+        log.info("client_name is empty, assign uuid")
         client_name = str(uuid.uuid1())
 
     trafficMonitor = traffic.TrafficMonitor(aircrafts, types, dbversion, typesExtension)
     trafficMonitor.startAutoCleanup()
     gpsMonitor = pos.NavMonitor()
-    logger.debug("{client_name}, {broker}, {port}".format(client_name=client_name, broker=broker, port=port))
-    mqttClient = mqtt.launch(client_name, broker, port, [nmea_topic, ubx_topic, sbs_topic, bme_topic], on_message)
+    msgDispatcher = MessageDispatcher(gpsMonitor, trafficMonitor)
+    log.debug("{client_name}, {broker}, {port}".format(client_name=client_name, broker=broker, port=port))
+    mqttClient = mqtt.launch(client_name, broker, port, [nmea_topic, ubx_topic, sbs_topic, bme_topic], msgDispatcher.onMessage)
     gdl90Port = gdl90.GDL90Port(gdl90_network_interface, gdl90_port)
-    gdl90Sender = GDL90Sender(gdl90Port)
+    gdl90Sender = GDL90Sender(gdl90Port, gpsMonitor)
     msgConverter = MessageConverter(gdl90Sender)
     jsonSender = JsonSender(gpsMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
+    jsonSender.start()
     trafficMonitor.register(msgConverter)
     gpsMonitor.register(msgConverter)
     gdl90Port.exec()
+
+
+if __name__ == "__main__":
+    main()
