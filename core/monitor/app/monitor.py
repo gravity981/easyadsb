@@ -23,10 +23,10 @@ import json
 
 try:
     import common.mqtt as mqtt
-    import common.logconf as logconf
+    import common.util as util
 except ImportError:
     import mqtt
-    import logconf
+    import util
 
 
 def onExit():
@@ -274,7 +274,7 @@ def main():
     gdl90NetworkInterface = str(os.getenv("MO_GDL90_NETWORK_INTERFACE"))
     gdl90NetworkPort = int(os.getenv("MO_GDL90_PORT"))
 
-    logconf.setupLogging(logLevel)
+    util.setupLogging(logLevel)
     atexit.register(onExit)
 
     with open("/home/data/mictronics/aircrafts.json") as f:

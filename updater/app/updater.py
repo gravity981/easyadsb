@@ -8,14 +8,14 @@ import requests
 try:
     try:
         import common.mqtt as mqtt
-        import common.logconf as logconf
+        import common.util as util
     except ImportError:
         import mqtt
-        import logconf
+        import util
 except ImportError:
     sys.path.insert(0, '../../common')
     import mqtt
-    import logconf
+    import util
 
 
 checkIntervalSeconds = 3600
@@ -60,7 +60,7 @@ def main():
     # check if installation is "verified"
     # --> mark installation as corrupt if not "verified" at startup
     # --> is there a way to rollback automatically in this case?
-    logconf.setupLogging(str(os.getenv("UPDATER_LOG_LEVEL", "INFO")))
+    util.setupLogging(str(os.getenv("UPDATER_LOG_LEVEL", "INFO")))
     mqtt.launchStart("easyadsb-updater", "localhost", 1883, [], None)
     checkForUpdates()
 

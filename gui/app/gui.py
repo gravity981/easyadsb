@@ -14,14 +14,14 @@ from KeyboardController import KeyboardController
 try:
     try:
         import common.mqtt as mqtt
-        import common.logconf as logconf
+        import common.util as util
     except ImportError:
         import mqtt
-        import logconf
+        import util
 except ImportError:
     sys.path.insert(0, '../../common')
     import mqtt
-    import logconf
+    import util
 
 
 class MessageDispatcher:
@@ -132,7 +132,7 @@ def main():
     log_level = str(os.getenv("GUI_LOG_LEVEL"))
     mqttTopics = str(os.getenv("GUI_MQTT_TOPICS")).split(",")
     aircraftImagesPath = str(os.getenv("GUI_AIRCRAFT_IMAGES_PATH"))
-    logconf.setupLogging(log_level)
+    util.setupLogging(log_level)
 
     app = QGuiApplication(sys.argv)
     satellitesModel = SatellitesModel()

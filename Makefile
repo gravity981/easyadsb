@@ -38,7 +38,7 @@ run-dump1090mqtt: dump1090mqtt
 	docker run --rm --network=host $(image_base_path)/dump1090mqtt
 
 run-sysmgmt: sysmgmt
-	docker run --rm --network=host --privileged $(image_base_path)/sysmgmt
+	docker run --rm --network=host --privileged -v /etc/wpa_supplicant/:/etc/wpa_supplicant/ $(image_base_path)/sysmgmt
 
 rst-updater:
 	sudo systemctl restart easyadsb-updater; journalctl -u easyadsb-updater -n 50 -f

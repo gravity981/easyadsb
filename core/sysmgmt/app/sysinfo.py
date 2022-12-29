@@ -19,30 +19,15 @@ class Wifi:
         """
         log.debug(iwconfigStr)
         iwconfig = dict()
-
-        skey = "ESSID:"
-        ekey = " "
-        ssid = Wifi._extractString(skey, ekey, iwconfigStr)
+        ssid = Wifi._extractString("ESSID:", " ", iwconfigStr)
         iwconfig["ssid"] = Wifi._parseSsid(ssid)
-
-        skey = "Frequency:"
-        ekey = " GHz"
-        frequency = Wifi._extractString(skey, ekey, iwconfigStr)
+        frequency = Wifi._extractString("Frequency:", " GHz", iwconfigStr)
         iwconfig["frequency"] = Wifi._parseFrequency(frequency)
-
-        skey = "Access Point:"
-        ekey = "  "
-        ap = Wifi._extractString(skey, ekey, iwconfigStr)
+        ap = Wifi._extractString("Access Point:", "  ", iwconfigStr)
         iwconfig["accesspoint"] = Wifi._parseAccesspoint(ap)
-
-        skey = "Link Quality="
-        ekey = " "
-        linkQuality = Wifi._extractString(skey, ekey, iwconfigStr)
+        linkQuality = Wifi._extractString("Link Quality=", " ", iwconfigStr)
         iwconfig["linkQuality"] = Wifi._parseLinkQuality(linkQuality)
-
-        skey = "Signal level="
-        ekey = " dBm"
-        signalLevel = Wifi._extractString(skey, ekey, iwconfigStr)
+        signalLevel = Wifi._extractString("Signal level=", " dBm", iwconfigStr)
         iwconfig["signalLevel"] = Wifi._parseSignalLevel(signalLevel)
 
         return iwconfig
@@ -74,45 +59,73 @@ class Wifi:
             return wifilist
         for cell in cells:
             info = dict()
-
-            skey = "ESSID:"
-            ekey = " "
-            val = Wifi._extractString(skey, ekey, cell)
+            val = Wifi._extractString("ESSID:", " ", cell)
             info["ssid"] = Wifi._parseSsid(val)
-
-            skey = "Address: "
-            ekey = " "
-            val = Wifi._extractString(skey, ekey, cell)
+            val = Wifi._extractString("Address: ", " ", cell)
             info["accesspoint"] = Wifi._parseAccesspoint(val)
-
-            skey = "Frequency:"
-            ekey = " "
-            val = Wifi._extractString(skey, ekey, cell)
+            val = Wifi._extractString("Frequency:", " ", cell)
             info["frequency"] = Wifi._parseFrequency(val)
-
-            skey = "Quality="
-            ekey = " "
-            val = Wifi._extractString(skey, ekey, cell)
+            val = Wifi._extractString("Quality=", " ", cell)
             info["linkQuality"] = Wifi._parseLinkQuality(val)
-
-            skey = "Signal level="
-            ekey = " "
-            val = Wifi._extractString(skey, ekey, cell)
+            val = Wifi._extractString("Signal level=", " ", cell)
             info["signalLevel"] = Wifi._parseSignalLevel(val)
-
-            skey = "Encryption key:"
-            ekey = " "
-            val = Wifi._extractString(skey, ekey, cell)
+            val = Wifi._extractString("Encryption key:", " ", cell)
             info["encrypted"] = Wifi._parseEncrypted(val)
 
             wifilist.append(info)
         return wifilist
 
-    def _extractString(skey, ekey, raw):
+    def getWpaSupplicantConf():
+        with open("/etc/wpa_supplicant/wpa_supplicant.conf", "r") as f:
+            return f.read()
+
+    def parseWpaSupplicantConf(wpaSupplicantStr):
+        wpaSupConf = dict()
+        wpaSupStrFiltered = Wifi._filterComments(wpaSupplicantStr)
+        val = Wifi._extractString("ctrl_interface=", "\n", wpaSupStrFiltered)
+        wpaSupConf["ctrl_interface"] = val.strip()
+        val = Wifi._extractString("update_config=", "\n", wpaSupStrFiltered)
+        wpaSupConf["update_config"] = int(val.strip())
+        val = Wifi._extractString("country=", "\n", wpaSupStrFiltered)
+        wpaSupConf["country"] = val.strip()
+        wpaSupConf["networks"] = []
+        for netPos in Wifi._findAll(wpaSupStrFiltered, "network="):
+            rawNetwork = Wifi._extractString("network={", "}", wpaSupStrFiltered, netPos)
+            network = dict()
+            val = Wifi._extractString("ssid=", "\n", rawNetwork)
+            network["ssid"] = val.strip("\"")
+            val = Wifi._extractString("psk=", "\n", rawNetwork)
+            network["psk"] = val.strip("\"")
+            wpaSupConf["networks"].append(network)
+        return wpaSupConf
+
+    def _filterComments(raw, commentChar="#"):
+        filtered = ""
+        for line in raw.split("\n"):
+            log.info(line)
+            if not line.startswith(commentChar):
+                filtered += line + "\n"
+            else:
+                continue
+        return filtered
+
+    def _findAll(raw, sub):
+        """
+        yields all starting positions of sub in raw
+        """
+        start = 0
+        while True:
+            start = raw.find(sub, start)
+            if start == -1:
+                return
+            yield start
+            start += len(sub)
+
+    def _extractString(skey, ekey, raw, offset=0):
         """
         returns the substring from raw between skey and ekey
         """
-        start = raw.find(skey)
+        start = raw.find(skey, offset)
         if start < 0:
             return
         start += len(skey)

@@ -105,6 +105,26 @@ def test_parseIwlistInvalidString():
     assert len(wifilist) == 0
 
 
+def test_parseWpaSupplicantConfWellformed():
+    wpaSupplicantStr = """ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+        update_config=1
+        country=CH
+
+        network={
+                ssid="TestSSID"
+                psk="Test123"
+        }"""
+    wpaSupConf = sysinfo.Wifi.parseWpaSupplicantConf(wpaSupplicantStr)
+    assert "ctrl_interface" in wpaSupConf
+    assert "update_config" in wpaSupConf
+    assert "country" in wpaSupConf
+    assert "networks" in wpaSupConf
+    assert wpaSupConf["country"] == "CH"
+    assert len(wpaSupConf["networks"]) == 1
+    assert "ssid" in wpaSupConf["networks"][0]
+    assert "psk" in wpaSupConf["networks"][0]
+
+
 def test_parseMemInfoWellformed():
     meminfoList = [
         "MemTotal:        1917292 kB",

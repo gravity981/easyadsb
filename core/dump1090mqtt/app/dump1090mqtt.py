@@ -7,10 +7,10 @@ import time
 
 try:
     import common.mqtt as mqtt
-    import common.logconf as logconf
+    import common.util as util
 except ImportError:
     import mqtt
-    import logconf
+    import util
 
 
 def onExit(mqClient):
@@ -65,7 +65,7 @@ def main():
     clientName = str(os.getenv("DU_MQTT_CLIENT_NAME"))
     publishTopic = str(os.getenv("DU_MQTT_PUBLISH_TOPIC"))
 
-    logconf.setupLogging(logLevel)
+    util.setupLogging(logLevel)
 
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")

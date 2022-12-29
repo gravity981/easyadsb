@@ -8,10 +8,10 @@ import uuid
 
 try:
     import common.mqtt as mqtt
-    import common.logconf as logconf
+    import common.util as util
 except ImportError:
     import mqtt
-    import logconf
+    import util
 
 
 def onExit(mqClient):
@@ -40,7 +40,7 @@ def main():
     publishTopicUbx = str(os.getenv("UB_MQTT_UBX_PUBLISH_TOPIC"))
     publishTopicNmea = str(os.getenv("UB_MQTT_NMEA_PUBLISH_TOPIC"))
 
-    logconf.setupLogging(logLevel)
+    util.setupLogging(logLevel)
 
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")

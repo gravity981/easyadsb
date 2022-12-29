@@ -10,10 +10,10 @@ from copy import deepcopy
 
 try:
     import common.mqtt as mqtt
-    import common.logconf as logconf
+    import common.util as util
 except ImportError:
     import mqtt
-    import logconf
+    import util
 
 
 def onExit(mqClient):
@@ -22,12 +22,12 @@ def onExit(mqClient):
         mqClient.disconnect()
 
 
-def runPeriodicPublish(mqClient, publishTopic, wifiscanner):
+def runPeriodicPublish(mqClient, publishTopic, wifiManager):
     intervalSeconds = 1
     while True:
         system = dict()
-        system["wifi"] = wifiscanner.wifi
-        system["wifilist"] = wifiscanner.wifilist
+        system["wifi"] = wifiManager.wifi
+        system["wifilist"] = wifiManager.wifilist
         system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
         system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
         system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
@@ -36,12 +36,13 @@ def runPeriodicPublish(mqClient, publishTopic, wifiscanner):
         time.sleep(intervalSeconds)
 
 
-class WifiScanner:
+class WifiManager:
 
     def __init__(self, iface):
         self._iface = iface
         self._wifilist = []
         self._wifi = dict()
+        self._wpaSupplicantConf = sysinfo.Wifi.parseWpaSupplicantConf(sysinfo.Wifi.getWpaSupplicantConf())
         self._iwLock = threading.Lock()
         self._propertyLock = threading.Lock()
         self._timerWifiList = threading.Timer(0, self._getWifiList)
@@ -57,12 +58,12 @@ class WifiScanner:
         with self._propertyLock:
             return deepcopy(self._wifi)
 
-    def start(self):
+    def startScanning(self):
         with self._iwLock:
             self._timerWifiList.start()
             self._timerWifiConfig.start()
 
-    def stop(self):
+    def stopScanning(self):
         with self._iwLock:
             self._timerWifiList.cancel()
             self._timerWifiConfig.cancel()
@@ -92,7 +93,7 @@ def main():
     publishTopic = str(os.getenv("SY_MQTT_PUBLISH_TOPIC"))
     wifiIface = str(os.getenv("SY_WIFI_IFACE"))
 
-    logconf.setupLogging(logLevel)
+    util.setupLogging(logLevel)
 
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")
@@ -101,10 +102,10 @@ def main():
     mqClient = mqtt.launch(clientName, broker, port, [], None)
     atexit.register(onExit, mqClient)
 
-    wifiscanner = WifiScanner(wifiIface)
-    wifiscanner.start()
+    wifiManager = WifiManager(wifiIface)
+    wifiManager.startScanning()
 
-    runPeriodicPublish(mqClient, publishTopic, wifiscanner)
+    runPeriodicPublish(mqClient, publishTopic, wifiManager)
 
 
 if __name__ == "__main__":

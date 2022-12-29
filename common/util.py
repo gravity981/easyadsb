@@ -1,4 +1,6 @@
 import logging
+import hashlib
+import binascii
 
 
 def setupLogging(level: str):
@@ -12,3 +14,8 @@ def setupLogging(level: str):
     else:
         logLevel = logging.WARNING
     logging.basicConfig(level=logLevel, format=fmt)
+
+
+def wpaPsk(ssid, password):
+    dk = hashlib.pbkdf2_hmac('sha1', str.encode(password), str.encode(ssid), 4096, 32)
+    return (binascii.hexlify(dk))
