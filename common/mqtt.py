@@ -4,7 +4,7 @@ import time
 import threading
 from concurrent.futures import ThreadPoolExecutor, Future
 import json
-
+import uuid
 
 def launch(client_name, host, port, topics: list, msgCallback) -> mq.Client:
     """
@@ -91,19 +91,16 @@ class MessageDispatcher:
         self._executor = ThreadPoolExecutor(max_workers=3)
         self._requestFutures = dict()
         self._responseFutures = dict()
-        self._requestIdCounter = 0
-        self._requestIdLock = threading.Lock()
         self._mqClient.on_message = self._onMessage
         for topic in subscriptions.keys():
             self._mqClient.subscribe(topic)
+            log.info("subscribed for topic {}".format(topic))
 
     def sendNotification(self, topic, msg: NotificationMessage):
         self._mqClient.publish(topic, json.dumps(msg))
 
     def sendRequestAndWait(self, topic, msg: RequestMessage, timeout=None):
-        with self._requestIdLock:
-            requestId = self._requestIdCounter
-            self._requestIdCounter += 1
+        requestId = str(uuid.uuid1())
         future = Future()
         self._responseFutures[requestId] = future
         msg["requestId"] = requestId
@@ -136,7 +133,7 @@ class MessageDispatcher:
             else:
                 log.error("no subscription for topic {}".format(msg.topic))
         except ValueError:
-            log.error("ParserEror occured")
+            log.error("ValueError occured")
         except KeyError:
             log.error("KeyError occured")
 

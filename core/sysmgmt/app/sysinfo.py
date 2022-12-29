@@ -136,7 +136,7 @@ class Wifi:
     def _filterComments(raw, commentChar="#"):
         filtered = ""
         for line in raw.split("\n"):
-            log.info(line)
+            log.debug(line)
             if not line.startswith(commentChar):
                 filtered += line + "\n"
             else:

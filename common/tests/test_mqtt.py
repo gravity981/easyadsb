@@ -75,11 +75,11 @@ def test_messageDispatcherResponseMessage():
         topic, msg = mqClient.waitForPublish(1)
         msg = json.loads(msg)
         assert topic == "topic1/request"
-        assert msg["requestId"] == 0
+        assert msg["requestId"] is not None
         assert msg["command"] == "doSomething"
         assert msg["data"]["hello"] == "world"
         data = {
-            "requestId": 0,
+            "requestId": msg["requestId"],
             "success": True,
             "data": None
         }

@@ -23,7 +23,7 @@ def onExit(mqClient):
         mqClient.disconnect()
 
 
-def runPeriodicPublish(mqClient, publishTopic, wifiManager):
+def runPeriodicPublish(messageDispatcher, publishTopic, wifiManager):
     intervalSeconds = 1
     while True:
         system = dict()
@@ -32,8 +32,7 @@ def runPeriodicPublish(mqClient, publishTopic, wifiManager):
         system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
         system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
         system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
-        system = json.dumps(system)
-        mqClient.publish(publishTopic, system)
+        messageDispatcher.sendNotification(publishTopic, system)
         time.sleep(intervalSeconds)
 
 
@@ -115,13 +114,22 @@ class WifiManager:
                 self._wifi = wifi
 
 
+class MessageHandler:
+
+    def __init__(self, wifiManager):
+        self._wifiManager = wifiManager
+
+    def onMessage(self, msg):
+        log.info(msg)
+
+
 def main():
     logLevel = str(os.getenv("SY_LOG_LEVEL"))
     broker = str(os.getenv("SY_MQTT_HOST"))
     port = int(os.getenv("SY_MQTT_PORT"))
     clientName = str(os.getenv("SY_MQTT_CLIENT_NAME"))
     infoTopic = str(os.getenv("SY_MQTT_INFO_TOPIC"))
-    ctrlTopic = str(os.getenv("SY_MQTT_INFO_TOPIC"))
+    ctrlTopic = str(os.getenv("SY_MQTT_CTRL_TOPIC"))
     wifiIface = str(os.getenv("SY_WIFI_IFACE"))
 
     util.setupLogging(logLevel)
@@ -129,14 +137,22 @@ def main():
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")
         clientName = str(uuid.uuid1())
-    reqCtrlTopic = ctrlTopic + "request"
-    mqClient = mqtt.launch(clientName, broker, port, [reqCtrlTopic], None)
+
+    mqClient = mqtt.launch(clientName, broker, port, [], None)
+    wifiManager = WifiManager(wifiIface)
+    messageHandler = MessageHandler(wifiManager)
+    subscriptions = {
+        ctrlTopic + "/request": {
+            "type": mqtt.MessageDispatcher.REQUEST,
+            "func": messageHandler.onMessage
+        }
+    }
+    messageDispatcher = mqtt.MessageDispatcher(mqClient, subscriptions)
     atexit.register(onExit, mqClient)
 
-    wifiManager = WifiManager(wifiIface)
     wifiManager.startScanning()
 
-    runPeriodicPublish(mqClient, infoTopic, wifiManager)
+    runPeriodicPublish(messageDispatcher, infoTopic, wifiManager)
 
 
 if __name__ == "__main__":
