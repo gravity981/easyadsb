@@ -7,6 +7,7 @@ import json
 import sysinfo
 import threading
 from copy import deepcopy
+import shutil
 
 try:
     import common.mqtt as mqtt
@@ -67,6 +68,35 @@ class WifiManager:
         with self._iwLock:
             self._timerWifiList.cancel()
             self._timerWifiConfig.cancel()
+
+    def addWifiNetwork(self, ssid, psk):
+        self._wpaSupplicantConf["networks"].append(
+            {
+                "ssid": ssid,
+                "psk": psk
+            }
+        )
+
+    def removeWifiNetwork(self, ssid):
+        removed = False
+        for index, network in enumerate(list(self._wpaSupplicantConf["networks"])):
+            if ssid in network["ssid"]:
+                del self._wpaSupplicantConf["networks"][index]
+                removed = True
+        if not removed:
+            raise KeyError("ssid {} not found".format(ssid))
+
+    def saveChanges(self, targetFile="/etc/wpa_supplicant/wpa_supplicant.conf"):
+        backupFile = targetFile + ".bkp"
+        shutil.copy(targetFile, backupFile)
+        with open(targetFile, "w") as f:
+            f.write(sysinfo.Wifi.wpaSupplicantConfToStr(self._wpaSupplicantConf))
+        self.forceReconnect()
+
+    def forceReconnect(self):
+        # todo restart dhcpcd systemd service in order to make it connect to any configured wifi in range
+        # this should not be necessary but the system does not always work reliable
+        log.warning("force reconnect not yet implemented")
 
     def _getWifiList(self):
         with self._iwLock:
