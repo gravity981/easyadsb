@@ -10,13 +10,14 @@ services:
       - mqtt
     environment:
       - SY_LOG_LEVEL=INFO
-      - SY_MQTT_HOST=mqtt
+      - SY_MQTT_HOST=localhost
       - SY_MQTT_PORT=1883
       - SY_MQTT_CLIENT_NAME=sysmgmt
       - SY_MQTT_PUBLISH_TOPIC=/easyadsb/sysmgmt/json
       - SY_WIFI_IFACE=wlan0
-    restart: unless-stopped
+    network_mode: host
     privileged: true
+    restart: unless-stopped
 
   dump1090:
     container_name: dump1090
