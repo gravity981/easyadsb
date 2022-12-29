@@ -6,7 +6,8 @@ ENV SY_LOG_LEVEL INFO
 ENV SY_MQTT_HOST localhost
 ENV SY_MQTT_PORT 1883
 ENV SY_MQTT_CLIENT_NAME ""
-ENV SY_MQTT_PUBLISH_TOPIC /easyadsb/sysmgmt/json
+ENV SY_MQTT_INFO_TOPIC /easyadsb/sysmgmt/info
+ENV SY_MQTT_CTRL_TOPIC /easyadsb/sysmgmt/ctrl
 ENV SY_WIFI_IFACE wlan0
 
 RUN apk add wireless-tools

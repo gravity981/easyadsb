@@ -11,6 +11,6 @@ export QT_QPA_EGLFS_KMS_CONFIG=../kms.config
 export QT_QPA_EGLFS_FORCEVSYNC=1
 export GUI_LOG_LEVEL=INFO
 export GUI_AIRCRAFT_IMAGES_PATH=/home/pi/aircraft_images
-export GUI_MQTT_TOPICS=/easyadsb/monitor/satellites,/easyadsb/monitor/traffic,/easyadsb/monitor/position,/easyadsb/monitor/status,/easyadsb/sysmgmt/json
+export GUI_MQTT_TOPICS=/easyadsb/monitor/satellites,/easyadsb/monitor/traffic,/easyadsb/monitor/position,/easyadsb/monitor/status,/easyadsb/sysmgmt/info,/easyadsb/sysmgmt/ctrl
 cd app
 /usr/bin/python gui.py -platform eglfs

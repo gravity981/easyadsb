@@ -120,7 +120,8 @@ def main():
     broker = str(os.getenv("SY_MQTT_HOST"))
     port = int(os.getenv("SY_MQTT_PORT"))
     clientName = str(os.getenv("SY_MQTT_CLIENT_NAME"))
-    publishTopic = str(os.getenv("SY_MQTT_PUBLISH_TOPIC"))
+    infoTopic = str(os.getenv("SY_MQTT_INFO_TOPIC"))
+    ctrlTopic = str(os.getenv("SY_MQTT_INFO_TOPIC"))
     wifiIface = str(os.getenv("SY_WIFI_IFACE"))
 
     util.setupLogging(logLevel)
@@ -128,14 +129,14 @@ def main():
     if clientName == "":
         log.info("mqtt client name is empty, assign uuid")
         clientName = str(uuid.uuid1())
-
-    mqClient = mqtt.launch(clientName, broker, port, [], None)
+    reqCtrlTopic = ctrlTopic + "request"
+    mqClient = mqtt.launch(clientName, broker, port, [reqCtrlTopic], None)
     atexit.register(onExit, mqClient)
 
     wifiManager = WifiManager(wifiIface)
     wifiManager.startScanning()
 
-    runPeriodicPublish(mqClient, publishTopic, wifiManager)
+    runPeriodicPublish(mqClient, infoTopic, wifiManager)
 
 
 if __name__ == "__main__":
