@@ -6,7 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, Future
 import json
 import uuid
 
-def launch(client_name, host, port, topics: list, msgCallback) -> mq.Client:
+
+def launch(client_name, host, port, topics: list = [], msgCallback=None) -> mq.Client:
     """
     launches mqtt client, aborts if connection is not successful
     """
@@ -75,7 +76,7 @@ class ResponseMessage(dict):
         self["data"] = data
 
 
-class MessageDispatcher:
+class MqttMessenger:
     """
     dispatch incoming mqtt messages to correct receiver
     supports dispatching of requests and responses
@@ -87,13 +88,18 @@ class MessageDispatcher:
 
     def __init__(self, mqClient, subscriptions):
         self._mqClient = mqClient
-        self._subscriptions = subscriptions
         self._executor = ThreadPoolExecutor(max_workers=3)
         self._requestFutures = dict()
         self._responseFutures = dict()
+        self._subscriptions = dict()
         self._mqClient.on_message = self._onMessage
-        for topic in subscriptions.keys():
+        for topic, meta in subscriptions.items():
+            if meta["type"] == MqttMessenger.REQUEST:
+                topic += "/request"
+            elif meta["type"] == MqttMessenger.RESPONSE:
+                topic += "/response"
             self._mqClient.subscribe(topic)
+            self._subscriptions[topic] = meta
             log.info("subscribed for topic {}".format(topic))
 
     def sendNotification(self, topic, msg: NotificationMessage):
@@ -113,19 +119,19 @@ class MessageDispatcher:
             msgData = json.loads(msgStr)
             if msg.topic in self._subscriptions.keys():
                 sub = self._subscriptions[msg.topic]
-                if sub["type"] == MessageDispatcher.REQUEST:
+                if sub["type"] == MqttMessenger.REQUEST:
                     requestId = msgData.pop("requestId")
                     responseTopic = self._getResponseTopic(msg.topic)
                     request = RequestMessage(msgData["command"], msgData["data"])
                     future = self._executor.submit(sub["func"], request)
                     self._requestFutures[future] = (responseTopic, requestId)
                     future.add_done_callback(self._requestExecuted)
-                elif sub["type"] == MessageDispatcher.RESPONSE:
+                elif sub["type"] == MqttMessenger.RESPONSE:
                     future = self._responseFutures.pop(msgData["requestId"])
                     response = ResponseMessage(msgData["success"], msgData["data"])
                     future.set_result(response)
                     future.done()
-                elif sub["type"] == MessageDispatcher.NOTIFICATION:
+                elif sub["type"] == MqttMessenger.NOTIFICATION:
                     notification = NotificationMessage(msgData)
                     self._executor.submit(sub["func"], notification)
                 else:

@@ -3,7 +3,6 @@ import atexit
 import os
 import uuid
 import time
-import json
 import sysinfo
 import threading
 from copy import deepcopy
@@ -23,7 +22,7 @@ def onExit(mqClient):
         mqClient.disconnect()
 
 
-def runPeriodicPublish(messageDispatcher, publishTopic, wifiManager):
+def runPeriodicPublish(messenger, publishTopic, wifiManager):
     intervalSeconds = 1
     while True:
         system = dict()
@@ -32,7 +31,7 @@ def runPeriodicPublish(messageDispatcher, publishTopic, wifiManager):
         system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
         system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
         system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
-        messageDispatcher.sendNotification(publishTopic, system)
+        messenger.sendNotification(publishTopic, system)
         time.sleep(intervalSeconds)
 
 
@@ -138,21 +137,21 @@ def main():
         log.info("mqtt client name is empty, assign uuid")
         clientName = str(uuid.uuid1())
 
-    mqClient = mqtt.launch(clientName, broker, port, [], None)
     wifiManager = WifiManager(wifiIface)
     messageHandler = MessageHandler(wifiManager)
+    mqClient = mqtt.launch(clientName, broker, port)
     subscriptions = {
-        ctrlTopic + "/request": {
-            "type": mqtt.MessageDispatcher.REQUEST,
+        ctrlTopic: {
+            "type": mqtt.MqttMessenger.REQUEST,
             "func": messageHandler.onMessage
         }
     }
-    messageDispatcher = mqtt.MessageDispatcher(mqClient, subscriptions)
+    messenger = mqtt.MqttMessenger(mqClient, subscriptions)
     atexit.register(onExit, mqClient)
 
     wifiManager.startScanning()
 
-    runPeriodicPublish(messageDispatcher, infoTopic, wifiManager)
+    runPeriodicPublish(messenger, infoTopic, wifiManager)
 
 
 if __name__ == "__main__":

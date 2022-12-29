@@ -1,5 +1,5 @@
 
-from common.mqtt import MessageDispatcher, RequestMessage
+from common.mqtt import MqttMessenger, RequestMessage
 import json
 from concurrent.futures import Future, ThreadPoolExecutor
 
@@ -28,7 +28,7 @@ class FakeMqMessage:
         self.payload = json.dumps(data).encode("utf-8")
 
 
-def test_messageDispatcherRequestMessage():
+def test_messengerProcessRequestMessage():
 
     def doWork(msg):
         assert msg["command"] == "doSomething"
@@ -36,13 +36,13 @@ def test_messageDispatcherRequestMessage():
         return {"hello": "world"}
 
     subscriptions = {
-        "topic1/request": {
-            "type": MessageDispatcher.REQUEST,
+        "topic1": {
+            "type": MqttMessenger.REQUEST,
             "func": doWork
         }
     }
     mqClient = FakeMqClient()
-    dispatcher = MessageDispatcher(mqClient, subscriptions)
+    messenger = MqttMessenger(mqClient, subscriptions)
     data = {
         "requestId": 1234,
         "command": "doSomething",
@@ -61,17 +61,17 @@ def test_messageDispatcherRequestMessage():
     assert msg["data"]["hello"] == "world"
 
 
-def test_messageDispatcherResponseMessage():
+def test_messengerProcessResponseMessage():
     subscriptions = {
-        "topic1/response": {
-            "type": MessageDispatcher.RESPONSE,
+        "topic1": {
+            "type": MqttMessenger.RESPONSE,
         }
     }
     mqClient = FakeMqClient()
-    dispatcher = MessageDispatcher(mqClient, subscriptions)
+    messenger = MqttMessenger(mqClient, subscriptions)
     msg = RequestMessage("doSomething", {"hello": "world"})
     with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(dispatcher.sendRequestAndWait, "topic1/request", msg, 1)
+        future = executor.submit(messenger.sendRequestAndWait, "topic1/request", msg, 1)
         topic, msg = mqClient.waitForPublish(1)
         msg = json.loads(msg)
         assert topic == "topic1/request"
