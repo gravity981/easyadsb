@@ -70,6 +70,8 @@ class Wifi:
         cells = iwlistStr.replace("\n", " ").split("Cell")
         if len(cells) > 1:
             del cells[0]
+        else:
+            return wifilist
         for cell in cells:
             info = dict()
 
