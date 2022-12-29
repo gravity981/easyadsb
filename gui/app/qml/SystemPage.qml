@@ -60,6 +60,11 @@ Page {
                 text: systemModel.wifi.signalLevel !== undefined ? (systemModel.wifi.signalLevel + " dBm") : "n/a"
                 font.pointSize: 8
             }
+            Button {
+                Layout.columnSpan: 2
+                text: "add wifi"
+                onClicked: systemModel.addWifi("dummyWifi","secretPassword123")
+            }
 
             Text {
                 Layout.columnSpan: 2

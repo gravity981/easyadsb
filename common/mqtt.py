@@ -58,10 +58,6 @@ def _launchInBackground(client_name, host, port, topics: list, msgCallback):
     log.info("mqtt launched")
 
 
-class NotificationMessage(dict):
-    pass
-
-
 class RequestMessage(dict):
 
     def __init__(self, command: str, data: dict):
@@ -102,10 +98,12 @@ class MqttMessenger:
             self._subscriptions[topic] = meta
             log.info("subscribed for topic {}".format(topic))
 
-    def sendNotification(self, topic, msg: NotificationMessage):
+    def sendNotification(self, topic, msg):
         self._mqClient.publish(topic, json.dumps(msg))
 
     def sendRequestAndWait(self, topic, msg: RequestMessage, timeout=None):
+        if not topic.endswith("/request"):
+            topic += "/request"
         requestId = str(uuid.uuid1())
         future = Future()
         self._responseFutures[requestId] = future
@@ -132,14 +130,13 @@ class MqttMessenger:
                     future.set_result(response)
                     future.done()
                 elif sub["type"] == MqttMessenger.NOTIFICATION:
-                    notification = NotificationMessage(msgData)
-                    self._executor.submit(sub["func"], notification)
+                    self._executor.submit(sub["func"], msgData)
                 else:
                     log.error("unknown subscription type")
             else:
                 log.error("no subscription for topic {}".format(msg.topic))
-        except ValueError:
-            log.error("ValueError occured")
+        except ValueError as ex:
+            log.error("ValueError occured, {}".format(str(ex)))
         except KeyError:
             log.error("KeyError occured")
 

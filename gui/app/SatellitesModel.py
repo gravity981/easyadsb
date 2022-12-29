@@ -67,16 +67,31 @@ class SatellitesModel(QAbstractListModel):
             return minCnoTotal
         return max(maxCno, minCnoTotal)
 
+    @property
+    def svids(self) -> list():
+        return [s["svid"] for s in self._satellites]
+
     @pyqtSlot(QVariant)
-    def addSatellite(self, sat):
+    def onSatellitesUpdated(self, satellites):
+        oldSvIds = self.svids
+        for sat in satellites:
+            if sat["svid"] in oldSvIds:
+                self._updateSatellite(sat)
+            else:
+                self._addSatellite(sat)
+        svids = [s["svid"] for s in satellites]
+        for oldSvId in oldSvIds:
+            if oldSvId not in svids:
+                self._removeSatellite(oldSvId)
+
+    def _addSatellite(self, sat):
         log.debug("add satellite {}".format(sat["svid"]))
         sat["maxCno"] = sat["cno"]
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._satellites.append(sat)
         self.endInsertRows()
 
-    @pyqtSlot(QVariant)
-    def updateSatellite(self, sat):
+    def _updateSatellite(self, sat):
         row = self._rowFromSvId(sat["svid"])
         ix = self.index(row, 0)
         changedRoles = []
@@ -113,17 +128,12 @@ class SatellitesModel(QAbstractListModel):
         self.dataChanged.emit(ix, ix, changedRoles)
         self.countChanged.emit()
 
-    @pyqtSlot(int)
-    def removeSatellite(self, svid):
+    def _removeSatellite(self, svid):
         log.debug("remove satellite {}".format(svid))
         row = self._rowFromSvId(svid)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._satellites[row]
         self.endRemoveRows()
-
-    @property
-    def svids(self) -> list():
-        return [s["svid"] for s in self._satellites]
 
     def _rowFromSvId(self, svid):
         for index, item in enumerate(self._satellites):

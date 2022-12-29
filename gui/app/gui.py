@@ -2,9 +2,7 @@ import sys
 import os
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
-from PyQt5.QtCore import Qt,  QMetaObject, Q_ARG, QVariant
-import json
-import logging as log
+from PyQt5.QtCore import Qt, QVariant, pyqtSignal, QObject
 from PositionModel import PositionModel
 from SatellitesModel import SatellitesModel
 from SystemModel import SystemModel
@@ -24,122 +22,85 @@ except ImportError:
     import util
 
 
-class MessageDispatcher:
+class MessageDispatcher(QObject):
     """
-    prase and dispatch incoming mqtt messages to correct receiver
+    parse and dispatch incoming mqtt messages to correct receiver
     """
 
-    def __init__(self, satellitesModel, trafficModel, positionModel, systemModel):
-        self._satellitesModel = satellitesModel
-        self._trafficModel = trafficModel
-        self._positionModel = positionModel
-        self._systemModel = systemModel
+    satellitesUpdated = pyqtSignal(QVariant)
+    positionUpdated = pyqtSignal(QVariant)
+    trafficEntriesUpdated = pyqtSignal(QVariant)
+    statusUpdated = pyqtSignal(QVariant)
+    systemUpdated = pyqtSignal(QVariant)
 
-    def onMessage(self, client, userdata, msg):
-        if "satellites" in msg.topic:
-            self._updateSatellites(msg)
-        elif "position" in msg.topic:
-            self._updatePosition(msg)
-        elif "traffic" in msg.topic:
-            self._updateTraffic(msg)
-        elif "sysmgmt" in msg.topic:
-            self._updateSystem(msg)
-        elif "status" in msg.topic:
-            self._updateStatus(msg)
+    def __init__(self, parent=None):
+        QObject.__init__(self, parent)
 
-    def _updateSatellites(self, msg):
-        try:
-            raw = msg.payload.decode("UTF-8").strip()
-            satellites = json.loads(raw)
-            oldSvIds = self._satellitesModel.svids
-            for sat in satellites:
-                if sat["svid"] in oldSvIds:
-                    QMetaObject.invokeMethod(
-                        self._satellitesModel,
-                        "updateSatellite",
-                        Qt.QueuedConnection,
-                        Q_ARG(QVariant, sat),
-                    )
-                else:
-                    QMetaObject.invokeMethod(
-                        self._satellitesModel,
-                        "addSatellite",
-                        Qt.QueuedConnection,
-                        Q_ARG(QVariant, sat),
-                    )
-            svids = [s["svid"] for s in satellites]
-            for oldSvId in oldSvIds:
-                if oldSvId not in svids:
-                    QMetaObject.invokeMethod(self._satellitesModel, "removeSatellite", Qt.QueuedConnection, Q_ARG(int, oldSvId))
-        except Exception as ex:
-            log.error("could not parse satellites message, {}".format(str(ex)))
+    def updateSatellites(self, satellites):
+        self.satellitesUpdated.emit(satellites)
 
-    def _updatePosition(self, msg):
-        try:
-            position = json.loads(msg.payload.decode("utf-8").strip())
-            QMetaObject.invokeMethod(
-                self._positionModel,
-                "updatePosition",
-                Qt.QueuedConnection,
-                Q_ARG(QVariant, position),
-            )
-        except Exception as ex:
-            log.error("could not parse position message, {}".format(str(ex)))
+    def updatePosition(self, position):
+        self.positionUpdated.emit(position)
 
-    def _updateTraffic(self, msg):
-        try:
-            raw = msg.payload.decode("utf-8").strip()
-            entries = json.loads(raw)
-            oldEntryIds = self._trafficModel.ids
-            for entry in entries:
-                if entry["id"] in oldEntryIds:
-                    QMetaObject.invokeMethod(self._trafficModel, "updateTrafficEntry", Qt.QueuedConnection, Q_ARG(QVariant, entry))
-                else:
-                    QMetaObject.invokeMethod(self._trafficModel, "addTrafficEntry", Qt.QueuedConnection, Q_ARG(QVariant, entry))
-            ids = [t["id"] for t in entries]
-            for oldId in oldEntryIds:
-                if oldId not in ids:
-                    QMetaObject.invokeMethod(self._trafficModel, "removeTrafficEntry", Qt.QueuedConnection, Q_ARG(int, oldId))
-        except Exception as ex:
-            log.error("could not parse traffic message, {}".format(str(ex)))
+    def updateTraffic(self, entries):
+        self.trafficEntriesUpdated.emit(entries)
 
-    def _updateSystem(self, msg):
-        try:
-            system = json.loads(msg.payload.decode("utf-8").strip())
-            QMetaObject.invokeMethod(
-                self._systemModel,
-                "updateSystem",
-                Qt.QueuedConnection,
-                Q_ARG(QVariant, system),
-            )
-        except Exception as ex:
-            log.error("could not parse system message, {}".format(str(ex)))
+    def updateSystem(self, system):
+        self.systemUpdated.emit(system)
 
-    def _updateStatus(self, msg):
-        try:
-            status = json.loads(msg.payload.decode("utf-8").strip())
-            QMetaObject.invokeMethod(
-                self._systemModel,
-                "updateStatus",
-                Qt.QueuedConnection,
-                Q_ARG(QVariant, status),
-            )
-        except Exception as ex:
-            log.error("could not parse status message, {}".format(str(ex)))
+    def updateStatus(self, status):
+        self.statusUpdated.emit(status)
 
 
 def main():
     log_level = str(os.getenv("GUI_LOG_LEVEL"))
-    mqttTopics = str(os.getenv("GUI_MQTT_TOPICS")).split(",")
+    satelliteTopic = str(os.getenv("GUI_MQTT_SATELLITE_TOPIC"))
+    trafficTopic = str(os.getenv("GUI_MQTT_TRAFFIC_TOPIC"))
+    positionTopic = str(os.getenv("GUI_MQTT_POSITION_TOPIC"))
+    statusTopic = str(os.getenv("GUI_MQTT_STATUS_TOPIC"))
+    sysInfoTopic = str(os.getenv("GUI_MQTT_SYSMGMT_INFO_TOPIC"))
+    sysCtrlTopic = str(os.getenv("GUI_MQTT_SYSMGMT_CTRL_TOPIC"))
     aircraftImagesPath = str(os.getenv("GUI_AIRCRAFT_IMAGES_PATH"))
     util.setupLogging(log_level)
 
+    msgDispatcher = MessageDispatcher()
+    subscriptions = {
+        satelliteTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher.updateSatellites
+        },
+        trafficTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher.updateTraffic
+        },
+        positionTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher.updatePosition
+        },
+        statusTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher.updateStatus
+        },
+        sysInfoTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher.updateSystem
+        },
+        sysCtrlTopic: {
+            "type": mqtt.MqttMessenger.RESPONSE,
+        },
+    }
+    mqClient = mqtt.launch("easyadsb-gui", "localhost", 1883)
+    messenger = mqtt.MqttMessenger(mqClient, subscriptions)
     app = QGuiApplication(sys.argv)
     satellitesModel = SatellitesModel()
     positionModel = PositionModel()
     trafficModel = TrafficModel(aircraftImagesPath)
-    systemModel = SystemModel(aliveTimeout=5000)
-    msgDispatcher = MessageDispatcher(satellitesModel, trafficModel, positionModel, systemModel)
+    systemModel = SystemModel(sysCtrlTopic, messenger, aliveTimeout=5000)
+    msgDispatcher.satellitesUpdated.connect(satellitesModel.onSatellitesUpdated, Qt.QueuedConnection)
+    msgDispatcher.positionUpdated.connect(positionModel.onPositionUpdated, Qt.QueuedConnection)
+    msgDispatcher.trafficEntriesUpdated.connect(trafficModel.onTrafficEntriesUpdated, Qt.QueuedConnection)
+    msgDispatcher.statusUpdated.connect(systemModel.onStatusUpdated, Qt.QueuedConnection)
+    msgDispatcher.systemUpdated.connect(systemModel.onSystemUpdated, Qt.QueuedConnection)
     keyboardController = KeyboardController()
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("satellitesModel", satellitesModel)
@@ -149,7 +110,7 @@ def main():
     engine.rootContext().setContextProperty("keyboardController", keyboardController)
     engine.quit.connect(app.quit)
     engine.load("qml/main.qml")
-    mqtt.launchStart("easyadsb-gui", "localhost", 1883, mqttTopics, msgDispatcher.onMessage)
+
     sys.exit(app.exec())
 
 

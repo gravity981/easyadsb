@@ -99,7 +99,7 @@ class PositionModel(QObject):
         return self._pressureAltitude
 
     @pyqtSlot(QVariant)
-    def updatePosition(self, position):
+    def onPositionUpdated(self, position):
         self._navMode = position["navMode"]
         self._opMode = position["opMode"]
         self._pdop = position["pdop"]

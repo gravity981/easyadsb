@@ -38,6 +38,10 @@ class TrafficModel(QAbstractListModel):
         self._timer.setInterval(1000)
         self._timer.start()
 
+    @property
+    def ids(self) -> list():
+        return [t["id"] for t in self._trafficEntries]
+
     def data(self, index, role=Qt.DisplayRole):
         row = index.row()
         if role == TrafficModel.IdRole:
@@ -115,7 +119,19 @@ class TrafficModel(QAbstractListModel):
         }
 
     @pyqtSlot(QVariant)
-    def addTrafficEntry(self, entry):
+    def onTrafficEntriesUpdated(self, entries):
+        oldEntryIds = self.ids
+        for entry in entries:
+            if entry["id"] in oldEntryIds:
+                self._updateTrafficEntry(entry)
+            else:
+                self._addTrafficEntry(entry)
+        ids = [t["id"] for t in entries]
+        for oldId in oldEntryIds:
+            if oldId not in ids:
+                self._removeTrafficEntry(oldId)
+
+    def _addTrafficEntry(self, entry):
         log.debug("add traffic entry")
         entry["category"] = self._getCategoryName(entry["category"])
         entry["imageSourcePath"] = self._getImageSourcePath(entry["type"])
@@ -124,8 +140,7 @@ class TrafficModel(QAbstractListModel):
         self._trafficEntries.append(entry)
         self.endInsertRows()
 
-    @pyqtSlot(QVariant)
-    def updateTrafficEntry(self, entry):
+    def _updateTrafficEntry(self, entry):
         row = self._rowFromId(entry["id"])
         ix = self.index(row, 0)
         changedRoles = []
@@ -200,17 +215,12 @@ class TrafficModel(QAbstractListModel):
             log.debug("update traffic entry {}".format(entry["id"]))
         self.dataChanged.emit(ix, ix, changedRoles)
 
-    @pyqtSlot(int)
-    def removeTrafficEntry(self, id):
+    def _removeTrafficEntry(self, id):
         log.debug("remove traffic entry {}".format(id))
         row = self._rowFromId(id)
         self.beginRemoveRows(QModelIndex(), row, row)
         del self._trafficEntries[row]
         self.endRemoveRows()
-
-    @property
-    def ids(self) -> list():
-        return [t["id"] for t in self._trafficEntries]
 
     def _rowFromId(self, id):
         for index, item in enumerate(self._trafficEntries):
