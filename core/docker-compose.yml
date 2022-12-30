@@ -16,6 +16,8 @@ services:
       - SY_MQTT_INFO_TOPIC=/easyadsb/sysmgmt/info
       - SY_MQTT_CTRL_TOPIC=/easyadsb/sysmgmt/ctrl
       - SY_WIFI_IFACE=wlan0
+    volumes:
+      - /etc/wpa_supplicant:/etc/wpa_supplicant
     network_mode: host
     privileged: true
     restart: unless-stopped
