@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtSlot,
 import logging as log
 import os
 from datetime import datetime
+import time
 
 
 class TrafficModel(QAbstractListModel):
@@ -28,6 +29,7 @@ class TrafficModel(QAbstractListModel):
     MsgCountRole = roles.getNextRoleId()
     ImageSourcePathRole = roles.getNextRoleId()
     LastSeenSecondsRole = roles.getNextRoleId()
+    LastSeenDeltaTimeRole = roles.getNextRoleId()
 
     def __init__(self, aircraftImagesPath, parent=None):
         QObject.__init__(self, parent)
@@ -88,6 +90,8 @@ class TrafficModel(QAbstractListModel):
             return self._trafficEntries[row]["imageSourcePath"]
         if role == TrafficModel.LastSeenSecondsRole:
             return self._trafficEntries[row]["lastSeenSeconds"]
+        if role == TrafficModel.LastSeenDeltaTimeRole:
+            return self._trafficEntries[row]["lastSeenDeltaTime"]
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._trafficEntries)
@@ -115,7 +119,8 @@ class TrafficModel(QAbstractListModel):
             TrafficModel.LastSeenRole: b"lastSeen",
             TrafficModel.MsgCountRole: b"msgCount",
             TrafficModel.ImageSourcePathRole: b"imageSourcePath",
-            TrafficModel.LastSeenSecondsRole: b"lastSeenSeconds"
+            TrafficModel.LastSeenSecondsRole: b"lastSeenSeconds",
+            TrafficModel.LastSeenDeltaTimeRole: b"lastSeenDeltaTime"
         }
 
     @pyqtSlot(QVariant)
@@ -136,6 +141,7 @@ class TrafficModel(QAbstractListModel):
         entry["category"] = self._getCategoryName(entry["category"])
         entry["imageSourcePath"] = self._getImageSourcePath(entry["type"])
         entry["lastSeenSeconds"] = self._getLastSeenSeconds(entry["lastSeen"])
+        entry["lastSeenDeltaTime"] = time.strftime("%H:%M:%S", time.gmtime(entry["lastSeenSeconds"])).replace("00h", "")
         self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
         self._trafficEntries.append(entry)
         self.endInsertRows()
@@ -205,8 +211,10 @@ class TrafficModel(QAbstractListModel):
         if self._trafficEntries[row]["lastSeen"] != entry["lastSeen"]:
             self._trafficEntries[row]["lastSeen"] = entry["lastSeen"]
             entry["lastSeenSeconds"] = self._getLastSeenSeconds(entry["lastSeen"])
+            entry["lastSeenDeltaTime"] = time.strftime("%H:%M:%S", time.gmtime(entry["lastSeenSeconds"])).replace("00h", "")
             changedRoles.append(TrafficModel.LastSeenRole)
             changedRoles.append(TrafficModel.LastSeenSecondsRole)
+            changedRoles.append(TrafficModel.LastSeenDeltaTimeRole)
         if self._trafficEntries[row]["msgCount"] != entry["msgCount"]:
             self._trafficEntries[row]["msgCount"] = entry["msgCount"]
             changedRoles.append(TrafficModel.MsgCountRole)
@@ -280,8 +288,9 @@ class TrafficModel(QAbstractListModel):
     def _updateLastSeenSeconds(self):
         for row, entry in enumerate(self._trafficEntries):
             entry["lastSeenSeconds"] = self._getLastSeenSeconds(entry["lastSeen"])
+            entry["lastSeenDeltaTime"] = time.strftime("%Hh%M'%S\"", time.gmtime(entry["lastSeenSeconds"])).replace("00h", "")
             ix = self.index(row, 0)
-            self.dataChanged.emit(ix, ix, [TrafficModel.LastSeenSecondsRole])
+            self.dataChanged.emit(ix, ix, [TrafficModel.LastSeenSecondsRole, TrafficModel.LastSeenDeltaTimeRole])
 
     def _getLastSeenSeconds(self, lastSeenUtc):
         return self._getDeltaSeconds(datetime.utcnow(), datetime.strptime(lastSeenUtc, "%H:%M:%S"))

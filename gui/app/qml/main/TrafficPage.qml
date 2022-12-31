@@ -137,7 +137,7 @@ Page {
                     color: Constants.lastSeenColor(lastSeenSeconds)
                     Text {
                         anchors.centerIn: parent
-                        text: lastSeenSeconds
+                        text: lastSeenDeltaTime
                         font.pointSize: 8
                     }
                 }
