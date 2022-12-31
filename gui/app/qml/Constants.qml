@@ -2,13 +2,24 @@ pragma Singleton
 import QtQuick 2.15
 
 QtObject {
+
+    // View IDs (value must match index of AppScreen child view in main.qml)
+    readonly property int kMainView: 0
+    readonly property int kSettingsView: 1
+
+    // colors
     readonly property color darkGrey: "#a6a6a6"
     readonly property color veryDarkGrey: "#888888"
     readonly property color lightGrey: "#f6f6f6"
     readonly property color borderBlack: "#26282a"
     readonly property color transparent: "#00000000"
 
-    readonly property string flagsPath: "../assets/flags-small/"
+    // assets
+    readonly property string assetsPath: Qt.resolvedUrl(".") + "../assets/"
+    function getAssetPath(asset) {
+        return assetsPath + asset
+    }
+    readonly property string flagsPath: Qt.resolvedUrl(".") + "../assets/flags-small/"
     function flagImageSourceFromCallsign(callsign) {
         let nation = null
         if (callsign == undefined) {
@@ -71,6 +82,7 @@ QtObject {
         }
     }
 
+    // functions
     function lastSeenColor(deltaSeconds) {
         let val = interpolate(deltaSeconds, 0, 1.0, 30, 0.0)
         if (val < 0) {

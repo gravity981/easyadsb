@@ -3,6 +3,9 @@ import QtLocation 5.15
 import QtPositioning 5.15
 import QtQuick.Controls 2.15
 
+import "../"
+
+
 Page {
     title: "Map"
     
@@ -50,7 +53,7 @@ Page {
                 longitude: positionModel.longitude ?? 0.0
             }
             sourceItem: Image {
-                source: "../assets/icons/position_enabled.png"
+                source: Constants.getAssetPath("icons/position_enabled.png")
                 fillMode: Image.PreserveAspectFit
                 visible: positionModel.latitude !== undefined && positionModel.longitude !== undefined    
                 height: 100
@@ -71,7 +74,7 @@ Page {
                         y: -planeIcon.height/2
                     Image {
                         id: planeIcon
-                        source: "../assets/icons/plane.png"
+                        source: Constants.getAssetPath("icons/plane.png")
                         fillMode: Image.PreserveAspectFit
                         visible: latitude !== undefined && longitude !== undefined
                         height: 70

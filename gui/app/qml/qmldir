@@ -1,1 +1,15 @@
 singleton Constants 1.0 Constants.qml
+
+# framework
+AppScreen       framework/AppScreen.qml
+Keyboard        framework/Keyboard.qml
+MenuButton      framework/MenuButton.qml
+Page            framework/Page.qml
+StatusIcon      framework/StatusIcon.qml
+View            framework/View.qml
+
+# main
+MainView        main/MainView.qml
+
+# settings
+SettingsView    settings/SettingsView.qml

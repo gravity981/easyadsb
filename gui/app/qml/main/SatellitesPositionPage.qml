@@ -1,5 +1,8 @@
 import QtQuick 2.15
 
+import "../"
+
+
 Page {
     title: "Sat Positions"
     Column {

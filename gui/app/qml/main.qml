@@ -14,7 +14,11 @@ ApplicationWindow {
         width: 480
         height: 720
 
-        MainView {}
+        AppScreen {
+            anchors.fill: parent
+            MainView {}
+            SettingsView {}
+        }
 
         transform: [
             Rotation { 

@@ -1,5 +1,8 @@
 import QtQuick 2.15
 
+import "../"
+
+
 Page {
     title: "Satellites"
     Rectangle {
@@ -39,14 +42,14 @@ Page {
                             when: prn !== undefined && prn.toString().startsWith("R")
                             PropertyChanges {
                                 target: countryFlag
-                                source: "../assets/flags-small/Russian_Federation.png"
+                                source: Constants.getAssetPath("flags-small/Russian_Federation.png")
                             }
                         },
                         State {
                             when: prn !== undefined && prn.toString().startsWith("G")
                             PropertyChanges {
                                 target: countryFlag
-                                source: "../assets/flags-small/United_States_of_America.png"
+                                source: Constants.getAssetPath("flags-small/United_States_of_America.png")
                             }
                         }
                     ]

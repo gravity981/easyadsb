@@ -3,7 +3,11 @@ import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
 
 Page {
+    id: root
+    signal goToSettings
+
     title: "System"
+
     Flickable {
         anchors.fill: parent
         contentHeight: contentLayout.height
@@ -61,9 +65,12 @@ Page {
                 font.pointSize: 8
             }
             Button {
-                Layout.columnSpan: 2
                 text: "add wifi"
                 onClicked: systemModel.addWifi("dummyWifi","secretPassword123")
+            }
+            Button {
+                text: "go to settings"
+                onClicked: root.goToSettings()
             }
 
             Text {

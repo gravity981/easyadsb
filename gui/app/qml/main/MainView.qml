@@ -4,59 +4,15 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
-Item {
+import "../"
+
+View {
     id: root
-    anchors.fill: parent
+    title: view.currentItem.title
 
-    Item {
-        id: header
-        anchors.top: parent.top
-        width: parent.width
-        height: 60
-        Rectangle {
-            anchors.fill: parent
-            color: "steelblue"
-        }
-        Text {
-            anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            text: view.currentItem.title
-            color: "white"
-            elide: Text.ElideRight
-        }
-
-        Row {
-            anchors.right: parent.right
-            height: parent.height
-            StatusIcon {
-                height: parent.height
-                activeSource: "../assets/icons/updates_available.png"
-                inactiveSource: ""
-                isActive: true
-                visible: false // bind to model
-            }
-            StatusIcon {
-                height: parent.height
-                activeSource: "../assets/icons/position_enabled.png"
-                inactiveSource: "../assets/icons/position_disabled.png"
-                isActive: positionModel.navMode !== undefined && positionModel.navMode != 1
-            }
-            StatusIcon {
-                height: parent.height
-                activeSource: "../assets/icons/wifi_enabled.png"
-                inactiveSource: "../assets/icons/wifi_disabled.png"
-                isActive: systemModel.wifi.ssid !== undefined
-            }
-        }
-        MouseArea {
-            anchors.fill: parent
-            onClicked: keyboard.visible = !keyboard.visible
-        }
-    }
-    
     SwipeView {
         id: view
-        anchors.top: header.bottom
+        anchors.top: parent.top
         anchors.bottom: footer.top
         width: parent.width
         interactive: false
@@ -79,16 +35,20 @@ Item {
         }
         SystemPage {
             id: systemPage
+            onGoToSettings: {
+                console.log("go to settings")
+                root.push(Constants.kSettingsView)
+            }
         }
     }
 
-    Keyboard{
+    /*Keyboard{
         id: keyboard
         anchors.top: header.bottom
         anchors.bottom: footer.top
         width: parent.width
         visible: false
-    }
+    }*/
 
     RowLayout {
         id: footer
@@ -174,6 +134,5 @@ Item {
             text: "Waiting for System..."
             wrapMode: Text.WordWrap
         }
-
     }
 }
