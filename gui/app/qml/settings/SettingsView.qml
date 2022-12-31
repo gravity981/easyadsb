@@ -11,25 +11,44 @@ View {
     id: root
     title: "Settings"
 
-    Rectangle {
-        anchors.fill: parent
-        color: "goldenrod"
-    }
-
     StackView {
         id: view
         anchors.top: parent.top
-        anchors.bottom: parent.bottom
+        anchors.bottom: footer.top
         anchors.left: parent.left
         anchors.right: parent.right
         z: -1
+        initialItem: "MainPage.qml"
     }
 
-    Button {
-        anchors.centerIn: parent
-        text: "pop"
-        onClicked: root.popAll()
+    Connections {
+        target: view.currentItem
+        function onPush(pageFile) {
+            view.push(Qt.createComponent(pageFile))
+        }
     }
+
+    RowLayout {
+        id: footer
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 100
+        MenuButton {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            text: "Close"
+            onClicked: {
+                if(view.depth > 1) {
+                    view.pop(null)
+                }
+                else {
+                    root.popAll()
+                }
+            }
+        }
+    }
+
 
     Keyboard{
         id: keyboard
