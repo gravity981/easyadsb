@@ -8,6 +8,7 @@ from SatellitesModel import SatellitesModel
 from SystemModel import SystemModel
 from TrafficModel import TrafficModel
 from KeyboardController import KeyboardController
+from WifiSettingsModel import WifiSettingsModel
 
 try:
     try:
@@ -96,6 +97,7 @@ def main():
     positionModel = PositionModel()
     trafficModel = TrafficModel(aircraftImagesPath)
     systemModel = SystemModel(sysCtrlTopic, messenger, aliveTimeout=5000)
+    wifiSettingsModel = WifiSettingsModel()
     msgDispatcher.satellitesUpdated.connect(satellitesModel.onSatellitesUpdated, Qt.QueuedConnection)
     msgDispatcher.positionUpdated.connect(positionModel.onPositionUpdated, Qt.QueuedConnection)
     msgDispatcher.trafficEntriesUpdated.connect(trafficModel.onTrafficEntriesUpdated, Qt.QueuedConnection)
@@ -108,6 +110,7 @@ def main():
     engine.rootContext().setContextProperty("trafficModel", trafficModel)
     engine.rootContext().setContextProperty("systemModel", systemModel)
     engine.rootContext().setContextProperty("keyboardController", keyboardController)
+    engine.rootContext().setContextProperty("wifiSettingsModel", wifiSettingsModel)
     engine.quit.connect(app.quit)
     engine.load("qml/main.qml")
 
