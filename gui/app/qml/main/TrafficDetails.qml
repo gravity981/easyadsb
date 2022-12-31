@@ -6,7 +6,9 @@ import "../"
 
 Item {
     id: root
+
     property var model
+    signal close
 
     Rectangle {
         anchors.fill: parent
@@ -219,11 +221,11 @@ Item {
         }
     }
 
-    Button {
+    MenuButton {
         anchors.bottom: parent.bottom
-        anchors.right: parent.right
-        height: 100
-        onClicked: root.visible = false
+        width: parent.width
+        height: 80
         text: "close"
+        onClicked: root.close()
     }
 }

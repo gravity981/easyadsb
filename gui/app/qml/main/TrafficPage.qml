@@ -154,4 +154,10 @@ Page {
         id: detailsLoader
         anchors.fill: parent
     }
+    Connections {
+        target: detailsLoader.item
+        function onClose() {
+            detailsLoader.setSource(undefined)
+        }
+    }
 }

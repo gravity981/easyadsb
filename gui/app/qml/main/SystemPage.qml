@@ -2,6 +2,8 @@ import QtQuick 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Controls 2.15
 
+import "../"
+
 Page {
     id: root
     signal goToSettings
@@ -19,7 +21,13 @@ Page {
             width: root.width
             columns: 2
             rowSpacing: 0
-            
+            MenuButton {
+                Layout.columnSpan: 2
+                Layout.fillWidth: true
+                Layout.preferredHeight: 80
+                text: "Settings"
+                onClicked: root.goToSettings()
+            }
             Text {
                 Layout.columnSpan: 2
                 text: "Wifi"
@@ -64,15 +72,6 @@ Page {
                 text: systemModel.wifi.signalLevel !== undefined ? (systemModel.wifi.signalLevel + " dBm") : "n/a"
                 font.pointSize: 8
             }
-            Button {
-                text: "add wifi"
-                onClicked: systemModel.addWifi("dummyWifi","secretPassword123")
-            }
-            Button {
-                text: "go to settings"
-                onClicked: root.goToSettings()
-            }
-
             Text {
                 Layout.columnSpan: 2
                 text: "GDL90"

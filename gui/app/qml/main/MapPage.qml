@@ -123,9 +123,11 @@ Page {
         opacity: 0.5
         onCheckedChanged: {
             if(checked) {
+                map.gesture.acceptedGestures = MapGestureArea.PinchGesture
                 map.center = Qt.binding(function() { return QtPositioning.coordinate(positionModel.latitude, positionModel.longitude)})
             }
             else {
+                map.gesture.acceptedGestures = MapGestureArea.PinchGesture | MapGestureArea.PanGesture | MapGestureArea.FlickGesture
                 map.center = QtPositioning.coordinate(positionModel.latitude, positionModel.longitude)
             }
         }
@@ -134,5 +136,11 @@ Page {
     Loader {
         id: detailsLoader
         anchors.fill: parent
+    }
+    Connections {
+        target: detailsLoader.item
+        function onClose() {
+            detailsLoader.setSource(undefined)
+        }
     }
 }
