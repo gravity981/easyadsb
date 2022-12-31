@@ -27,7 +27,7 @@ def runPeriodicPublish(messenger, publishTopic, wifiManager):
     while True:
         system = dict()
         system["wifi"] = wifiManager.wifi
-        system["wifilist"] = wifiManager.wifilist
+        system["wifilist"] = list(wifiManager.wifiEntries.values())
         system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
         system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
         system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
@@ -35,27 +35,44 @@ def runPeriodicPublish(messenger, publishTopic, wifiManager):
         time.sleep(intervalSeconds)
 
 
+class WifiEntry(dict):
+
+    def __init__(self, ssid, isKnown, isConnected, frequency, accesspoint, linkQuality, signalLevel, isEncrypted):
+        self["ssid"] = ssid
+        self["isKnown"] = isKnown
+        self["isConnected"] = isConnected
+        self["frequency"] = frequency
+        self["accesspoint"] = accesspoint
+        self["linkQuality"] = linkQuality
+        self["signalLevel"] = signalLevel
+        self["isEncrypted"] = isEncrypted
+
+
 class WifiManager:
 
     def __init__(self, iface):
         self._iface = iface
-        self._wifilist = []
         self._wifi = dict()
         self._wpaSupplicantConf = sysinfo.Wifi.parseWpaSupplicantConf(sysinfo.Wifi.getWpaSupplicantConf())
+        self._wifiEntries = dict()
+        self._wifiEntriesLock = threading.Lock()
+        with self._wifiEntriesLock:
+            for network in self._wpaSupplicantConf["networks"]:
+                self._wifiEntries[network["ssid"]] = WifiEntry(network["ssid"], True, False, None, None, None, None, None)
         self._iwLock = threading.Lock()
         self._propertyLock = threading.Lock()
         self._timerWifiList = threading.Timer(0, self._getWifiList)
         self._timerWifiConfig = threading.Timer(0, self._getWifiConfig)
 
     @property
-    def wifilist(self):
-        with self._propertyLock:
-            return deepcopy(self._wifilist)
-
-    @property
     def wifi(self):
         with self._propertyLock:
             return deepcopy(self._wifi)
+
+    @property
+    def wifiEntries(self):
+        with self._wifiEntriesLock:
+            return deepcopy(self._wifiEntries)
 
     def startScanning(self):
         with self._iwLock:
@@ -96,19 +113,66 @@ class WifiManager:
         # this should not be necessary but the system does not always work reliable
         log.warning("force reconnect not yet implemented")
 
+    def _updateWifiEntriesIwListResult(self, wifilist):
+        with self._wifiEntriesLock:
+            for wifi in wifilist:
+                # update existing wifi
+                if wifi["ssid"] in self._wifiEntries.keys():
+                    entry = self._wifiEntries[wifi["ssid"]]
+                    entry["accesspoint"] = wifi["accesspoint"]
+                    entry["frequency"] = wifi["frequency"]
+                    entry["linkQuality"] = wifi["linkQuality"]
+                    entry["signalLevel"] = wifi["signalLevel"]
+                    entry["isEncrypted"] = wifi["encrypted"]
+                    log.debug("updated {}".format(wifi["ssid"]))
+                # add new wifi
+                else:
+                    self._wifiEntries[wifi["ssid"]] = WifiEntry(
+                        wifi["ssid"],
+                        False,
+                        False,
+                        wifi["frequency"],
+                        wifi["accesspoint"],
+                        wifi["linkQuality"],
+                        wifi["signalLevel"],
+                        wifi["encrypted"]
+                        )
+                    log.debug("added {}".format(wifi["ssid"]))
+            # remove wifis which are not anymore in scan result and are unknown to configurtion
+            for k in list(self._wifiEntries.keys()):
+                entry = self._wifiEntries[k]
+                if not entry["isKnown"] and not entry["ssid"] in [w["ssid"] for w in wifilist]:
+                    del self._wifiEntries[k]
+
+    def _updateWifiEntriesFromIwConfigResult(self, connectedWifi):
+        with self._wifiEntriesLock:
+            if connectedWifi["ssid"] is None:
+                for wifi in self._wifiEntries.values():
+                    wifi["isConnected"] = False
+            elif connectedWifi["ssid"] in self._wifiEntries.keys():
+                wifi = self._wifiEntries[connectedWifi["ssid"]]
+                wifi["isConnected"] = True
+                wifi["frequency"] = connectedWifi["frequency"]
+                wifi["accesspoint"] = connectedWifi["accesspoint"]
+                wifi["linkQuality"] = connectedWifi["linkQuality"]
+                wifi["signalLevel"] = connectedWifi["signalLevel"]
+                log.debug("update connected wifi {}".format(connectedWifi["ssid"]))
+            else:
+                log.error("conntected to unkown wifi, this is not possible, {}".format(connectedWifi["ssid"]))
+
     def _getWifiList(self):
         with self._iwLock:
             self._timerWifiList = threading.Timer(10, self._getWifiList)
             self._timerWifiList.start()
             wifilist = sysinfo.Wifi.parseIwList(sysinfo.Wifi.getIwList(self._iface))
-            with self._propertyLock:
-                self._wifilist = wifilist
+            self._updateWifiEntriesIwListResult(wifilist)
 
     def _getWifiConfig(self):
         with self._iwLock:
             self._timerWifiConfig = threading.Timer(3, self._getWifiConfig)
             self._timerWifiConfig.start()
             wifi = sysinfo.Wifi.parseIwConfig(sysinfo.Wifi.getIwConfig(self._iface))
+            self._updateWifiEntriesFromIwConfigResult(wifi)
             with self._propertyLock:
                 self._wifi = wifi
 
