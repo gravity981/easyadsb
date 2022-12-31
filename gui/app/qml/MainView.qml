@@ -96,119 +96,58 @@ Item {
         width: parent.width
         height: 100
         spacing: 0
-        Button {
+        MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentItem: Text {
-                text: "POS"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pointSize: 9
-            }
-            background: Rectangle {
-                anchors.fill: parent
-                color: parent.down ? "#a6a6a6" : (positionPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
-                border.color: "#26282a"
-                border.width: 1
-                radius: 4
-            }
+            text: "POS"
+            isHighlighted: positionPage.SwipeView.isCurrentItem
             onClicked: view.setCurrentIndex(positionPage.SwipeView.index)
+
         }
-        Button {
+        MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentItem: Text {
-                text: "TRF"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pointSize: 9
-            }
-            background: Rectangle {
-                anchors.fill: parent
-                color: parent.down ? "#a6a6a6" : (trafficPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
-                border.color: "#26282a"
-                border.width: 1
-                radius: 4
-            }
+            text: "TRF"
+            isHighlighted: trafficPage.SwipeView.isCurrentItem
             onClicked: view.setCurrentIndex(trafficPage.SwipeView.index)
+
         }
-        Button {
+        MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            height: parent.height
-            contentItem: Text {
-                text: "MAP"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pointSize: 9
-            }
-            background: Rectangle {
-                anchors.fill: parent
-                color: parent.down ? "#a6a6a6" : (mapPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
-                border.color: "#26282a"
-                border.width: 1
-                radius: 4
-            }
+            text: "MAP"
+            isHighlighted: mapPage.SwipeView.isCurrentItem
             onClicked: view.setCurrentIndex(mapPage.SwipeView.index)
+
         }
-        Button {
+        MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentItem: Text {
-                text: "SAT"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pointSize: 9
-            }
-            background: Rectangle {
-                anchors.fill: parent
-                color: parent.down ? "#a6a6a6" : (satellitesPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
-                border.color: "#26282a"
-                border.width: 1
-                radius: 4
-            }
+            text: "SAT"
+            isHighlighted: satellitesPage.SwipeView.isCurrentItem
             onClicked: view.setCurrentIndex(satellitesPage.SwipeView.index)
+
         }
-        Button {
+        MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentItem: Text {
-                text: "STP"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pointSize: 9
-            }
-            background: Rectangle {
-                anchors.fill: parent
-                color: parent.down ? "#a6a6a6" : (satellitesPositionPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
-                border.color: "#26282a"
-                border.width: 1
-                radius: 4
-            }
+            text: "STP"
+            isHighlighted: satellitesPositionPage.SwipeView.isCurrentItem
             onClicked: view.setCurrentIndex(satellitesPositionPage.SwipeView.index)
+
         }
-        Button {
+        MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            height: parent.height
-            contentItem: Text {
-                text: "SYS"
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                font.pointSize: 9
-            }
-            background: Rectangle {
-                anchors.fill: parent
-                color: parent.down ? "#a6a6a6" : (systemPage.SwipeView.isCurrentItem ? "#888888": "#f6f6f6")
-                border.color: "#26282a"
-                border.width: 1
-                radius: 4
-            }
+            text: "SYS"
+            isHighlighted: systemPage.SwipeView.isCurrentItem
             onClicked: view.setCurrentIndex(systemPage.SwipeView.index)
+
         }
     }
 
     Rectangle {
+        id: overlay
         anchors.fill: parent
         color: "#a0a0a0"
         opacity: 0.5
@@ -226,7 +165,7 @@ Item {
         visible: !systemModel.isAlive
         Overlay.modal: Rectangle {
             //make overlay transparent because it is not shown correctly because of transformation (main.qml)
-            color: "#00000000"
+            color: Constants.transparent
         }
         Text {
             anchors.fill: parent

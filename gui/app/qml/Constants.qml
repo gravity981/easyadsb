@@ -2,6 +2,12 @@ pragma Singleton
 import QtQuick 2.15
 
 QtObject {
+    readonly property color darkGrey: "#a6a6a6"
+    readonly property color veryDarkGrey: "#888888"
+    readonly property color lightGrey: "#f6f6f6"
+    readonly property color borderBlack: "#26282a"
+    readonly property color transparent: "#00000000"
+
     readonly property string flagsPath: "../assets/flags-small/"
     function flagImageSourceFromCallsign(callsign) {
         let nation = null
