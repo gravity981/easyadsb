@@ -34,10 +34,12 @@ class Wifi:
 
     def getIwList(iface):
         cmd = "awk '/ESSID/ || /Frequency/ || /Cell/ || /Quality/ || /Address/ || /Encryption/'"
-        pAwk = subprocess.Popen(shlex.split(cmd), stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        pAwk = subprocess.Popen(shlex.split(cmd), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cmd = "iwlist {} scan".format(iface)
-        pIwlist = subprocess.Popen(shlex.split(cmd), stdout=pAwk.stdin)
+        pIwlist = subprocess.Popen(shlex.split(cmd), stdout=pAwk.stdin, stderr=subprocess.PIPE)
         out, err = pAwk.communicate()
+        if err:
+            raise ChildProcessError(err)
         pIwlist.wait()
         return out.decode("utf-8")
 

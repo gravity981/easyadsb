@@ -139,10 +139,17 @@ class WifiManager:
                         )
                     log.debug("added {}".format(wifi["ssid"]))
             # remove wifis which are not anymore in scan result and are unknown to configurtion
+            scannedSsids = [w["ssid"] for w in wifilist]
             for k in list(self._wifiEntries.keys()):
                 entry = self._wifiEntries[k]
-                if not entry["isKnown"] and not entry["ssid"] in [w["ssid"] for w in wifilist]:
+                if not entry["isKnown"] and not entry["ssid"] in scannedSsids:
                     del self._wifiEntries[k]
+                elif not entry["ssid"] in scannedSsids:
+                    entry["isConnected"] = False
+                    entry["frequency"] = None
+                    entry["accesspoint"] = None
+                    entry["linkQuality"] = None
+                    entry["signalLevel"] = None
 
     def _updateWifiEntriesFromIwConfigResult(self, connectedWifi):
         with self._wifiEntriesLock:
@@ -164,8 +171,11 @@ class WifiManager:
         with self._iwLock:
             self._timerWifiList = threading.Timer(10, self._getWifiList)
             self._timerWifiList.start()
-            wifilist = sysinfo.Wifi.parseIwList(sysinfo.Wifi.getIwList(self._iface))
-            self._updateWifiEntriesIwListResult(wifilist)
+            try:
+                wifilist = sysinfo.Wifi.parseIwList(sysinfo.Wifi.getIwList(self._iface))
+                self._updateWifiEntriesIwListResult(wifilist)
+            except ChildProcessError as ex:
+                log.error(str(ex))
 
     def _getWifiConfig(self):
         with self._iwLock:

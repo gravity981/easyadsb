@@ -33,6 +33,7 @@ class MessageDispatcher(QObject):
     trafficEntriesUpdated = pyqtSignal(QVariant)
     statusUpdated = pyqtSignal(QVariant)
     systemUpdated = pyqtSignal(QVariant)
+    wifilistUpdated = pyqtSignal(QVariant)
 
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
@@ -48,6 +49,7 @@ class MessageDispatcher(QObject):
 
     def updateSystem(self, system):
         self.systemUpdated.emit(system)
+        self.wifilistUpdated.emit(system)
 
     def updateStatus(self, status):
         self.statusUpdated.emit(status)
@@ -97,12 +99,13 @@ def main():
     positionModel = PositionModel()
     trafficModel = TrafficModel(aircraftImagesPath)
     systemModel = SystemModel(sysCtrlTopic, messenger, aliveTimeout=5000)
-    wifiSettingsModel = WifiSettingsModel()
+    wifiSettingsModel = WifiSettingsModel(messenger)
     msgDispatcher.satellitesUpdated.connect(satellitesModel.onSatellitesUpdated, Qt.QueuedConnection)
     msgDispatcher.positionUpdated.connect(positionModel.onPositionUpdated, Qt.QueuedConnection)
     msgDispatcher.trafficEntriesUpdated.connect(trafficModel.onTrafficEntriesUpdated, Qt.QueuedConnection)
     msgDispatcher.statusUpdated.connect(systemModel.onStatusUpdated, Qt.QueuedConnection)
     msgDispatcher.systemUpdated.connect(systemModel.onSystemUpdated, Qt.QueuedConnection)
+    msgDispatcher.wifilistUpdated.connect(wifiSettingsModel.onWifiListUpdated, Qt.QueuedConnection)
     keyboardController = KeyboardController()
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("satellitesModel", satellitesModel)

@@ -66,9 +66,3 @@ class SystemModel(QObject):
         self._gdl90 = status["gdl90"]
         log.debug("update status")
         self.statusChanged.emit()
-
-    @pyqtSlot(str, str)
-    def addWifi(self, ssid, psk):
-        request = mqtt.RequestMessage("addWifi", {"ssid": ssid, "psk": util.wpaPsk(ssid, psk).decode("utf-8")})
-        response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
-        return response["success"]
