@@ -100,7 +100,7 @@ class MqttMessenger:
         self._mqClient.on_connect = self._onConnect
 
     def sendNotification(self, topic, msg):
-        self._mqClient.publish(topic, json.dumps(msg))
+        self._mqClient.publish(topic, msg)
 
     def sendRequestAndWait(self, topic, msg: RequestMessage, timeout=3):
         if not topic.endswith("/request"):
@@ -124,10 +124,10 @@ class MqttMessenger:
     def _onMessage(self, client, userdata, msg):
         try:
             msgStr = msg.payload.decode("UTF-8").strip()
-            msgData = json.loads(msgStr)
             if msg.topic in self._subscriptions.keys():
                 sub = self._subscriptions[msg.topic]
                 if sub["type"] == MqttMessenger.REQUEST:
+                    msgData = json.loads(msgStr)
                     requestId = msgData.pop("requestId")
                     responseTopic = self._getResponseTopic(msg.topic)
                     request = RequestMessage(msgData["command"], msgData["data"])
@@ -135,12 +135,13 @@ class MqttMessenger:
                     self._requestFutures[future] = (responseTopic, requestId)
                     future.add_done_callback(self._requestExecuted)
                 elif sub["type"] == MqttMessenger.RESPONSE:
+                    msgData = json.loads(msgStr)
                     future = self._responseFutures.pop(msgData["requestId"])
                     response = ResponseMessage(msgData["success"], msgData["data"])
                     future.set_result(response)
                     future.done()
                 elif sub["type"] == MqttMessenger.NOTIFICATION:
-                    self._executor.submit(sub["func"], msgData)
+                    self._executor.submit(sub["func"], msgStr)
                 else:
                     log.error("unknown subscription type")
             else:

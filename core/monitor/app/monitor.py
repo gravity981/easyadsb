@@ -42,56 +42,57 @@ class MessageDispatcher:
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
 
-    def onMessage(self, client, userdata, msg):
-        if "nmea" in msg.topic:
-            self._onNmeaMessage(msg)
-        elif "ubx" in msg.topic:
-            self._onUbxMessage(msg)
-        elif "sbs" in msg.topic:
-            self._onSbsMessage(msg)
-        elif "bme" in msg.topic:
-            self._onBmeMessage(msg)
-        else:
-            log.warning('message from unexpected topic "{topic}"'.format(topic=msg.topic))
-
     def _onNmeaMessage(self, msg):
         try:
-            nmea = NMEAReader.parse(msg.payload)
+            nmea = NMEAReader.parse(msg)
             log.debug(nmea)
             self._navMonitor.update(nmea)
         except Exception as ex:
-            log.error('on nmea message error, {}, "{}"'.format(str(ex), msg.payload))
+            log.error('on nmea message error, {}, "{}"'.format(str(ex), msg))
             return
 
     def _onUbxMessage(self, msg):
         try:
-            ubx = UBXReader.parse(msg.payload)
+            ubx = UBXReader.parse(msg.strip())
             log.debug(ubx)
         except Exception as ex:
-            log.error('on ubx message error, {}, "{}"'.format(str(ex), msg.payload))
+            log.error('on ubx message error, {}, "{}"'.format(str(ex), msg))
             return
 
     def _onSbsMessage(self, msg):
         try:
-            dec = msg.payload.decode("UTF-8").strip()
+            dec = msg.strip()
             sbs = SBSReader.parse(dec)
             log.debug(sbs)
             self._trafficMonitor.update(sbs)
         except UnicodeDecodeError:
-            log.error('on sbs message payload decode error, "{}"'.format(msg.payload))
+            log.error('on sbs message decode error, "{}"'.format(msg))
             return
         except Exception as ex:
-            log.error('on sbs message error, {}, "{}"'.format(str(ex), msg.payload))
+            log.error('on sbs message error, {}, "{}"'.format(str(ex), msg))
             return
 
     def _onBmeMessage(self, msg):
         try:
-            bme = json.loads(msg.payload.decode("UTF-8").strip())
+            bme = json.loads(msg.strip())
             log.debug(bme)
             self._navMonitor.updateBme(bme)
         except Exception as ex:
             log.error('on bme message error, {}, "{}"'.format(str(ex), msg.payload))
             return
+
+    def _onTrafficRequest(self, msg):
+        if "command" in msg.keys():
+            if msg["command"] == "clearHistory":
+                log.info("cleanup unseen traffic")
+                self._trafficMonitor.cleanup()
+            if msg["command"] == "setAutoCleanup":
+                if msg["data"]["enabled"]:
+                    log.info("start auto cleanup")
+                    self._trafficMonitor.startAutoCleanup()
+                else:
+                    log.info("stop auto cleanup")
+                    self._trafficMonitor.stopAutoCleanup()
 
 
 class GDL90Sender:
@@ -225,11 +226,11 @@ class JsonSender:
     used to periodically publish mqtt messages with monitored information
     """
 
-    def __init__(self, navMonitor: NavMonitor, trafficMonitor: TrafficMonitor, gdl90Port: GDL90Port, mqttClient, sendIntervalSeconds):
+    def __init__(self, navMonitor: NavMonitor, trafficMonitor: TrafficMonitor, gdl90Port: GDL90Port, messenger, sendIntervalSeconds):
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
         self._gdl90Port = gdl90Port
-        self._mqttClient = mqttClient
+        self._messenger = messenger
         self._intervalSeconds = sendIntervalSeconds
 
     def start(self):
@@ -252,17 +253,16 @@ class JsonSender:
             satellites = json.dumps(list(self._navMonitor.satellites.values()))
             traffic = json.dumps(list(self._trafficMonitor.traffic.values()))
             position = json.dumps(self._navMonitor.posInfo)
-            self._mqttClient.publish("/easyadsb/monitor/satellites", satellites)
-            self._mqttClient.publish("/easyadsb/monitor/traffic", traffic)
-            self._mqttClient.publish("/easyadsb/monitor/position", position)
-            self._mqttClient.publish("/easyadsb/monitor/status", status)
+            self._messenger.sendNotification("/easyadsb/monitor/satellites", satellites)
+            self._messenger.sendNotification("/easyadsb/monitor/traffic", traffic)
+            self._messenger.sendNotification("/easyadsb/monitor/position", position)
+            self._messenger.sendNotification("/easyadsb/monitor/status", status)
 
         except Exception as ex:
             log.error("error sending json messages, {}".format(str(ex)))
 
 
 def main():
-    mqttClient = None
     logLevel = str(os.getenv("MO_LOG_LEVEL"))
     broker = str(os.getenv("MO_MQTT_HOST"))
     port = int(os.getenv("MO_MQTT_PORT"))
@@ -291,14 +291,36 @@ def main():
         clientName = str(uuid.uuid1())
 
     trafficMonitor = TrafficMonitor(aircrafts, types, dbversion["version"], typesExtension)
-    trafficMonitor.startAutoCleanup()
     navMonitor = NavMonitor()
     msgDispatcher = MessageDispatcher(navMonitor, trafficMonitor)
     log.debug("{name}, {broker}, {port}".format(name=clientName, broker=broker, port=port))
-    mqttClient = mqtt.launch(clientName, broker, port, [nmeaTopic, ubxTopic, sbsTopic, bmeTopic], msgDispatcher.onMessage)
+    mqttClient = mqtt.launch(clientName, broker, port)
+    subscriptions = {
+        nmeaTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher._onNmeaMessage
+        },
+        ubxTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher._onUbxMessage
+        },
+        sbsTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher._onSbsMessage
+        },
+        bmeTopic: {
+            "type": mqtt.MqttMessenger.NOTIFICATION,
+            "func": msgDispatcher._onBmeMessage
+        },
+        "/easyadsb/monitor/traffic/ctrl": {
+            "type": mqtt.MqttMessenger.REQUEST,
+            "func": msgDispatcher._onTrafficRequest
+        }
+    }
+    messenger = mqtt.MqttMessenger(mqttClient, subscriptions)
     gdl90Port = GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
     gdl90Sender = GDL90Sender(gdl90Port, navMonitor)
-    jsonSender = JsonSender(navMonitor, trafficMonitor, gdl90Port, mqttClient, 1)
+    jsonSender = JsonSender(navMonitor, trafficMonitor, gdl90Port, messenger, 1)
     jsonSender.start()
     trafficMonitor.register(gdl90Sender)
     navMonitor.register(gdl90Sender)

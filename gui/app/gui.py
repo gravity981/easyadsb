@@ -9,6 +9,7 @@ from SystemModel import SystemModel
 from TrafficModel import TrafficModel
 from KeyboardController import KeyboardController
 from WifiSettingsModel import WifiSettingsModel
+import json
 
 try:
     try:
@@ -38,20 +39,25 @@ class MessageDispatcher(QObject):
     def __init__(self, parent=None):
         QObject.__init__(self, parent)
 
-    def updateSatellites(self, satellites):
+    def updateSatellites(self, msg):
+        satellites = json.loads(msg)
         self.satellitesUpdated.emit(satellites)
 
-    def updatePosition(self, position):
+    def updatePosition(self, msg):
+        position = json.loads(msg)
         self.positionUpdated.emit(position)
 
-    def updateTraffic(self, entries):
+    def updateTraffic(self, msg):
+        entries = json.loads(msg)
         self.trafficEntriesUpdated.emit(entries)
 
-    def updateSystem(self, system):
+    def updateSystem(self, msg):
+        system = json.loads(msg)
         self.systemUpdated.emit(system)
         self.wifilistUpdated.emit(system)
 
-    def updateStatus(self, status):
+    def updateStatus(self, msg):
+        status = json.loads(msg)
         self.statusUpdated.emit(status)
 
 

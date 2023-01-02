@@ -7,6 +7,7 @@ import sysinfo
 import threading
 from copy import deepcopy
 import shutil
+import json
 
 try:
     import common.mqtt as mqtt
@@ -31,7 +32,7 @@ def runPeriodicPublish(messenger, publishTopic, wifiManager):
         system["resources"] = sysinfo.Resources.parseMemInfo(sysinfo.Resources.getMemInfoFromProcfs())
         system["resources"]["cpuTemp"] = sysinfo.Resources.parseCpuTemperature(sysinfo.Resources.getCpuTempFromSysfs())
         system["resources"]["cpuUsage"] = sysinfo.Resources.parseCpuUsage(sysinfo.Resources.getStatFromProcfs())
-        messenger.sendNotification(publishTopic, system)
+        messenger.sendNotification(publishTopic, json.dumps(system))
         time.sleep(intervalSeconds)
 
 

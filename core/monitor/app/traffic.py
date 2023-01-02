@@ -366,7 +366,9 @@ class TrafficMonitor:
         """
         Start cleanup timer, removes unseen traffic
         """
-        self._cleanup(interval)
+        if self._timer is not None and not self._timer.is_alive():
+            self._timer = threading.Timer(interval, self._cleanup, [True, interval])
+            self._timer.start()
 
     def stopAutoCleanup(self):
         """
@@ -374,6 +376,13 @@ class TrafficMonitor:
         """
         if self._timer is not None:
             self._timer.cancel()
+            self._timer = None
+
+    def cleanup(self):
+        """
+        remove unseen traffic
+        """
+        self._cleanup(False)
 
     def register(self, obj):
         """
@@ -423,10 +432,11 @@ class TrafficMonitor:
         for obj in self._observers:
             obj.notify(trafficEntry)
 
-    def _cleanup(self, interval: int):
+    def _cleanup(self, reschedule=True, interval: int = 10):
         with self._lock:
-            self._timer = threading.Timer(interval, self._cleanup, [interval])
-            self._timer.start()
+            if reschedule:
+                self._timer = threading.Timer(interval, self._cleanup, [True, interval])
+                self._timer.start()
             maxLastSeenSeconds = 300
             for k in list(self._traffic.keys()):
                 entry = self._traffic[k]
