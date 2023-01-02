@@ -133,7 +133,7 @@ def test_writeWpaSupplicantConfToString():
         "country=CH\n"
         "network={\n"
         "\tssid=\"dummy_ssid\"\n"
-        "\tpsk=\"testPassword123\"\n"
+        "\tpsk=passwordhash123\n"
         "}\n"
     )
     wpaSupConf = {
@@ -143,7 +143,7 @@ def test_writeWpaSupplicantConfToString():
         "networks": [
             {
                 "ssid": "dummy_ssid",
-                "psk": "testPassword123"
+                "psk": "passwordhash123"
             }
         ]
     }
