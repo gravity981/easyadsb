@@ -19,10 +19,9 @@ class SystemModel(QObject):
     systemChanged = pyqtSignal()
     statusChanged = pyqtSignal()
 
-    def __init__(self, sysCtrlTopic, messenger, aliveTimeout, parent=None):
+    def __init__(self, messenger, aliveTimeout, parent=None):
         QObject.__init__(self, parent)
         self._messenger = messenger
-        self._sysCtrlTopic = sysCtrlTopic
         self._wifi = dict()
         self._gdl90 = dict()
         self._resources = dict()

@@ -1,6 +1,7 @@
 singleton Constants 1.0 Constants.qml
 
 # framework
+AppPopup        framework/AppPopup.qml
 AppScreen       framework/AppScreen.qml
 Keyboard        framework/Keyboard.qml
 MenuButton      framework/MenuButton.qml

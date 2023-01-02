@@ -24,7 +24,7 @@ View {
     Connections {
         target: view.currentItem
         function onPush(pageFile) {
-            view.push(Qt.createComponent(pageFile))
+            view.push(Qt.createComponent(pageFile), {"keyboard": keyboard, "popup": popup})
         }
     }
 
@@ -49,12 +49,17 @@ View {
         }
     }
 
-
     Keyboard{
         id: keyboard
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         width: parent.width
         visible: false
+    }
+
+    AppPopup {
+        id: popup
+        popup.width: 400
+        popup.height: 400
     }
 }

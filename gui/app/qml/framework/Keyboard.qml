@@ -6,7 +6,20 @@ Item {
     id: root
 
     signal cancel
-    signal confirmed
+    signal confirmed(string txt)
+
+    function open(title, txt) {
+        titleText.text = title
+        textField.text = txt 
+        textField.focus = true
+        textField.cursorPosition = textField.length
+        visible = true
+    }
+
+    function close() {
+        textField.text = ""
+        visible = false
+    }
 
     QtObject {
         id: internal
@@ -54,7 +67,7 @@ Item {
                 
             ],
             [
-                {func: internal.kfShift, span: 2},
+                {txt: "shift", func: internal.kfShift, span: 2},
                 {txt: "c", num: ",", alt:""},
                 {txt: "v", num: "?", alt:""},
                 {txt: "b", num: "!", alt:""},
@@ -63,14 +76,14 @@ Item {
                 
             ],
             [
-                {func: internal.kfNumber, span: 1},
+                {txt: "nr", func: internal.kfNumber, span: 1},
                 {txt: " ", span: 5},
-                {func: internal.kfBackspace, span: 1},
+                {txt: "<", func: internal.kfBackspace, span: 1},
             ],
             [
-                {func: internal.kfAlt, span: 1},
-                {func: internal.kfCancel, span: 3},
-                {func: internal.kfEnter, span: 3},
+                {txt: "alt", func: internal.kfAlt, span: 1},
+                {txt: "cancel", func: internal.kfCancel, span: 3},
+                {txt: "enter", func: internal.kfEnter, span: 3},
             ]
         ]
 
@@ -124,9 +137,32 @@ Item {
         }
     }
 
+    // do not let pass any events to any component below the keyboard
+    MouseArea {
+        id: clickBlocker
+        anchors.fill: parent
+    }
+
+    Rectangle {
+        id: titleRect
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 80
+        color: "steelblue"
+        border.width: 1
+        border.color: "#000000"
+        Text {
+            id: titleText
+            anchors.fill: parent
+            verticalAlignment: Text.AlignVCenter
+            wrapMode: Text.WordWrap
+            font.pointSize: 10
+        }
+    }
+
     TextField {
         id: textField
-        anchors.top: parent.top
+        anchors.top: titleRect.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         focus: true
@@ -139,7 +175,7 @@ Item {
             border.width: 1
             border.color: "#050505"
         }
-        onEditingFinished: root.confirmed()
+        onEditingFinished: root.confirmed(textField.text)
     }
 
     Item {
