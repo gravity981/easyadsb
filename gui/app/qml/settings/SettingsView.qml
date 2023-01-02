@@ -18,7 +18,7 @@ View {
         anchors.left: parent.left
         anchors.right: parent.right
         z: -1
-        initialItem: "MainPage.qml"
+        initialItem: "SettingsMenuPage.qml"
     }
 
     Connections {

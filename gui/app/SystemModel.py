@@ -50,5 +50,5 @@ class SystemModel(QObject):
         self._timer.start()
         self._isAlive = True
         self._gdl90 = status["gdl90"]
-        log.debug("update status")
+        log.info("update status")
         self.statusChanged.emit()

@@ -42,14 +42,6 @@ View {
         }
     }
 
-    /*Keyboard{
-        id: keyboard
-        anchors.top: header.bottom
-        anchors.bottom: footer.top
-        width: parent.width
-        visible: false
-    }*/
-
     RowLayout {
         id: footer
         anchors.bottom: parent.bottom
@@ -105,13 +97,4 @@ View {
 
         }
     }
-
-    AppPopup {
-        id: popup
-        visible: !systemModel.isAlive
-        text: "Waiting for System..."
-        canConfirm: false
-        canCancel: false
-    }
-
 }

@@ -88,7 +88,6 @@ class MqttMessenger:
         self._requestFutures = dict()
         self._responseFutures = dict()
         self._subscriptions = dict()
-        self._mqClient.on_message = self._onMessage
         for topic, meta in subscriptions.items():
             if meta["type"] == MqttMessenger.REQUEST:
                 topic += "/request"
@@ -97,6 +96,8 @@ class MqttMessenger:
             self._mqClient.subscribe(topic)
             self._subscriptions[topic] = meta
             log.info("subscribed for topic {}".format(topic))
+        self._mqClient.on_message = self._onMessage
+        self._mqClient.on_connect = self._onConnect
 
     def sendNotification(self, topic, msg):
         self._mqClient.publish(topic, json.dumps(msg))
@@ -110,6 +111,15 @@ class MqttMessenger:
         msg["requestId"] = requestId
         self._mqClient.publish(topic, json.dumps(msg))
         return future.result(timeout)
+
+    def _onConnect(self, client, userdata, flags, rc):
+        if rc == 0:
+            log.info("mqtt connected")
+            for topic in self._subscriptions.keys():
+                client.subscribe(topic)
+                log.info("subscribed to topic {}".format(topic))
+        else:
+            log.warning("could not connect to mqtt server. code: %s", str(rc))
 
     def _onMessage(self, client, userdata, msg):
         try:

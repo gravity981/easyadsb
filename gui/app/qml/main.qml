@@ -20,6 +20,14 @@ ApplicationWindow {
             SettingsView {}
         }
 
+        AppPopup {
+            id: popup
+            visible: !systemModel.isAlive
+            text: "Waiting for System..."
+            canConfirm: false
+            canCancel: false
+        }
+
         transform: [
             Rotation { 
                 origin.x: root.width / 2
