@@ -1,0 +1,54 @@
+{
+    "bme280": {
+        "topic": "/easyadsb/bme280/json",
+        "type": "notification"
+    },
+    "dump1090Sbs" : {
+        "topic": "/easyadsb/dump1090/sbs",
+        "type": "notification"
+    },
+    "ubloxUbx": {
+        "topic": "/easyadsb/ublox/ubx",
+        "type": "notification"
+    },
+    "ubloxNmea": {
+        "topic": "/easyadsb/ublox/nmea",
+        "type": "notification"
+    },
+    "monitorSatellites":{
+        "topic": "/easyadsb/monitor/satellites",
+        "type": "notification"
+    },
+    "monitorTraffic":{
+        "topic": "/easyadsb/monitor/traffic",
+        "type": "notification"
+    },
+    "monitorTrafficRequest": {
+        "topic": "/easyadsb/monitor/traffic/ctrl/request",
+        "type": "request"
+    },
+    "monitorTrafficResponse": {
+        "topic": "/easyadsb/monitor/traffic/ctrl/response",
+        "type": "response"
+    },
+    "monitorPosition":{
+        "topic": "/easyadsb/monitor/position",
+        "type": "notification"
+    },
+    "monitorStatus":{
+        "topic": "/easyadsb/monitor/status",
+        "type": "notification"
+    },
+    "sysMgmtInfo": {
+        "topic": "easyadsb/sysmgmt/info",
+        "type": "notification"
+    },
+    "sysMgmtRequest": {
+        "topic": "/easyadsb/sysmgmt/ctrl/request",
+        "type": "request"
+    },
+    "sysMgmtResponse": {
+        "topic": "/easyadsb/sysmgmt/ctrl/response",
+        "type": "response"
+    }
+}
