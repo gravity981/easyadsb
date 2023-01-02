@@ -36,16 +36,21 @@ def runPeriodicPublish(messenger, publishTopic, wifiManager):
 
 
 class WifiEntry(dict):
+    KNOWN = "known"
+    ADDED = "added"
+    REMOVED = "removed"
+    NEW = "new"
 
-    def __init__(self, ssid, isKnown, isConnected, frequency, accesspoint, linkQuality, signalLevel, isEncrypted):
+    def __init__(self, ssid, state, isConnected, frequency, accesspoint, linkQuality, signalLevel, isEncrypted, psk = None):
         self["ssid"] = ssid
-        self["isKnown"] = isKnown
+        self["state"] = state
         self["isConnected"] = isConnected
         self["frequency"] = frequency
         self["accesspoint"] = accesspoint
         self["linkQuality"] = linkQuality
         self["signalLevel"] = signalLevel
         self["isEncrypted"] = isEncrypted
+        self._psk = psk
 
 
 class WifiManager:
@@ -58,7 +63,7 @@ class WifiManager:
         self._wifiEntriesLock = threading.Lock()
         with self._wifiEntriesLock:
             for network in self._wpaSupplicantConf["networks"]:
-                self._wifiEntries[network["ssid"]] = WifiEntry(network["ssid"], True, False, None, None, None, None, None)
+                self._wifiEntries[network["ssid"]] = WifiEntry(network["ssid"], WifiEntry.KNOWN, False, None, None, None, None, None)
         self._iwLock = threading.Lock()
         self._propertyLock = threading.Lock()
         self._timerWifiList = threading.Timer(0, self._getWifiList)
@@ -85,28 +90,30 @@ class WifiManager:
             self._timerWifiConfig.cancel()
 
     def addWifiNetwork(self, ssid, psk):
-        self._wpaSupplicantConf["networks"].append(
-            {
-                "ssid": ssid,
-                "psk": psk
-            }
-        )
+        if ssid in self._wifiEntries.keys():
+            if self._wifiEntries[ssid]["state"] == WifiEntry.NEW:
+                self._wifiEntries[ssid]._psk = psk
+                self._wifiEntries[ssid]["state"] = WifiEntry.ADDED
+            else:
+                raise KeyError("network with ssid {} already exists".format(ssid))
+        else:
+            self._wifiEntries[ssid] = WifiEntry(ssid, WifiEntry.ADDED, False, None, None, None, None, None, psk)
 
     def removeWifiNetwork(self, ssid):
-        removed = False
-        for index, network in enumerate(list(self._wpaSupplicantConf["networks"])):
-            if ssid in network["ssid"]:
-                del self._wpaSupplicantConf["networks"][index]
-                removed = True
-        if not removed:
+        if ssid in self._wifiEntries.keys():
+            if self._wifiEntries[ssid]["state"] == WifiEntry.KNOWN:
+                self._wifiEntries[ssid]["state"] = WifiEntry.REMOVED
+            else:
+                raise KeyError("cannot remove wifi network {} in state {}".format(ssid, self._wifiEntries[ssid]["state"]))
+        else:
             raise KeyError("ssid {} not found".format(ssid))
 
     def saveChanges(self, targetFile="/etc/wpa_supplicant/wpa_supplicant.conf"):
         backupFile = targetFile + ".bkp"
         shutil.copy(targetFile, backupFile)
+        # todo iterate _wifiEntries and apply changes to wpa supplicant conf according to entry state "added" or "removed"
         with open(targetFile, "w") as f:
             f.write(sysinfo.Wifi.wpaSupplicantConfToStr(self._wpaSupplicantConf))
-        self.forceReconnect()
 
     def forceReconnect(self):
         # todo restart dhcpcd systemd service in order to make it connect to any configured wifi in range
@@ -129,7 +136,7 @@ class WifiManager:
                 else:
                     self._wifiEntries[wifi["ssid"]] = WifiEntry(
                         wifi["ssid"],
-                        False,
+                        WifiEntry.NEW,
                         False,
                         wifi["frequency"],
                         wifi["accesspoint"],
@@ -138,11 +145,11 @@ class WifiManager:
                         wifi["encrypted"]
                         )
                     log.debug("added {}".format(wifi["ssid"]))
-            # remove wifis which are not anymore in scan result and are unknown to configurtion
+            # remove wifis which are not anymore in scan result and are new to configuration
             scannedSsids = [w["ssid"] for w in wifilist]
             for k in list(self._wifiEntries.keys()):
                 entry = self._wifiEntries[k]
-                if not entry["isKnown"] and not entry["ssid"] in scannedSsids:
+                if entry["state"] == WifiEntry.NEW and not entry["ssid"] in scannedSsids:
                     del self._wifiEntries[k]
                 elif not entry["ssid"] in scannedSsids:
                     entry["isConnected"] = False
@@ -193,7 +200,16 @@ class MessageHandler:
         self._wifiManager = wifiManager
 
     def onMessage(self, msg):
-        log.info(msg)
+        if "command" in msg.keys():
+            if msg["command"] == "addWifi":
+                self._wifiManager.addWifiNetwork(msg["data"]["ssid"], msg["data"]["psk"])
+            if msg["command"] == "removeWifi":
+                self._wifiManager.removeWifiNetwork(msg["data"]["ssid"])
+            if msg["command"] == "saveChanges":
+                # self._wifiManager.saveChanges()
+                log.warning("saveChanges() is not yet enabled")
+            if msg["command"] == "forceReconnect":
+                self._wifiManager.forceReconnect()
 
 
 def main():

@@ -18,6 +18,7 @@ Item {
 
     function close() {
         textField.text = ""
+        textField.focus = false
         visible = false
     }
 

@@ -18,7 +18,7 @@ except ImportError:
 
 class WifiSettingsModel(QAbstractListModel):
     SsidRole = roles.getNextRoleId()
-    IsKnownRole = roles.getNextRoleId()
+    StateRole = roles.getNextRoleId()
     isConnectedRole = roles.getNextRoleId()
     FrequencyRole = roles.getNextRoleId()
     AccesspointRole = roles.getNextRoleId()
@@ -36,8 +36,8 @@ class WifiSettingsModel(QAbstractListModel):
         row = index.row()
         if role == WifiSettingsModel.SsidRole:
             return self._wifis[row]["ssid"]
-        if role == WifiSettingsModel.IsKnownRole:
-            return self._wifis[row]["isKnown"]
+        if role == WifiSettingsModel.StateRole:
+            return self._wifis[row]["state"]
         if role == WifiSettingsModel.isConnectedRole:
             return self._wifis[row]["isConnected"]
         if role == WifiSettingsModel.FrequencyRole:
@@ -57,7 +57,7 @@ class WifiSettingsModel(QAbstractListModel):
     def roleNames(self):
         return {
             WifiSettingsModel.SsidRole: b"ssid",
-            WifiSettingsModel.IsKnownRole: b"isKnown",
+            WifiSettingsModel.StateRole: b"wState",
             WifiSettingsModel.isConnectedRole: b"isConnected",
             WifiSettingsModel.FrequencyRole: b"frequency",
             WifiSettingsModel.AccesspointRole: b"accesspoint",
@@ -115,9 +115,9 @@ class WifiSettingsModel(QAbstractListModel):
         if self._wifis[row]["ssid"] != wifi["ssid"]:
             self._wifis[row]["ssid"] = wifi["ssid"]
             changedRoles.append(WifiSettingsModel.SsidRole)
-        if self._wifis[row]["isKnown"] != wifi["isKnown"]:
-            self._wifis[row]["isKnown"] = wifi["isKnown"]
-            changedRoles.append(WifiSettingsModel.IsKnownRole)
+        if self._wifis[row]["state"] != wifi["state"]:
+            self._wifis[row]["state"] = wifi["state"]
+            changedRoles.append(WifiSettingsModel.StateRole)
         if self._wifis[row]["isConnected"] != wifi["isConnected"]:
             self._wifis[row]["isConnected"] = wifi["isConnected"]
             changedRoles.append(WifiSettingsModel.isConnectedRole)

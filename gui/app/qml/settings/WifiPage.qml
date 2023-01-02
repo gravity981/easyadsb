@@ -36,13 +36,45 @@ Item {
                     Layout.preferredWidth: 40
                     height: parent.height
                     Rectangle {
+                        id: stateIndicator
                         anchors.centerIn: parent
                         width: 30
                         height: width
                         radius: width / 2
                         color: isConnected ? "green" : Constants.transparent
-                        border.width: isKnown ? 3 : 0
-                        border.color: "green"
+                        states: [
+                            State {
+                                when: wState === "new"
+                                PropertyChanges{
+                                    target: stateIndicator
+                                    border.width: 0
+                                }
+                            },
+                            State {
+                                when: wState === "known"
+                                PropertyChanges{
+                                    target: stateIndicator
+                                    border.width: 3
+                                    border.color: "green"
+                                }
+                            },
+                            State {
+                                when: wState === "added"
+                                PropertyChanges{
+                                    target: stateIndicator
+                                    border.width: 3
+                                    border.color: "blue"
+                                }
+                            },
+                            State {
+                                when: wState === "removed"
+                                PropertyChanges{
+                                    target: stateIndicator
+                                    border.width: 3
+                                    border.color: "red"
+                                }
+                            }
+                        ]
                     }
                 }
                 Column {
@@ -115,11 +147,15 @@ Item {
                     else {
                         internal.editSsid = ssid
                     }
-                    if(!isKnown){
+                    if(wState === "new"){
                         keyboard.open("Add Wifi, enter PSK for " + ssid, "")
                     }
-                    else {
+                    else if(wState === "known") {
                         popup.show("Remove Wifi \"" + ssid + "\"?", true, true)
+                    }
+                    else {
+                        console.log("cannot edit wifi in state " + wState)
+                        internal.editSsid = ""
                     }
                 }
             }
@@ -135,20 +171,30 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             text: "save"
-            onClicked: wifiSettingsModel.saveChanges()
+            onClicked: {
+                if(!wifiSettingsModel.saveChanges()) {
+                    console.log("save changes failed")
+                }
+            }
         }
         MenuButton {
             Layout.fillWidth: true
             Layout.fillHeight: true
             text: "Force Reconnect"
-            onClicked: wifiSettingsModel.forceReconnect()
+            onClicked: {
+                if(!wifiSettingsModel.forceReconnect()) {
+                    console.log("force reconenct failed")
+                }
+            }
         }
     }
 
     Connections {
         target: keyboard
         function onConfirmed(psk) {
-            wifiSettingsModel.addWifi(internal.editSsid, psk)
+            if(!wifiSettingsModel.addWifi(internal.editSsid, psk)) {
+                console.log("add wifi " + internal.editSsid + " failed")
+            }
             internal.editSsid = ""
             keyboard.close()
         }
@@ -161,7 +207,9 @@ Item {
     Connections {
         target: popup
         function onConfirmed() {
-            wifiSettingsModel.removeWifi(internal.editSsid)
+            if(!wifiSettingsModel.removeWifi(internal.editSsid)) {
+                console.log("remove wifi " + internal.editSsid + " failed")
+            }
             internal.editSsid = ""
             popup.hide()
         }
