@@ -366,9 +366,10 @@ class TrafficMonitor:
         """
         Start cleanup timer, removes unseen traffic
         """
-        if self._timer is not None and not self._timer.is_alive():
+        if self._timer is None:
             self._timer = threading.Timer(interval, self._cleanup, [True, interval])
             self._timer.start()
+            log.info("started auto cleanup timer")
 
     def stopAutoCleanup(self):
         """
@@ -377,6 +378,7 @@ class TrafficMonitor:
         if self._timer is not None:
             self._timer.cancel()
             self._timer = None
+            log.info("stopped auto cleanup timer")
 
     def cleanup(self):
         """

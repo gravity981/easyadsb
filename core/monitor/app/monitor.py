@@ -88,10 +88,8 @@ class MessageDispatcher:
                 self._trafficMonitor.cleanup()
             if msg["command"] == "setAutoCleanup":
                 if msg["data"]["enabled"]:
-                    log.info("start auto cleanup")
                     self._trafficMonitor.startAutoCleanup()
                 else:
-                    log.info("stop auto cleanup")
                     self._trafficMonitor.stopAutoCleanup()
 
 
