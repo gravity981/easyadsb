@@ -8,9 +8,10 @@ Item {
     signal cancel
     signal confirmed(string txt)
 
-    function open(title, txt) {
+    function open(title, txt, isPassword) {
         titleText.text = title
         textField.text = txt
+        textField.echoMode = isPassword ? TextInput.PasswordEchoOnEdit : TextInput.Normal
         textField.enabled = true
         textField.focus = true
         textField.cursorPosition = textField.length

@@ -148,7 +148,7 @@ Item {
                         internal.editSsid = ssid
                     }
                     if(wState === "new"){
-                        keyboard.open("Add Wifi, enter PSK for " + ssid, "")
+                        keyboard.open("Add Wifi, enter PSK for " + ssid, "", true)
                     }
                     else if(wState === "known") {
                         popup.show("Remove Wifi \"" + ssid + "\"?", true, true)
