@@ -41,7 +41,7 @@ class WifiEntry(dict):
     REMOVED = "removed"
     NEW = "new"
 
-    def __init__(self, ssid, state, isConnected, frequency, accesspoint, linkQuality, signalLevel, isEncrypted, psk = None):
+    def __init__(self, ssid, state, isConnected, frequency, accesspoint, linkQuality, signalLevel, isEncrypted, psk=None):
         self["ssid"] = ssid
         self["state"] = state
         self["isConnected"] = isConnected
@@ -61,9 +61,8 @@ class WifiManager:
         self._wpaSupplicantConf = sysinfo.Wifi.parseWpaSupplicantConf(sysinfo.Wifi.getWpaSupplicantConf())
         self._wifiEntries = dict()
         self._wifiEntriesLock = threading.Lock()
-        with self._wifiEntriesLock:
-            for network in self._wpaSupplicantConf["networks"]:
-                self._wifiEntries[network["ssid"]] = WifiEntry(network["ssid"], WifiEntry.KNOWN, False, None, None, None, None, None)
+        log.info(repr(self._wpaSupplicantConf))
+        self._updateWifiEntriesFromWpaSupplicantConfig()
         self._iwLock = threading.Lock()
         self._propertyLock = threading.Lock()
         self._timerWifiList = threading.Timer(0, self._getWifiList)
@@ -109,16 +108,38 @@ class WifiManager:
             raise KeyError("ssid {} not found".format(ssid))
 
     def saveChanges(self, targetFile="/etc/wpa_supplicant/wpa_supplicant.conf"):
+        with self._wifiEntriesLock:
+            for entry in self._wifiEntries.values():
+                if entry["state"] == WifiEntry.ADDED:
+                    log.info("add {}, {}".format(entry["ssid"], entry._psk))
+                    self._wpaSupplicantConf["networks"].append({"ssid": entry["ssid"], "psk": entry._psk})
+                elif entry["state"] == WifiEntry.REMOVED:
+                    for index, network in enumerate(list(self._wpaSupplicantConf["networks"])):
+                        if network["ssid"] == entry["ssid"]:
+                            del self._wpaSupplicantConf["networks"][index]
         backupFile = targetFile + ".bkp"
         shutil.copy(targetFile, backupFile)
-        # todo iterate _wifiEntries and apply changes to wpa supplicant conf according to entry state "added" or "removed"
         with open(targetFile, "w") as f:
             f.write(sysinfo.Wifi.wpaSupplicantConfToStr(self._wpaSupplicantConf))
+            self._updateWifiEntriesFromWpaSupplicantConfig()
+        self.forceReconnect()
 
     def forceReconnect(self):
         # todo restart dhcpcd systemd service in order to make it connect to any configured wifi in range
         # this should not be necessary but the system does not always work reliable
         log.warning("force reconnect not yet implemented")
+
+    def _updateWifiEntriesFromWpaSupplicantConfig(self):
+        with self._wifiEntriesLock:
+            wpaSupplicantConfSSids = [net["ssid"] for net in self._wpaSupplicantConf["networks"]]
+            for entry in self._wifiEntries.values():
+                if entry["ssid"] in wpaSupplicantConfSSids:
+                    entry["state"] = WifiEntry.KNOWN
+                else:
+                    entry["state"] = WifiEntry.NEW
+            for ssid in wpaSupplicantConfSSids:
+                if ssid not in self._wifiEntries.keys():
+                    self._wifiEntries[ssid] = WifiEntry(ssid, WifiEntry.KNOWN, False, None, None, None, None, None)
 
     def _updateWifiEntriesIwListResult(self, wifilist):
         with self._wifiEntriesLock:
@@ -206,8 +227,7 @@ class MessageHandler:
             if msg["command"] == "removeWifi":
                 self._wifiManager.removeWifiNetwork(msg["data"]["ssid"])
             if msg["command"] == "saveChanges":
-                # self._wifiManager.saveChanges()
-                log.warning("saveChanges() is not yet enabled")
+                self._wifiManager.saveChanges()
             if msg["command"] == "forceReconnect":
                 self._wifiManager.forceReconnect()
 

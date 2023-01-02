@@ -10,7 +10,8 @@ Item {
 
     function open(title, txt) {
         titleText.text = title
-        textField.text = txt 
+        textField.text = txt
+        textField.enabled = true
         textField.focus = true
         textField.cursorPosition = textField.length
         visible = true
@@ -18,6 +19,7 @@ Item {
 
     function close() {
         textField.text = ""
+        textField.enabled = false
         textField.focus = false
         visible = false
     }
@@ -110,12 +112,6 @@ Item {
                     internal.isNum = !internal.isNum
                     internal.isAlt = false
                     break
-                case internal.kfCancel:
-                    root.cancel()
-                    break
-                case internal.kfEnter:
-                    isLongPressed ? keyboardController.onKeyLongPressed(textField, Qt.Key_Return) : keyboardController.onKeyPressed(textField, Qt.Key_Return)
-                    break
                 default:
                     break
             }
@@ -131,6 +127,12 @@ Item {
                     break
                 case internal.kfBackspace:
                     keyboardController.onKeyReleased(textField, Qt.Key_Backspace)
+                    break
+                case internal.kfCancel:
+                    root.cancel()
+                    break
+                case internal.kfEnter:
+                    root.confirmed(textField.text)
                     break
                 default:
                     break
@@ -176,7 +178,6 @@ Item {
             border.width: 1
             border.color: "#050505"
         }
-        onEditingFinished: root.confirmed(textField.text)
     }
 
     Item {

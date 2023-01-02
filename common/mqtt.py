@@ -101,7 +101,7 @@ class MqttMessenger:
     def sendNotification(self, topic, msg):
         self._mqClient.publish(topic, json.dumps(msg))
 
-    def sendRequestAndWait(self, topic, msg: RequestMessage, timeout=None):
+    def sendRequestAndWait(self, topic, msg: RequestMessage, timeout=3):
         if not topic.endswith("/request"):
             topic += "/request"
         requestId = str(uuid.uuid1())

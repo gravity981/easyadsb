@@ -84,25 +84,25 @@ class WifiSettingsModel(QAbstractListModel):
             if oldSsid not in ssids:
                 self._removeWifi(oldSsid)
 
-    @pyqtSlot(str, str)
+    @pyqtSlot(str, str, result=bool)
     def addWifi(self, ssid, psk):
         request = mqtt.RequestMessage("addWifi", {"ssid": ssid, "psk": util.wpaPsk(ssid, psk).decode("utf-8")})
         response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
         return response["success"]
 
-    @pyqtSlot(str)
+    @pyqtSlot(str, result=bool)
     def removeWifi(self, ssid):
         request = mqtt.RequestMessage("removeWifi", {"ssid": ssid})
         response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
         return response["success"]
 
-    @pyqtSlot()
+    @pyqtSlot(result=bool)
     def saveChanges(self):
         request = mqtt.RequestMessage("saveChanges", {})
         response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
         return response["success"]
 
-    @pyqtSlot()
+    @pyqtSlot(result=bool)
     def forceReconnect(self):
         request = mqtt.RequestMessage("forceReconnect", {})
         response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
