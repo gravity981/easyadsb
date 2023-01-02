@@ -1,18 +1,5 @@
 from PyQt5.QtCore import QObject, pyqtProperty, pyqtSignal, pyqtSlot, QVariant, QTimer
 import logging as log
-import sys
-
-try:
-    try:
-        import common.mqtt as mqtt
-        import common.util as util
-    except ImportError:
-        import mqtt
-        import util
-except ImportError:
-    sys.path.insert(0, '../../common')
-    import mqtt
-    import util
 
 
 class SystemModel(QObject):
