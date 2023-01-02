@@ -66,6 +66,8 @@ def main():
     aircraftImagesPath = str(os.getenv("GUI_AIRCRAFT_IMAGES_PATH"))
     util.setupLogging(log_level)
 
+    trafficCtrlTopic = trafficTopic + "/ctrl"
+
     msgDispatcher = MessageDispatcher()
     subscriptions = {
         satelliteTopic: {
@@ -75,6 +77,9 @@ def main():
         trafficTopic: {
             "type": mqtt.MqttMessenger.NOTIFICATION,
             "func": msgDispatcher.updateTraffic
+        },
+        trafficCtrlTopic: {
+            "type": mqtt.MqttMessenger.RESPONSE,
         },
         positionTopic: {
             "type": mqtt.MqttMessenger.NOTIFICATION,
@@ -97,8 +102,8 @@ def main():
     app = QGuiApplication(sys.argv)
     satellitesModel = SatellitesModel()
     positionModel = PositionModel()
-    trafficModel = TrafficModel(aircraftImagesPath)
-    systemModel = SystemModel(messenger, aliveTimeout=5000)
+    trafficModel = TrafficModel(messenger, trafficCtrlTopic, aircraftImagesPath)
+    systemModel = SystemModel(aliveTimeout=5000)
     wifiSettingsModel = WifiSettingsModel(messenger, sysCtrlTopic)
     msgDispatcher.satellitesUpdated.connect(satellitesModel.onSatellitesUpdated, Qt.QueuedConnection)
     msgDispatcher.positionUpdated.connect(positionModel.onPositionUpdated, Qt.QueuedConnection)

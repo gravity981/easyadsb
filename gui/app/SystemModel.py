@@ -6,9 +6,8 @@ class SystemModel(QObject):
     systemChanged = pyqtSignal()
     statusChanged = pyqtSignal()
 
-    def __init__(self, messenger, aliveTimeout, parent=None):
+    def __init__(self, aliveTimeout, parent=None):
         QObject.__init__(self, parent)
-        self._messenger = messenger
         self._wifi = dict()
         self._gdl90 = dict()
         self._resources = dict()
@@ -50,5 +49,5 @@ class SystemModel(QObject):
         self._timer.start()
         self._isAlive = True
         self._gdl90 = status["gdl90"]
-        log.info("update status")
+        log.debug("update status")
         self.statusChanged.emit()

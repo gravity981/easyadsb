@@ -2,6 +2,7 @@ import roles
 from PyQt5.QtCore import Qt, QObject, QAbstractListModel, QModelIndex, pyqtSlot, QVariant
 import logging as log
 import sys
+import concurrent
 
 try:
     try:
@@ -87,26 +88,30 @@ class WifiSettingsModel(QAbstractListModel):
     @pyqtSlot(str, str, result=bool)
     def addWifi(self, ssid, psk):
         request = mqtt.RequestMessage("addWifi", {"ssid": ssid, "psk": util.wpaPsk(ssid, psk).decode("utf-8")})
-        response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
-        return response["success"]
+        return self._sendRequest(request, self._sysCtrlTopic)
 
     @pyqtSlot(str, result=bool)
     def removeWifi(self, ssid):
         request = mqtt.RequestMessage("removeWifi", {"ssid": ssid})
-        response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
-        return response["success"]
+        return self._sendRequest(request, self._sysCtrlTopic)
 
     @pyqtSlot(result=bool)
     def saveChanges(self):
         request = mqtt.RequestMessage("saveChanges", {})
-        response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
-        return response["success"]
+        return self._sendRequest(request, self._sysCtrlTopic)
 
     @pyqtSlot(result=bool)
     def forceReconnect(self):
         request = mqtt.RequestMessage("forceReconnect", {})
-        response = self._messenger.sendRequestAndWait(self._sysCtrlTopic, request)
-        return response["success"]
+        return self._sendRequest(request, self._sysCtrlTopic)
+
+    def _sendRequest(self, request, topic):
+        try:
+            response = self._messenger.sendRequestAndWait(topic, request)
+            return response["success"]
+        except concurrent.futures._base.TimeoutError:
+            log.error("request {} timed out".format(request))
+            return False
 
     def _updateWifi(self, wifi):
         row = self._rowFromSsid(wifi["ssid"])

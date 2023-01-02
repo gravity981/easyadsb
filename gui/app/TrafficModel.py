@@ -4,6 +4,20 @@ import logging as log
 import os
 from datetime import datetime
 import time
+import sys
+import concurrent
+
+try:
+    try:
+        import common.mqtt as mqtt
+        import common.util as util
+    except ImportError:
+        import mqtt
+        import util
+except ImportError:
+    sys.path.insert(0, '../../common')
+    import mqtt
+    import util
 
 
 class TrafficModel(QAbstractListModel):
@@ -31,8 +45,10 @@ class TrafficModel(QAbstractListModel):
     LastSeenSecondsRole = roles.getNextRoleId()
     LastSeenDeltaTimeRole = roles.getNextRoleId()
 
-    def __init__(self, aircraftImagesPath, parent=None):
+    def __init__(self, messenger, monitorCtrlTopic, aircraftImagesPath, parent=None):
         QObject.__init__(self, parent)
+        self._messenger = messenger
+        self._monitorCtrlTopic = monitorCtrlTopic
         self._trafficEntries = []
         self._aircraftImagesPath = aircraftImagesPath
         self._timer = QTimer(self)
@@ -123,6 +139,16 @@ class TrafficModel(QAbstractListModel):
             TrafficModel.LastSeenDeltaTimeRole: b"lastSeenDeltaTime"
         }
 
+    @pyqtSlot(result=bool)
+    def clearHistory(self):
+        request = mqtt.RequestMessage("clearHistory", {})
+        return self._sendRequest(request, self._monitorCtrlTopic)
+
+    @pyqtSlot(bool, result=bool)
+    def setAutoCleanup(self, autoCleanupEnabled):
+        request = mqtt.RequestMessage("setAutoCleanup", {"enabled": autoCleanupEnabled})
+        return self._sendRequest(request, self._monitorCtrlTopic)
+
     @pyqtSlot(QVariant)
     def onTrafficEntriesUpdated(self, entries):
         oldEntryIds = self.ids
@@ -135,6 +161,14 @@ class TrafficModel(QAbstractListModel):
         for oldId in oldEntryIds:
             if oldId not in ids:
                 self._removeTrafficEntry(oldId)
+
+    def _sendRequest(self, request, topic):
+        try:
+            response = self._messenger.sendRequestAndWait(topic, request)
+            return response["success"]
+        except concurrent.futures._base.TimeoutError:
+            log.error("request {} timed out".format(request))
+            return False
 
     def _addTrafficEntry(self, entry):
         log.debug("add traffic entry")

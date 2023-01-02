@@ -17,9 +17,9 @@ Button {
     }
     background: Rectangle {
         anchors.fill: parent
-        color: parent.down ? Constants.darkGrey : (isHighlighted? Constants.veryDarkGrey: Constants.lightGrey)
-        border.color: Constants.borderBlack
-        border.width: 1
+        color: parent.down ? Constants.darkGrey : (isHighlighted ? Constants.veryDarkGrey: Constants.lightGrey)
+        border.color: parent.checked ? "firebrick" : Constants.borderBlack
+        border.width: parent.checked ? 4 : 1
         radius: 4
     }
 }

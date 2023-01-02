@@ -20,20 +20,21 @@ Page {
             MenuButton {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 100
-                text: "Wifi"
-                onClicked: root.push("WifiPage.qml")
+                text: "Clear History"
+                onClicked: trafficModel.clearHistory()
             }
             MenuButton {
+                id: btn
                 Layout.fillWidth: true
                 Layout.preferredHeight: 100
-                text: "Traffic"
-                onClicked: root.push("TrafficSettingsPage.qml")
-            }
-            MenuButton {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 100
-                text: "Position"
-                onClicked: root.push("PositionSettingsPage.qml")
+                checkable: true
+                text: "Enable Auto Cleanup"
+                onClicked: {
+                    if(!trafficModel.setAutoCleanup(btn.checked)) {
+                        console.log("set auto cleanup not successful, put it to " + !btn.checked)
+                        btn.checked = !btn.checked
+                    }
+                }
             }
         }
     }
