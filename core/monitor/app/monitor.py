@@ -42,7 +42,7 @@ class MessageDispatcher:
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
 
-    def _onNmeaMessage(self, msg):
+    def onNmeaMessage(self, msg):
         try:
             nmea = NMEAReader.parse(msg)
             log.debug(nmea)
@@ -51,7 +51,7 @@ class MessageDispatcher:
             log.error('on nmea message error, {}, "{}"'.format(str(ex), msg))
             return
 
-    def _onUbxMessage(self, msg):
+    def onUbxMessage(self, msg):
         try:
             ubx = UBXReader.parse(msg.strip())
             log.debug(ubx)
@@ -59,7 +59,7 @@ class MessageDispatcher:
             log.error('on ubx message error, {}, "{}"'.format(str(ex), msg))
             return
 
-    def _onSbsMessage(self, msg):
+    def onSbsMessage(self, msg):
         try:
             dec = msg.strip()
             sbs = SBSReader.parse(dec)
@@ -72,7 +72,7 @@ class MessageDispatcher:
             log.error('on sbs message error, {}, "{}"'.format(str(ex), msg))
             return
 
-    def _onBmeMessage(self, msg):
+    def onBmeMessage(self, msg):
         try:
             bme = json.loads(msg.strip())
             log.debug(bme)
@@ -81,7 +81,7 @@ class MessageDispatcher:
             log.error('on bme message error, {}, "{}"'.format(str(ex), msg.payload))
             return
 
-    def _onTrafficRequest(self, msg):
+    def onTrafficRequest(self, msg):
         if "command" in msg.keys():
             if msg["command"] == "clearHistory":
                 log.info("cleanup unseen traffic")
@@ -298,23 +298,23 @@ def main():
     subscriptions = {
         nmeaTopic: {
             "type": mqtt.MqttMessenger.NOTIFICATION,
-            "func": msgDispatcher._onNmeaMessage
+            "func": msgDispatcher.onNmeaMessage
         },
         ubxTopic: {
             "type": mqtt.MqttMessenger.NOTIFICATION,
-            "func": msgDispatcher._onUbxMessage
+            "func": msgDispatcher.onUbxMessage
         },
         sbsTopic: {
             "type": mqtt.MqttMessenger.NOTIFICATION,
-            "func": msgDispatcher._onSbsMessage
+            "func": msgDispatcher.onSbsMessage
         },
         bmeTopic: {
             "type": mqtt.MqttMessenger.NOTIFICATION,
-            "func": msgDispatcher._onBmeMessage
+            "func": msgDispatcher.onBmeMessage
         },
         "/easyadsb/monitor/traffic/ctrl": {
             "type": mqtt.MqttMessenger.REQUEST,
-            "func": msgDispatcher._onTrafficRequest
+            "func": msgDispatcher.onTrafficRequest
         }
     }
     messenger = mqtt.MqttMessenger(mqttClient, subscriptions)
