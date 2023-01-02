@@ -18,6 +18,10 @@ services:
       - SY_WIFI_IFACE=wlan0
     volumes:
       - /etc/wpa_supplicant:/etc/wpa_supplicant
+      - /bin/systemctl:/bin/systemctl 
+      - /run/systemd/system:/run/systemd/system 
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket 
+      - /sys/fs/cgroup:/sys/fs/cgroup
     network_mode: host
     privileged: true
     restart: unless-stopped

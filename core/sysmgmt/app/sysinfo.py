@@ -3,6 +3,15 @@ import logging as log
 import shlex
 
 
+def restartDhcpcd():
+    cmd = "systemctl restart dhcpcd"
+    process = subprocess.run(shlex.split(cmd), capture_output=True, encoding="utf-8")
+    if process.stderr:
+        log.error(process.stderr)
+    else:
+        log.info(process.stdout)
+
+
 class Wifi:
     def getIwConfig(iface):
         process = subprocess.run(["iwconfig", iface], capture_output=True, encoding="utf-8")

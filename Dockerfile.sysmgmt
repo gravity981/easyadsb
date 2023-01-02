@@ -1,4 +1,4 @@
-FROM arm32v7/python:3.11-alpine
+FROM arm32v7/python:3.11-bullseye
 
 LABEL org.opencontainers.image.source = "https://github.com/gravity981/easyadsb"
 
@@ -10,7 +10,7 @@ ENV SY_MQTT_INFO_TOPIC /easyadsb/sysmgmt/info
 ENV SY_MQTT_CTRL_TOPIC /easyadsb/sysmgmt/ctrl
 ENV SY_WIFI_IFACE wlan0
 
-RUN apk add wireless-tools
+RUN apt-get update && apt-get install -y wireless-tools && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home
 COPY core/sysmgmt/requirements.txt ./

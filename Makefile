@@ -1,8 +1,8 @@
 image_base_path = ghcr.io/gravity981/easyadsb
 
-.PHONY: all bme280 ublox dump1090 dump1090mqtt monitor sys run-ublox run-monitor run-bme280 run-dump1090 run-dump1090mqtt rst-updater rst-gui rst-core
+.PHONY: all bme280 ublox dump1090 dump1090mqtt monitor sysmgmt run-ublox run-monitor run-bme280 run-dump1090 run-dump1090mqtt rst-updater rst-gui rst-core
 
-all: bme280 ublox dump1090mqtt monitor sys
+all: bme280 ublox dump1090mqtt monitor sysmgmt
 
 dump1090:
 	docker build -t $(image_base_path)/dump1090 -f Dockerfile.dump1090 .
@@ -38,7 +38,7 @@ run-dump1090mqtt: dump1090mqtt
 	docker run --rm --network=host $(image_base_path)/dump1090mqtt
 
 run-sysmgmt: sysmgmt
-	docker run --rm --network=host --privileged -v /etc/wpa_supplicant/:/etc/wpa_supplicant/ $(image_base_path)/sysmgmt
+	docker run --rm --network=host --privileged -v /etc/wpa_supplicant/:/etc/wpa_supplicant/ -v /bin/systemctl:/bin/systemctl -v /run/systemd/system:/run/systemd/system -v /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket -v /sys/fs/cgroup:/sys/fs/cgroup $(image_base_path)/sysmgmt
 
 rst-updater:
 	sudo systemctl restart easyadsb-updater; journalctl -u easyadsb-updater -n 50 -f

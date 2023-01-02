@@ -125,9 +125,8 @@ class WifiManager:
         self.forceReconnect()
 
     def forceReconnect(self):
-        # todo restart dhcpcd systemd service in order to make it connect to any configured wifi in range
-        # this should not be necessary but the system does not always work reliable
-        log.warning("force reconnect not yet implemented")
+        # enforce wifi reconnection by restarting dhcpcd
+        sysinfo.restartDhcpcd()
 
     def _updateWifiEntriesFromWpaSupplicantConfig(self):
         with self._wifiEntriesLock:
