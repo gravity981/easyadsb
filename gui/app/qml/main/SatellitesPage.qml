@@ -14,7 +14,7 @@ Page {
     Text {
         id: title
         anchors.top: parent.top
-        text: "NavMode: " + positionModel.navMode + ", sat count: " + listview.count + ", mc: " + satellitesModel.maxCnoTotal
+        text: "NavMode: " + positionModel.navMode + ", sat count: " + listview.count
         font.pointSize: 8
     }
     ListView {
