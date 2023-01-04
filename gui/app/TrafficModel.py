@@ -10,14 +10,11 @@ import concurrent
 try:
     try:
         import common.mqtt as mqtt
-        import common.util as util
     except ImportError:
         import mqtt
-        import util
 except ImportError:
     sys.path.insert(0, '../../common')
     import mqtt
-    import util
 
 
 class TrafficModel(QAbstractListModel):
