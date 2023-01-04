@@ -38,9 +38,10 @@ class MessageDispatcher:
     used to parse incoming mqtt messages and dispatch them to the correct receiver
     """
 
-    def __init__(self, navMonitor, trafficMonitor):
+    def __init__(self, navMonitor, trafficMonitor, gdl90Sender):
         self._navMonitor = navMonitor
         self._trafficMonitor = trafficMonitor
+        self._gdl90Sender = gdl90Sender
 
     def onNmeaMessage(self, msg):
         try:
@@ -86,11 +87,18 @@ class MessageDispatcher:
             if msg["command"] == "clearHistory":
                 log.info("cleanup unseen traffic")
                 self._trafficMonitor.cleanup()
-            if msg["command"] == "setAutoCleanup":
+            elif msg["command"] == "setAutoCleanup":
                 if msg["data"]["enabled"]:
                     self._trafficMonitor.startAutoCleanup()
                 else:
                     self._trafficMonitor.stopAutoCleanup()
+            elif msg["command"] == "setCallsignFilter":
+                log.info("set callsign filter to {}".format(msg["data"]["callsign"]))
+                self._gdl90Sender.setCallsignFilter(msg["data"]["callsign"])
+            else:
+                raise KeyError("command {} unknown".format(msg["command"]))
+        else:
+            raise KeyError("missing key \"command\" in message")
 
 
 class GDL90Sender:
@@ -104,9 +112,13 @@ class GDL90Sender:
         self._heartbeatIntervalSeconds = 1
         self._navMonitor = navMonitor
         self._sendHeartbeatMsg()
+        self._filteredCallsign = None
+
+    def setCallsignFilter(self, callsign):
+        self._filteredCallsign = callsign
 
     def notify(self, obj):
-        if type(obj) == TrafficEntry:
+        if type(obj) == TrafficEntry and obj["callsign"] != self._filteredCallsign:
             trafficMsg = MessageConverter.toGDL90TrafficMsg(obj)
             self._send(trafficMsg)
         elif type(obj) == PosInfo:
@@ -290,7 +302,9 @@ def main():
 
     trafficMonitor = TrafficMonitor(aircrafts, types, dbversion["version"], typesExtension)
     navMonitor = NavMonitor()
-    msgDispatcher = MessageDispatcher(navMonitor, trafficMonitor)
+    gdl90Port = GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
+    gdl90Sender = GDL90Sender(gdl90Port, navMonitor)
+    msgDispatcher = MessageDispatcher(navMonitor, trafficMonitor, gdl90Sender)
     log.debug("{name}, {broker}, {port}".format(name=clientName, broker=broker, port=port))
     mqttClient = mqtt.launch(clientName, broker, port)
     subscriptions = {
@@ -316,8 +330,6 @@ def main():
         }
     }
     messenger = mqtt.MqttMessenger(mqttClient, subscriptions)
-    gdl90Port = GDL90Port(gdl90NetworkInterface, gdl90NetworkPort)
-    gdl90Sender = GDL90Sender(gdl90Port, navMonitor)
     jsonSender = JsonSender(navMonitor, trafficMonitor, gdl90Port, messenger, 1)
     jsonSender.start()
     trafficMonitor.register(gdl90Sender)

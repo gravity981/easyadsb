@@ -4,7 +4,7 @@ import QtQuick.Layouts 1.15
 import "../"
 
 
-Item {
+Page {
     property var keyboard
     property var popup
 

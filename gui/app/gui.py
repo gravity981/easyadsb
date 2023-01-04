@@ -109,7 +109,7 @@ def main():
     satellitesModel = SatellitesModel()
     positionModel = PositionModel()
     trafficModel = TrafficModel(messenger, trafficCtrlTopic, aircraftImagesPath)
-    systemModel = SystemModel(aliveTimeout=5000)
+    systemModel = SystemModel(messenger, trafficCtrlTopic, aliveTimeout=5000)
     wifiSettingsModel = WifiSettingsModel(messenger, sysCtrlTopic)
     msgDispatcher.satellitesUpdated.connect(satellitesModel.onSatellitesUpdated, Qt.QueuedConnection)
     msgDispatcher.positionUpdated.connect(positionModel.onPositionUpdated, Qt.QueuedConnection)

@@ -35,6 +35,12 @@ Page {
                 text: "Position"
                 onClicked: root.push("PositionSettingsPage.qml")
             }
+            MenuButton {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 100
+                text: "GDL90"
+                onClicked: root.push("Gdl90SettingsPage.qml")
+            }
         }
     }
 }

@@ -23,7 +23,6 @@ Item {
             id: title
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            color: "white"
             text: stackView.currentItem.title
             elide: Text.ElideRight
         }

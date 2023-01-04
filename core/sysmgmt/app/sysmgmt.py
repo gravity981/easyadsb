@@ -224,12 +224,16 @@ class MessageHandler:
         if "command" in msg.keys():
             if msg["command"] == "addWifi":
                 self._wifiManager.addWifiNetwork(msg["data"]["ssid"], msg["data"]["psk"])
-            if msg["command"] == "removeWifi":
+            elif msg["command"] == "removeWifi":
                 self._wifiManager.removeWifiNetwork(msg["data"]["ssid"])
-            if msg["command"] == "saveChanges":
+            elif msg["command"] == "saveChanges":
                 self._wifiManager.saveChanges()
-            if msg["command"] == "forceReconnect":
+            elif msg["command"] == "forceReconnect":
                 self._wifiManager.forceReconnect()
+            else:
+                raise KeyError("command {} unknown".format(msg["command"]))
+        else:
+            raise KeyError("missing key \"command\" in message")
 
 
 def main():
