@@ -126,7 +126,9 @@ class WifiManager:
         self.forceReconnect()
 
     def forceReconnect(self):
-        # enforce wifi reconnection by restarting dhcpcd
+        # enforce wifi reconnection by restarting services
+        sysinfo.systemDaemonReload()
+        sysinfo.restartWpaSupplicant()
         sysinfo.restartDhcpcd()
 
     def _updateWifiEntriesFromWpaSupplicantConfig(self):

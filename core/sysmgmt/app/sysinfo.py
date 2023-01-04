@@ -3,13 +3,27 @@ import logging as log
 import shlex
 
 
+def systemDaemonReload():
+    cmd = "systemctl daemon-reload"
+    _runSubprocess(cmd)
+
+
+def restartWpaSupplicant():
+    cmd = "systemctl restart wpa_supplicant"
+    _runSubprocess(cmd)
+
+
 def restartDhcpcd():
     cmd = "systemctl restart dhcpcd"
+    _runSubprocess(cmd)
+
+
+def _runSubprocess(cmd):
     process = subprocess.run(shlex.split(cmd), capture_output=True, encoding="utf-8")
-    if process.stderr:
+    if process.returncode != 0:
         log.error(process.stderr)
     else:
-        log.info(process.stdout)
+        log.info("run \"{}\" successfully, {}".format(cmd, process.stdout))
 
 
 class Wifi:
@@ -47,9 +61,9 @@ class Wifi:
         cmd = "iwlist {} scan".format(iface)
         pIwlist = subprocess.Popen(shlex.split(cmd), stdout=pAwk.stdin, stderr=subprocess.PIPE)
         out, err = pAwk.communicate()
-        if err:
-            raise ChildProcessError(err)
         pIwlist.wait()
+        if pIwlist.returncode != 0:
+            raise ChildProcessError(pIwlist.stderr.read().decode("utf-8").strip())
         return out.decode("utf-8")
 
     def parseIwList(iwlistStr):
