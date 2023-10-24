@@ -5,7 +5,7 @@ After=easyadsb-core.service
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/easyadsb/gui/
+WorkingDirectory=/home/pi/easyadsb/gui-qml/
 ExecStart=/usr/bin/sh launch.sh
 TimeoutStartSec=0
 Restart=always
