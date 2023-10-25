@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'mqtt_server_client.dart';
 
 void main() {
+  startMqttClient();
   runApp(const MyApp());
 }
 
