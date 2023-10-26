@@ -38,20 +38,20 @@ Currently used Message IDs are **GSV, GSA, VTG & GGA**
 Example: `$GNGGA,072015.00,,,,,0,00,99.99,,,,,,*79`
 
 ## BME280 json notification
-json objects containing the following fields
-- humidity, rel. Hum. %, decimal
-- pressure, hPa, decimal
-- temperature, °C, decimal
-- pressureAltitude, m.s.l., decimal
+json object with fields:
+- `humidity`, rel. Hum. %, decimal
+- `pressure`, hPa, decimal
+- `temperature`, °C, decimal
+- `pressureAltitude`, m.s.l., decimal
 
 Example: `{"humidity": 33.336, "pressure": 905.348, "temperature": 27.854, "pressureAltitude": 1002.566}`
 
-Pressure Altitude calculation uses 1013.25 hPa as reference pressure and compensates for temperature.
+Pressure Altitude calculation uses 1013.25 hPa as reference pressure and is temperature compensated.
 More Info: [https://en.wikipedia.org/wiki/Pressure_altitude](https://en.wikipedia.org/wiki/Pressure_altitude)
 
 ## satellites notification
 JSON array with satellite objects. satellite object has fields:
-- `svid`, satellite id
+- `svid`, satellite ID
 - `prn`, satellite PRN number
 - `elevation`, position in sky
 - `azimuth`, position in sky
@@ -86,12 +86,12 @@ Example notification: `{"navMode": 1, "opMode": "A", "pdop": 99.99, "hdop": 99.9
 ## status notification
 JSON object with fields:
 - `gdl90`, object
-    - `isActive`
-    - `ip`
-    - `netmask`
-    - `broadcastIp`
-    - `nic`
-    - `port`
+    - `isActive`, is interface turned on, bool
+    - `ip`, interface ip address, string
+    - `netmask`, interface net mask, string
+    - `broadcastIp`, interface broadcast ip, string
+    - `nic`, interfce network card, string
+    - `port`, interface port (UDP)
 
 Example notification `{"gdl90": {"isActive": true, "ip": "172.20.10.7", "netMask": "255.255.255.240", "broadcastIp": "172.20.10.15", "nic": "wlan0", "port": 4000}}`
 
