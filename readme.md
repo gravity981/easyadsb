@@ -25,13 +25,13 @@ Project to easily setup your device as a ADS-B receiver
 | /easyadsb/sysmgmt/ctrl/response | json | response | control system settings |
 
 ## SBS notification
-SBS-1 Basestation Protocol. Message format documentation: [http://woodair.net/SBS/Article/Barebones42_Socket_Data.htm]()
+SBS-1 Basestation Protocol. Message format documentation: [http://woodair.net/SBS/Article/Barebones42_Socket_Data.htm](http://woodair.net/SBS/Article/Barebones42_Socket_Data.htm)
 
 Example: `MSG,3,1,1,44039E,1,2023/10/26,07:20:11.481,2023/10/26,07:20:11.491,,30500,,,,,,,0,,0,0
 `
 
 ## NMEA notification
-NMEA Strings. More Info: [https://www.gpsworld.com/what-exactly-is-gps-nmea-data/]()
+NMEA Strings. More Info: [https://www.gpsworld.com/what-exactly-is-gps-nmea-data/](https://www.gpsworld.com/what-exactly-is-gps-nmea-data/)
 
 Currently used Message IDs are **GSV, GSA, VTG & GGA**
 
@@ -47,9 +47,9 @@ json objects containing the following fields
 Example: `{"humidity": 33.336, "pressure": 905.348, "temperature": 27.854, "pressureAltitude": 1002.566}`
 
 Pressure Altitude calculation uses 1013.25 hPa as reference pressure and compensates for temperature.
-More Info: [https://en.wikipedia.org/wiki/Pressure_altitude]()
+More Info: [https://en.wikipedia.org/wiki/Pressure_altitude](https://en.wikipedia.org/wiki/Pressure_altitude)
 
-## satellites notification`
+## satellites notification
 JSON array with satellite objects. satellite object has fields:
 - `svid`, satellite id
 - `prn`, satellite PRN number
@@ -124,8 +124,9 @@ Example response: `{"success": false, "data": null, "requestId": "4dfb87a8-73e6-
 
 
 # GDL90
-Garmin Datalink. Mobile Devices running Sky Demon can be connected to this interface.
-Protocol Spec: [https://www.faa.gov/sites/faa.gov/files/air_traffic/technology/adsb/archival/GDL90_Public_ICD_RevA.PDF]()
+Garmin Datalink. Connect compatible devices to this interface to get traffic informatin. 
+E.g. Mobile Devices running Sky Demon can be connected to this interface.
+Protocol Spec: [https://www.faa.gov/sites/faa.gov/files/air_traffic/technology/adsb/archival/GDL90_Public_ICD_RevA.PDF](https://www.faa.gov/sites/faa.gov/files/air_traffic/technology/adsb/archival/GDL90_Public_ICD_RevA.PDF)
 
 
 
